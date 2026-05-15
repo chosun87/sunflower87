@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   DataTable,
@@ -10,6 +11,19 @@ import {
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Auth Check: gem_gagaebu 스타일 이식
+    const token = localStorage.getItem("sunflower87_token");
+    const expiry = localStorage.getItem("sunflower87_expiry");
+    
+    if (!token || (expiry && Date.now() > Number(expiry))) {
+      localStorage.removeItem("sunflower87_token");
+      localStorage.removeItem("sunflower87_expiry");
+      navigate("/login");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     // 백엔드 API로부터 계좌 데이터 바인딩
