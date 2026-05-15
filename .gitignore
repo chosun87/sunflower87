@@ -1,0 +1,21 @@
+# sunflower87 Root .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Backend (be/)
+be/.env
+be/venv/
+be/__pycache__/
+be/*.pyc
+
+# Frontend (fe/)
+fe/.env
+fe/node_modules/
+fe/dist/
+fe/.eslintcache

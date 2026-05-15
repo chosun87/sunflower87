@@ -1,0 +1,6 @@
+# Frontend .gitignore
+.env
+node_modules/
+dist/
+.eslintcache
+.vscode/
