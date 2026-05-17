@@ -47,14 +47,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_stocks_cache = {}
-
 
 def get_stocks_master():
-    global _stocks_cache
-    if _stocks_cache:
-        return _stocks_cache
-
     try:
         from pykrx import stock
         from datetime import datetime, timedelta
@@ -82,78 +76,86 @@ def get_stocks_master():
                     if etf_dict:
                         integrated.update(etf_dict)
 
-                    _stocks_cache = integrated
                     print(
-                        f"Loaded {len(_stocks_cache)} integrated stocks/ETFs "
+                        f"Loaded {len(integrated)} integrated stocks/ETFs "
                         f"from pykrx for date {date_str}"
                     )
-                    return _stocks_cache
+                    return integrated
             except Exception as e:
                 print(f"Failed to fetch integrated tickers for {date_str}: {e}")
                 continue
     except Exception as e:
         print(f"Failed to load pykrx: {e}")
 
-    # Fallback 종목 마스터 데이터 선언 (오프라인/네트워크 오류 및 D.O.D. 대응용)
-    if not _stocks_cache:
-        _stocks_cache = {
-            "005930": "삼성전자",
-            "005380": "현대차",
-            "000660": "SK하이닉스",
-            "035420": "네이버",
-            "035720": "카카오",
-            "373220": "LG에너지솔루션",
-            "068270": "셀트리온",
-            "005490": "POSCO홀딩스",
-            "000270": "기아",
-            "105560": "KB금융",
-            "055550": "신한지주",
-            "003550": "LG",
-            "032830": "삼성생명",
-            "015760": "한국전력",
-            "034730": "SK",
-            "090430": "아모레퍼시픽",
-            "017670": "SK텔레콤",
-            "011200": "HMM",
-            "034020": "두산에너빌리티",
-            "326030": "SK바이오사이언스",
-            "000100": "유한양행",
-            "009150": "삼성전기",
-            "010140": "삼성중공업",
-            "018260": "삼성에스디에스",
-            "033780": "KT&G",
-            "030200": "KT",
-            "003490": "대한항공",
-            # D.O.D. 및 핵심 피드백 사항 추가 선언
-            "042660": "한화오션",
-            "102110": "TIGER 200",
-            "069500": "KODEX 200",
-            "272580": "KODEX 200액티브",
-            "360750": "TIGER 미국S&P500",
-        }
-        print(
-            f"Using integrated offline fallback stocks master "
-            f"(size: {len(_stocks_cache)})"
-        )
-
-    return _stocks_cache
+    print("Failed to fetch tickers from pykrx and no offline fallback master is used.")
+    return {}
 
 
 @app.get("/api/stocks/search")
-def search_stocks(keyword: str = ""):
-    """종목명을 기반으로 종목코드를 자동 검색합니다 (부분 일치)."""
+def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
+    """종목명을 기반으로 종목코드를 자동 검색합니다 (부분 일치).
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: GET
+    - URL: /api/stocks/search
+    - Query Parameters:
+        - keyword (str): 검색할 종목명 또는 종목코드 일부 (예: "삼성")
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "results": [
+                {"code": "005930", "name": "삼성전자"},
+                {"code": "009150", "name": "삼성전기"}
+            ]
+        }
+    - 응답 규격 (에러 예시):
+        {
+            "detail": "에러 내용 설명"
+        }
+    """
     if not keyword:
         return {"status": "success", "results": []}
 
-    stocks_master = get_stocks_master()
-    results = []
+    from database import CacheStock
+    from sqlalchemy import func
 
+    # [1단계] 로컬 DB 선검색 (Cache Hit 시도)
     keyword_lower = keyword.lower()
+    db_results = (
+        db.query(CacheStock)
+        .filter(func.lower(CacheStock.stock_name).like(f"%{keyword_lower}%"))
+        .all()
+    )
+
+    if db_results:
+        results = [{"code": r.stock_code, "name": r.stock_name} for r in db_results]
+        return {"status": "success", "results": results[:10]}
+
+    # [2단계] 외부 데이터 로드 및 통합 (Cache Miss 대응)
+    stocks_master = get_stocks_master()
+    matched_stocks = []
+
     for code, name in stocks_master.items():
         if keyword_lower in name.lower() or keyword_lower in code:
-            results.append({"code": code, "name": name})
+            matched_stocks.append({"code": code, "name": name})
 
-    return {"status": "success", "results": results[:10]}
+    # [3단계] 로컬 DB 적재 및 반환 (Cache Fill)
+    if matched_stocks:
+        for ms in matched_stocks:
+            # 중복 방지를 위해 확인 후 INSERT
+            existing = (
+                db.query(CacheStock).filter(CacheStock.stock_code == ms["code"]).first()
+            )
+            if not existing:
+                cache_item = CacheStock(stock_code=ms["code"], stock_name=ms["name"])
+                db.add(cache_item)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Failed to commit cached stocks: {e}")
+
+    return {"status": "success", "results": matched_stocks[:10]}
 
 
 def get_enriched_accounts_data(db: Session) -> dict:
@@ -251,13 +253,60 @@ def get_enriched_accounts_data(db: Session) -> dict:
 
 @app.get("/api/accounts")
 def get_miraeasset_accounts(db: Session = Depends(get_db)):
-    """SQLite 데이터베이스 stocks 테이블의 데이터를 기반으로 현재 총자산을 동적 계산하여 반환합니다."""
+    """SQLite 데이터베이스 account 및 stocks 테이블을 기반으로 총자산 및 계좌별 세부 자산 현황을 반환합니다.
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: GET
+    - URL: /api/accounts
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "total_asset": 39800000.0,
+            "accounts": [
+                {
+                    "id": "A001",
+                    "account_number": "A001",
+                    "alias": "[미래에셋증권] 주식계좌 1",
+                    "balance": 39800000.0,
+                    "total_eval": 39800000.0,
+                    "profit_rate": 0.0,
+                    "stocks": []
+                }
+            ]
+        }
+    """
     return get_enriched_accounts_data(db)
 
 
 @app.get("/api/transactions")
 def get_transaction_history(db: Session = Depends(get_db)):
-    """최근 거래일시 순(ORDER BY date DESC)으로 매매 거래 내역을 반환합니다."""
+    """최근 거래일시 순(date DESC)으로 전체 매매 거래 내역을 반환합니다.
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: GET
+    - URL: /api/transactions
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "data": [
+                {
+                    "id": 1,
+                    "date": "2026-05-17T23:25:46",
+                    "type": "BUY",
+                    "code": "005930",
+                    "name": "삼성전자",
+                    "quantity": 10,
+                    "price": 77000.0,
+                    "acc_code": "A001",
+                    "accCode": "A001",
+                    "account_number": "A001",
+                    "acc_nm": "주식계좌 1",
+                    "acc_company_nm": "미래에셋증권",
+                    "account_alias": "[미래에셋증권] 주식계좌 1"
+                }
+            ]
+        }
+    """
     try:
         from database import Account
 
@@ -316,16 +365,9 @@ def recalculate_portfolio_for_account(db: Session, acc_code: str):
             status_code=404, detail=f"Account with code '{acc_code}' not found."
         )
 
-    # 1. 초기 씨드 자산 설정 (A001 계좌만 초기 보유 주식이 있고, 현금 39,800,000.0원으로 시작)
+    # 1. 초기 자산 설정 (모든 계좌는 하드코딩 없이 현금 0원 및 보유 주식 없음 상태에서 시작합니다)
     holdings = {}
-    if acc_code == "A001":
-        initial_cash = 39800000.0
-        holdings = {
-            "005930": {"name": "삼성전자", "quantity": 100, "avg_price": 72500.0},
-            "005380": {"name": "현대차", "quantity": 30, "avg_price": 240000.0},
-        }
-    else:
-        initial_cash = 0.0
+    initial_cash = 0.0
 
     cash_balance = initial_cash
 
@@ -394,33 +436,46 @@ def recalculate_portfolio_for_account(db: Session, acc_code: str):
 
     db.query(Stock).filter(Stock.acc_code == acc_code).delete()
 
-    # Use baseline map for seeded stocks if they don't have transaction history,
-    # otherwise use latest price
-    current_prices_map = {
-        "005930": 77000,
-        "000660": 147000,
-        "005380": 250000,
-        "035420": 185000,
-        "360750": 14250,
-        "069500": 34650,
-    }
-
     for code, info in holdings.items():
-        current_p = current_prices_map.get(code, int(info["avg_price"]))
         new_stock = Stock(
             code=code,
             acc_code=acc_code,
             name=info["name"],
             quantity=info["quantity"],
             avg_price=info["avg_price"],
-            current_price=current_p,
+            current_price=int(info["avg_price"]),
         )
         db.add(new_stock)
 
 
 @app.post("/api/transactions/add")
 def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
-    """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다."""
+    """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다.
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: POST
+    - URL: /api/transactions/add
+    - Request Body (Payload Schema):
+        {
+            "type": "BUY",                # 거래 종류 (BUY 또는 SELL)
+            "code": "005930",             # 종목코드
+            "name": "삼성전자",            # 종목명
+            "quantity": 10,               # 거래 수량 (양의 정수)
+            "price": 77000.0,             # 거래 단가 (양의 실수)
+            "acc_code": "A001",           # 계좌 식별자 (acc_code 등 호환)
+            "date": "2026-05-17 23:25:46"  # (선택) 거래일시
+        }
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "message": "Transaction recorded and portfolio recalculated successfully."
+        }
+    - 응답 규격 (실패 예시 - 예수금/잔고 부족 등):
+        HTTP 400 Bad Request
+        {
+            "detail": "Insufficient cash balance. Required: 770k, Available: 0."
+        }
+    """
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:
         raise HTTPException(
@@ -547,7 +602,19 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
 
 @app.delete("/api/transactions/{tx_id}")
 def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
-    """지정된 거래를 삭제하고 해당 계좌의 포트폴리오를 역산(Rollback)하여 원상복귀시킵니다."""
+    """지정된 거래를 삭제하고 해당 계좌의 포트폴리오를 역산(Rollback)하여 원상복귀시킵니다.
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: DELETE
+    - URL: /api/transactions/{tx_id}
+    - Path Parameters:
+        - tx_id (int): 삭제할 거래 ID
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "message": "Transaction deleted and portfolio reversed successfully."
+        }
+    """
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
     if not tx:
         raise HTTPException(
@@ -583,7 +650,21 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
 def update_transaction(
     tx_id: int, tx_input: TransactionCreate, db: Session = Depends(get_db)
 ):
-    """기존 거래 데이터를 변경하고, 기존 계좌와 신규 계좌의 포트폴리오를 트랜잭션 안전하게 동시 역산 및 재반영합니다."""
+    """기존 거래 데이터를 변경하고, 기존 계좌와 신규 계좌의 포트폴리오를 트랜잭션 안전하게 동시 역산 및 재반영합니다.
+
+    API 호출방식, 응답 예시 및 규격:
+    - Method: PUT
+    - URL: /api/transactions/{tx_id}
+    - Path Parameters:
+        - tx_id (int): 수정할 거래 ID
+    - Request Body (Payload Schema):
+        TransactionCreate와 동일 포맷
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "message": "Transaction updated and portfolio recalculated successfully."
+        }
+    """
     tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
     if not tx:
         raise HTTPException(
@@ -656,9 +737,25 @@ def update_transaction(
 
 @app.get("/api/recommendations")
 def get_ai_recommendations(db: Session = Depends(get_db)):
-    """기획자 MOON(무니)의 R1 명세 데이터 규격 준수 (date 및 data 키 포맷)
+    """오늘 날짜에 맞춘 주식 가치주/성장주 목록 추천 데이터를 반환합니다 (R1 명세 준수).
 
-    오늘 날짜에 맞춘 주식 가치주/성장주 목록 추천 데이터를 반환합니다.
+    API 호출방식, 응답 예시 및 규격:
+    - Method: GET
+    - URL: /api/recommendations
+    - 응답 규격 (성공 예시):
+        {
+            "status": "success",
+            "date": "20260517",
+            "data": [
+                {
+                    "name": "삼성전자",
+                    "code": "005930",
+                    "tag": "가치주",
+                    "reason": "외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.",
+                    "score": 92
+                }
+            ]
+        }
     """
     from database import Recommendation
 
