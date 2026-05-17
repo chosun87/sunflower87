@@ -59,12 +59,8 @@ def get_enriched_accounts_data(db: Session) -> dict:
         stocks_list = account_stocks_map.get(acc.acc_cd, [])
 
         # 주식 평가액 계산
-        stocks_purchase = sum(
-            s["quantity"] * s["avg_price"] for s in stocks_list
-        )
-        stocks_eval = sum(
-            s["quantity"] * s["current_price"] for s in stocks_list
-        )
+        stocks_purchase = sum(s["quantity"] * s["avg_price"] for s in stocks_list)
+        stocks_eval = sum(s["quantity"] * s["current_price"] for s in stocks_list)
 
         # 총 평가금액 (주식 평가액 + 현금 잔고)
         total_eval = stocks_eval + acc.cash_balance

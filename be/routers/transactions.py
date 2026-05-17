@@ -42,9 +42,7 @@ def get_transaction_history(db: Session = Depends(get_db)):
                     "acc_nm": acc_name,
                     "acc_company_nm": acc_company,
                     "account_alias": (
-                        f"[{acc_company}] {acc_name}"
-                        if acc_company
-                        else acc_name
+                        f"[{acc_company}] {acc_name}" if acc_company else acc_name
                     ),
                 }
             )
@@ -77,9 +75,7 @@ def get_transaction_history(db: Session = Depends(get_db)):
         },
     },
 )
-def add_transaction(
-    tx_input: TransactionCreate, db: Session = Depends(get_db)
-):
+def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
     """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다."""
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:
@@ -193,8 +189,7 @@ def add_transaction(
         return {
             "status": "success",
             "message": (
-                "Transaction recorded and portfolio recalculated "
-                "successfully."
+                "Transaction recorded and portfolio recalculated " "successfully."
             ),
         }
     except HTTPException as he:
@@ -248,10 +243,7 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
         db.commit()
         return {
             "status": "success",
-            "message": (
-                "Transaction deleted and portfolio reversed "
-                "successfully."
-            ),
+            "message": ("Transaction deleted and portfolio reversed " "successfully."),
         }
     except HTTPException as he:
         db.rollback()
@@ -344,8 +336,7 @@ def update_transaction(
         return {
             "status": "success",
             "message": (
-                "Transaction updated and portfolio recalculated "
-                "successfully."
+                "Transaction updated and portfolio recalculated " "successfully."
             ),
         }
     except HTTPException as he:

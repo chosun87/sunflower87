@@ -204,12 +204,8 @@ def get_stocks_master():
             date_str = (current_date - timedelta(days=i)).strftime("%Y%m%d")
             try:
                 # 일반 주식 (KOSPI/KOSDAQ) 티커 목록 로드
-                kospi_tickers = stock.get_market_ticker_list(
-                    date_str, market="KOSPI"
-                )
-                kosdaq_tickers = stock.get_market_ticker_list(
-                    date_str, market="KOSDAQ"
-                )
+                kospi_tickers = stock.get_market_ticker_list(date_str, market="KOSPI")
+                kosdaq_tickers = stock.get_market_ticker_list(date_str, market="KOSDAQ")
                 etf_tickers = stock.get_etf_ticker_list(date_str)
 
                 # pykrx의 경우 개별 루프 시 많은 요청(네트워크 지연/차단 위험)이 유발되므로,
@@ -243,9 +239,7 @@ def get_stocks_master():
                     )
                     break
             except Exception as e:
-                print(
-                    f"Dynamic complementary fetch failed for {date_str}: {e}"
-                )
+                print(f"Dynamic complementary fetch failed for {date_str}: {e}")
                 continue
     except Exception as e:
         print(f"Failed to load pykrx: {e}")
@@ -275,9 +269,7 @@ def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
     )
 
     if db_results:
-        results = [
-            {"code": r.stock_code, "name": r.stock_name} for r in db_results
-        ]
+        results = [{"code": r.stock_code, "name": r.stock_name} for r in db_results]
         # 부분매칭 정밀도 정렬 (검색어와 완전히 같거나 앞부분에 매칭되는 종목을 먼저 보여줌)
         results.sort(
             key=lambda x: (
@@ -308,14 +300,10 @@ def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
         for ms in matched_stocks:
             # 중복 방지를 위해 확인 후 INSERT
             existing = (
-                db.query(CacheStock)
-                .filter(CacheStock.stock_code == ms["code"])
-                .first()
+                db.query(CacheStock).filter(CacheStock.stock_code == ms["code"]).first()
             )
             if not existing:
-                cache_item = CacheStock(
-                    stock_code=ms["code"], stock_name=ms["name"]
-                )
+                cache_item = CacheStock(stock_code=ms["code"], stock_name=ms["name"])
                 db.add(cache_item)
         try:
             db.commit()

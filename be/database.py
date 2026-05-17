@@ -56,9 +56,7 @@ class Transaction(Base):
     name = Column(String, nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Integer, nullable=False)
-    acc_cd = Column(
-        String, ForeignKey("account.acc_cd"), nullable=False, default=""
-    )
+    acc_cd = Column(String, ForeignKey("account.acc_cd"), nullable=False, default="")
 
 
 class Stock(Base):
@@ -67,9 +65,7 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     code = Column(String, primary_key=True)
-    acc_cd = Column(
-        String, ForeignKey("account.acc_cd"), primary_key=True, default=""
-    )
+    acc_cd = Column(String, ForeignKey("account.acc_cd"), primary_key=True, default="")
     name = Column(String, nullable=False)
     quantity = Column(Integer, nullable=False)
     avg_price = Column(Integer, nullable=False)
