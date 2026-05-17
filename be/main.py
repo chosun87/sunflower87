@@ -88,6 +88,37 @@ def get_miraeasset_accounts():
     }
 
 
+@app.get("/api/recommendations")
+def get_ai_recommendations():
+    # 기획자 MOON(무니)의 R1 명세 데이터 규격 준수
+    return {
+        "status": "success",
+        "recommendations": [
+            {
+                "name": "삼성전자",
+                "code": "005930",
+                "tag": "가치주",
+                "reason": "외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.",
+                "score": 92,
+            },
+            {
+                "name": "현대차",
+                "code": "005380",
+                "tag": "저PBR/배당",
+                "reason": "정부 밸류업 프로그램 최대 수혜 예상. PBR 0.6배 수준으로 극심한 저평가 상태.",
+                "score": 88,
+            },
+            {
+                "name": "네이버",
+                "code": "035420",
+                "tag": "기술주",
+                "reason": "RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.",
+                "score": 85,
+            },
+        ],
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
 

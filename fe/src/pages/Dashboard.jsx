@@ -16,32 +16,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { isSignedIn, isInitialized } = useAuth();
 
-  const [recommendations] = useState([
-    {
-      name: "삼성전자",
-      code: "005930",
-      tag: "가치주",
-      reason:
-        "외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.",
-      score: 92,
-    },
-    {
-      name: "현대차",
-      code: "005380",
-      tag: "저PBR/배당",
-      reason:
-        "정부 밸류업 프로그램 최대 수혜 예상. PBR 0.6배 수준으로 극심한 저평가 상태.",
-      score: 88,
-    },
-    {
-      name: "네이버",
-      code: "035420",
-      tag: "기술주",
-      reason:
-        "RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.",
-      score: 85,
-    },
-  ]);
+  const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
     if (isInitialized && !isSignedIn) {
@@ -61,6 +36,18 @@ export default function Dashboard() {
         }
       })
       .catch((err) => console.error("데이터 로드 실패:", err));
+  }, []);
+
+  useEffect(() => {
+    // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
+    fetch("http://localhost:8000/api/recommendations")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData.status === "success") {
+          setRecommendations(resData.recommendations);
+        }
+      })
+      .catch((err) => console.error("추천 데이터 로드 실패:", err));
   }, []);
 
   if (!data)
