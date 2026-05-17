@@ -19,7 +19,7 @@ app.add_middleware(
 
 @app.get("/api/accounts")
 def get_miraeasset_accounts():
-    # 의사결정권자님의 미래에셋 3개 계좌 예시 데이터 (보안을 위해 계좌명만 노출)
+    # SUN님의 미래에셋 3개 계좌 예시 데이터 (보안을 위해 계좌명만 노출)
     # MOON 기획자님의 Mock 데이터 규격 준수
     return {
         "status": "success",

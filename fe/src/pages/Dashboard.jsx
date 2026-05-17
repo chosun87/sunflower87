@@ -7,6 +7,7 @@ import {
   Column,
   Dropdown,
   Badge,
+  Button,
 } from "@components/PrimeReact";
 
 export default function Dashboard() {
@@ -14,6 +15,33 @@ export default function Dashboard() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const navigate = useNavigate();
   const { isSignedIn, isInitialized } = useAuth();
+
+  const [recommendations] = useState([
+    {
+      name: "삼성전자",
+      code: "005930",
+      tag: "가치주",
+      reason:
+        "외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.",
+      score: 92,
+    },
+    {
+      name: "현대차",
+      code: "005380",
+      tag: "저PBR/배당",
+      reason:
+        "정부 밸류업 프로그램 최대 수혜 예상. PBR 0.6배 수준으로 극심한 저평가 상태.",
+      score: 88,
+    },
+    {
+      name: "네이버",
+      code: "035420",
+      tag: "기술주",
+      reason:
+        "RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.",
+      score: 85,
+    },
+  ]);
 
   useEffect(() => {
     if (isInitialized && !isSignedIn) {
@@ -93,6 +121,69 @@ export default function Dashboard() {
               className="w-full"
             />
           </Card>
+        </div>
+      </div>
+
+      {/* 오늘의 AI 추천 종목 섹션 */}
+      <div className="mb-6">
+        <div className="flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div className="flex align-items-center gap-2">
+            <i className="pi pi-sparkles text-amber-500 text-2xl"></i>
+            <h2 className="text-2xl font-bold text-900 m-0">
+              오늘의 AI 추천 종목
+            </h2>
+          </div>
+          <Badge
+            value="정량 지표 분석 기반"
+            severity="warning"
+            className="p-2 border-round font-semibold"
+          />
+        </div>
+
+        <div className="grid">
+          {recommendations.map((item, idx) => (
+            <div key={idx} className="col-12 md:col-4">
+              <Card
+                className="shadow-2 hover:shadow-4 transition-all transition-duration-200 border-top-3 border-amber-500 h-full flex flex-column"
+                style={{ borderRadius: "8px" }}
+              >
+                <div className="flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <span className="text-xl font-bold text-900 mr-2">
+                      {item.name}
+                    </span>
+                    <span className="text-500 text-sm font-semibold">
+                      {item.code}
+                    </span>
+                  </div>
+                  <Badge
+                    value={item.tag}
+                    className="bg-amber-100 text-amber-800 font-semibold p-1"
+                  />
+                </div>
+
+                <p className="text-700 text-sm mb-4 line-height-3 flex-grow-1">
+                  {item.reason}
+                </p>
+
+                <div className="flex justify-content-between align-items-center pt-3 border-top-1 border-100 mt-auto">
+                  <span className="text-sm font-semibold text-600">
+                    AI 추천 점수
+                  </span>
+                  <div className="flex align-items-center gap-2">
+                    <span className="text-2xl font-bold text-amber-600">
+                      {item.score}점
+                    </span>
+                    <Button
+                      icon="pi pi-chevron-right"
+                      className="p-button-rounded p-button-text p-button-sm text-amber-500"
+                      aria-label="상세보기"
+                    />
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ))}
         </div>
       </div>
 
