@@ -32,3 +32,33 @@
   { name: "네이버", code: "035420", tag: "기술주", reason: "RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.", score: 85 }
 ]
 ```
+
+---
+
+## ⚙️ [BE_TASK] 백엔드 구현 지침 (담당: 어띠베)
+
+### 1. 작업 디렉토리: `be/`
+### 2. 상세 구현 스펙
+- **코드 퀄리티:** Python 표준 포맷터인 `black`과 린터인 `flake8`을 필수 적용하여 소스코드를 정돈할 것.
+- **인터페이스 설계:** 어띠페가 향후 Mock 데이터를 걷어내고 실데이터를 요청할 수 있도록 아래의 API 엔드포인트 규격(인터페이스)을 미리 백엔드 뼈대에 생성하라.
+  - **Endpoint:** `GET /api/recommendations`
+  - **Response Format (JSON):**
+    ```json
+    {
+      "status": "success",
+      "date": "20260517",
+      "data": [
+        { "name": "삼성전자", "code": "005930", "tag": "가치주", "reason": "외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.", "score": 92 },
+        { "name": "현대차", "code": "005380", "tag": "저PBR/배당", "reason": "정부 밸류업 프로그램 최대 수혜 예상. PBR 0.6배 수준으로 극심한 저평가 상태.", "score": 88 },
+        { "name": "네이버", "code": "035420", "tag": "기술주", "reason": "RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.", "score": 85 }
+      ]
+    }
+    ```
+- **CORS 설정:** 어띠페가 3000번 포트에서 이 API를 찌를 때 에러가 나지 않도록 `CORSMiddleware` 설정을 `main.py`에 선제 적용할 것.
+
+---
+
+## 🏁 완료 조건 (Definition of Done)
+- **어띠페:** 다이나믹 로딩(Lazy Loading) 구조 안에서 추천 카드가 깨짐 없이 렌더링되는가?
+- **어띠베:** FastAPI 서버 가동 시 `GET /api/recommendations`가 지정된 JSON 포맷을 에러 없이 반환하는가?
+- **공통:** 각자 영역에서 Lint/Formatter(Prettier, Black, Flake8 등) 에러 유무를 확인했는가?

@@ -90,10 +90,11 @@ def get_miraeasset_accounts():
 
 @app.get("/api/recommendations")
 def get_ai_recommendations():
-    # 기획자 MOON(무니)의 R1 명세 데이터 규격 준수
+    # 기획자 MOON(무니)의 R1 명세 데이터 규격 준수 (date 및 data 키 포맷)
     return {
         "status": "success",
-        "recommendations": [
+        "date": "20260517",
+        "data": [
             {
                 "name": "삼성전자",
                 "code": "005930",

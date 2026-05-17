@@ -44,7 +44,7 @@ export default function Dashboard() {
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === "success") {
-          setRecommendations(resData.recommendations);
+          setRecommendations(resData.data);
         }
       })
       .catch((err) => console.error("추천 데이터 로드 실패:", err));
