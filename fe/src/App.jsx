@@ -1,19 +1,19 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense } from 'react'
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-} from "react-router-dom";
-import { AuthProvider } from "@/context/AuthContext";
+} from 'react-router-dom'
+import { AuthProvider } from '@/context/AuthContext'
 
 // 시맨틱 레이아웃을 위한 컴포넌트 로드
-import Header from "@components/layout/Header";
-import Footer from "@components/layout/Footer";
+import Header from '@components/layout/Header'
+import Footer from '@components/layout/Footer'
 
 // 주요 페이지 컴포넌트 다이나믹 로딩 (Lazy Loading) 적용
-const Login = lazy(() => import("@/pages/Login"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Login = lazy(() => import('@/pages/Login'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
 
 function App() {
   return (
@@ -46,7 +46,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
-  );
+  )
 }
 
-export default App;
+export default App

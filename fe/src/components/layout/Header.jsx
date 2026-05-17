@@ -1,15 +1,15 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@components/PrimeReact";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@components/PrimeReact'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Header() {
-  const navigate = useNavigate();
-  const { isSignedIn, logout } = useAuth();
+  const navigate = useNavigate()
+  const { isSignedIn, logout } = useAuth()
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+    logout()
+    navigate('/login')
+  }
 
   return (
     <header className="app-header">
@@ -31,5 +31,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }

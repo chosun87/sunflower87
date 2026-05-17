@@ -1,21 +1,21 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, Button } from "@components/PrimeReact";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Button } from '@components/PrimeReact'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { login, isSignedIn, isInitialized } = useAuth();
+  const navigate = useNavigate()
+  const { login, isSignedIn, isInitialized } = useAuth()
 
   useEffect(() => {
     if (isInitialized && isSignedIn) {
-      navigate("/dashboard");
+      navigate('/dashboard')
     }
-  }, [isInitialized, isSignedIn, navigate]);
+  }, [isInitialized, isSignedIn, navigate])
 
   return (
     <div className="flex align-items-center justify-content-center min-h-screen bg-gray-100">
-      <Card className="shadow-4 border-round p-4" style={{ width: "400px" }}>
+      <Card className="shadow-4 border-round p-4" style={{ width: '400px' }}>
         <div className="text-center mb-6">
           <i className="pi pi-sun text-6xl text-primary mb-3"></i>
           <h1 className="text-3xl font-bold m-0">sunflower87</h1>
@@ -36,5 +36,5 @@ export default function Login() {
         </div>
       </Card>
     </div>
-  );
+  )
 }

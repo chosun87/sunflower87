@@ -9,5 +9,5 @@ export default function Footer() {
         <div className="text-sm">© 2026 SUN & EARTH. All rights reserved.</div>
       </div>
     </footer>
-  );
+  )
 }

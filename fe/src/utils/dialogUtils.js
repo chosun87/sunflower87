@@ -1,13 +1,13 @@
-import { confirmDialog } from "@components/PrimeReact";
+import { confirmDialog } from '@components/PrimeReact'
 
 /**
  * 단순 알림/안내용 다이얼로그 (확인 버튼 1개)
  */
 export const showNotice = ({
-  header = "안내",
-  icon = "pi pi-info-circle",
+  header = '안내',
+  icon = 'pi pi-info-circle',
   message,
-  acceptLabel = "확인",
+  acceptLabel = '확인',
   accept = () => {},
   ...props
 }) => {
@@ -16,21 +16,21 @@ export const showNotice = ({
     icon,
     message,
     acceptLabel,
-    rejectClassName: "hidden",
+    rejectClassName: 'hidden',
     accept,
     ...props,
-  });
-};
+  })
+}
 
 /**
  * 확인/취소가 필요한 다이얼로그
  */
 export const showConfirm = ({
-  header = "확인",
-  icon = "pi pi-exclamation-triangle",
+  header = '확인',
+  icon = 'pi pi-exclamation-triangle',
   message,
-  acceptLabel = "확인",
-  rejectLabel = "취소",
+  acceptLabel = '확인',
+  rejectLabel = '취소',
   accept = () => {},
   reject = () => {},
   ...props
@@ -44,20 +44,20 @@ export const showConfirm = ({
     accept,
     reject,
     ...props,
-  });
-};
+  })
+}
 
 /**
  * 오류 안내용 다이얼로그
  */
-export const showError = (error, header = "오류 안내") => {
+export const showError = (error, header = '오류 안내') => {
   const message =
-    typeof error === "string" ? error : error?.message || JSON.stringify(error);
+    typeof error === 'string' ? error : error?.message || JSON.stringify(error)
 
   showNotice({
     header,
-    icon: "pi pi-times-circle",
+    icon: 'pi pi-times-circle',
     message,
-    acceptClassName: "p-button-danger",
-  });
-};
+    acceptClassName: 'p-button-danger',
+  })
+}

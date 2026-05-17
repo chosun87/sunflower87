@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import {
   Card,
   DataTable,
@@ -8,76 +8,76 @@ import {
   Dropdown,
   Badge,
   Button,
-} from "@components/PrimeReact";
+} from '@components/PrimeReact'
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
-  const [selectedAccount, setSelectedAccount] = useState(null);
-  const navigate = useNavigate();
-  const { isSignedIn, isInitialized } = useAuth();
+  const [data, setData] = useState(null)
+  const [selectedAccount, setSelectedAccount] = useState(null)
+  const navigate = useNavigate()
+  const { isSignedIn, isInitialized } = useAuth()
 
-  const [recommendations, setRecommendations] = useState([]);
+  const [recommendations, setRecommendations] = useState([])
 
   useEffect(() => {
     if (isInitialized && !isSignedIn) {
-      navigate("/login");
+      navigate('/login')
     }
-  }, [isInitialized, isSignedIn, navigate]);
+  }, [isInitialized, isSignedIn, navigate])
 
   useEffect(() => {
     // 백엔드 API로부터 계좌 데이터 바인딩
-    fetch("http://localhost:8000/api/accounts")
+    fetch('http://localhost:8000/api/accounts')
       .then((res) => res.json())
       .then((resData) => {
-        if (resData.status === "success") {
-          setData(resData);
+        if (resData.status === 'success') {
+          setData(resData)
           // 초기값으로 첫 번째 계좌 선택
-          setSelectedAccount(resData.accounts[0]);
+          setSelectedAccount(resData.accounts[0])
         }
       })
-      .catch((err) => console.error("데이터 로드 실패:", err));
-  }, []);
+      .catch((err) => console.error('데이터 로드 실패:', err))
+  }, [])
 
   useEffect(() => {
     // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
-    fetch("http://localhost:8000/api/recommendations")
+    fetch('http://localhost:8000/api/recommendations')
       .then((res) => res.json())
       .then((resData) => {
-        if (resData.status === "success") {
-          setRecommendations(resData.data);
+        if (resData.status === 'success') {
+          setRecommendations(resData.data)
         }
       })
-      .catch((err) => console.error("추천 데이터 로드 실패:", err));
-  }, []);
+      .catch((err) => console.error('추천 데이터 로드 실패:', err))
+  }, [])
 
   if (!data)
     return (
       <div className="flex align-items-center justify-content-center h-screen">
         <i
           className="pi pi-spin pi-spinner mr-2"
-          style={{ fontSize: "2rem" }}
+          style={{ fontSize: '2rem' }}
         ></i>
         <span className="text-xl font-bold">
           [sunflower87] 데이터를 불러오는 중...
         </span>
       </div>
-    );
+    )
 
   // 수익률 컬러 템플릿
   const profitTemplate = (rowData) => {
-    const isPositive = rowData.eval_profit_rate >= 0;
+    const isPositive = rowData.eval_profit_rate >= 0
     return (
       <Badge
         value={`${rowData.eval_profit_rate}%`}
-        severity={isPositive ? "danger" : "info"}
+        severity={isPositive ? 'danger' : 'info'}
       />
-    );
-  };
+    )
+  }
 
   // 금액 포맷터
   const currencyTemplate = (amount) => {
-    return amount.toLocaleString() + " 원";
-  };
+    return amount.toLocaleString() + ' 원'
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -132,7 +132,7 @@ export default function Dashboard() {
             <div key={idx} className="col-12 md:col-4">
               <Card
                 className="shadow-2 hover:shadow-4 transition-all transition-duration-200 border-top-3 border-amber-500 h-full flex flex-column"
-                style={{ borderRadius: "8px" }}
+                style={{ borderRadius: '8px' }}
               >
                 <div className="flex justify-content-between align-items-center mb-3">
                   <div>
@@ -212,5 +212,5 @@ export default function Dashboard() {
         </Card>
       )}
     </div>
-  );
+  )
 }

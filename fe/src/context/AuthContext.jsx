@@ -1,32 +1,33 @@
 import {
   createContext,
+  useContext,
   useState,
   useEffect,
   useMemo,
   useCallback,
-} from "react";
-import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
-import { initGoogleApi, signOut, setToken } from "@/api/googleAuth";
-import { GOOGLE_AUTH_PARAMS } from "@/config/googleAuthParams";
-import { showNotice, showConfirm } from "@/utils/dialogUtils";
+} from 'react'
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google'
+import { initGoogleApi, signOut, setToken } from '@/api/googleAuth'
+import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams'
+import { showNotice, showConfirm } from '@/assets/js/dialogUtils'
 
-const AuthContext = createContext(null);
-const AuthTimerContext = createContext(null);
+const AuthContext = createContext(null)
+const AuthTimerContext = createContext(null)
 
 const AuthInternalProvider = ({ children }) => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [authRemainingTime, setAuthRemainingTime] = useState(0);
-  const [extensionPromptShown, setExtensionPromptShown] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isSignedIn, setIsSignedIn] = useState(false)
+  const [authRemainingTime, setAuthRemainingTime] = useState(0)
+  const [extensionPromptShown, setExtensionPromptShown] = useState(false)
 
   // 이전 로그인 상태 추적 (렌더링 중 상태 조정하여 cascading renders 방지)
-  const [prevIsSignedIn, setPrevIsSignedIn] = useState(isSignedIn);
+  const [prevIsSignedIn, setPrevIsSignedIn] = useState(isSignedIn)
 
   if (isSignedIn !== prevIsSignedIn) {
-    setPrevIsSignedIn(isSignedIn);
+    setPrevIsSignedIn(isSignedIn)
     if (!isSignedIn) {
-      setAuthRemainingTime(0);
-      setExtensionPromptShown(false);
+      setAuthRemainingTime(0)
+      setExtensionPromptShown(false)
     }
   }
 
@@ -34,90 +35,94 @@ const AuthInternalProvider = ({ children }) => {
     const setup = async () => {
       try {
         // GAPI 초기화 (index.html에서 로드됨)
-        await initGoogleApi();
+        await initGoogleApi()
 
-        const storedToken = localStorage.getItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY);
-        const tokenExpiry = localStorage.getItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY);
+        const storedToken = sessionStorage.getItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY)
+        const tokenExpiry = sessionStorage.getItem(
+          GOOGLE_AUTH_PARAMS.EXPIRY_KEY,
+        )
 
         if (storedToken && tokenExpiry && Date.now() < Number(tokenExpiry)) {
-          setToken(storedToken);
-          setIsSignedIn(true);
+          setToken(storedToken)
+          setIsSignedIn(true)
         } else {
-          localStorage.removeItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY);
-          localStorage.removeItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY);
+          sessionStorage.removeItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY)
+          sessionStorage.removeItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY)
         }
 
-        setIsInitialized(true);
+        setIsInitialized(true)
       } catch (err) {
-        console.error("Google setup failed", err);
-        setIsInitialized(true);
+        console.error('Google setup failed', err)
+        setIsInitialized(true)
       }
-    };
+    }
 
-    setup();
-  }, []);
+    setup()
+  }, [])
 
   const googleLogin = useGoogleLogin({
     onSuccess: (tokenResponse) => {
-      const sessionMs = GOOGLE_AUTH_PARAMS.TOKEN_EXPIRY_MIN * 60 * 1000;
-      localStorage.setItem(
+      const sessionMs = GOOGLE_AUTH_PARAMS.TOKEN_EXPIRY_MIN * 60 * 1000
+      sessionStorage.setItem(
         GOOGLE_AUTH_PARAMS.TOKEN_KEY,
         tokenResponse.access_token,
-      );
-      localStorage.setItem(
+      )
+      sessionStorage.setItem(
         GOOGLE_AUTH_PARAMS.EXPIRY_KEY,
         Date.now() + sessionMs,
-      );
+      )
 
-      setToken(tokenResponse.access_token);
-      setIsSignedIn(true);
-      setExtensionPromptShown(false);
+      setToken(tokenResponse.access_token)
+      setIsSignedIn(true)
+      setExtensionPromptShown(false)
     },
-    onError: (error) => console.error("Login Failed:", error),
+    onError: (error) => console.error('Login Failed:', error),
     scope: GOOGLE_AUTH_PARAMS.SCOPES,
-  });
+  })
 
   const login = useCallback(() => {
-    googleLogin();
-  }, [googleLogin]);
+    googleLogin()
+  }, [googleLogin])
 
   const logout = useCallback(async () => {
     try {
-      await signOut();
-      localStorage.removeItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY);
-      localStorage.removeItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY);
-      setIsSignedIn(false);
+      await signOut()
+      sessionStorage.removeItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY)
+      sessionStorage.removeItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY)
+      setIsSignedIn(false)
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error('Logout failed:', error)
     }
-  }, []);
+  }, [])
 
   const extendLogin = useCallback(() => {
-    googleLogin();
-  }, [googleLogin]);
+    googleLogin()
+  }, [googleLogin])
 
   // 인증 만료 시 자동 로그아웃 처리 및 남은 시간 업데이트
   useEffect(() => {
-    let intervalId;
+    let intervalId
 
     if (isSignedIn) {
       const updateRemainingTime = () => {
-        const tokenExpiry = localStorage.getItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY);
+        const tokenExpiry = sessionStorage.getItem(
+          GOOGLE_AUTH_PARAMS.EXPIRY_KEY,
+        )
         if (tokenExpiry) {
           const remaining = Math.max(
             0,
             Math.floor((Number(tokenExpiry) - Date.now()) / 1000),
-          );
-          setAuthRemainingTime(remaining);
+          )
+          setAuthRemainingTime(remaining)
 
           // 연장 여부 확인 (3분 전)
           if (
             remaining === GOOGLE_AUTH_PARAMS.EXTENSION_THRESHOLD_SEC &&
             !extensionPromptShown
           ) {
-            setExtensionPromptShown(true);
+            setExtensionPromptShown(true)
             showConfirm({
-              header: "로그인 연장 알림",
+              header: '로그인 연장 알림',
               message: (
                 <>
                   인증 만료 {GOOGLE_AUTH_PARAMS.EXTENSION_THRESHOLD_SEC / 60}분
@@ -126,26 +131,26 @@ const AuthInternalProvider = ({ children }) => {
                   로그인을 연장하시겠습니까?
                 </>
               ),
-              rejectLabel: "나중에",
-              acceptLabel: "연장하기",
+              rejectLabel: '나중에',
+              acceptLabel: '연장하기',
               accept: () => {
-                extendLogin();
+                extendLogin()
               },
-            });
+            })
           }
 
           if (remaining <= 0) {
-            if (intervalId) clearInterval(intervalId);
+            if (intervalId) clearInterval(intervalId)
 
-            const currentToken = localStorage.getItem(
+            const currentToken = sessionStorage.getItem(
               GOOGLE_AUTH_PARAMS.TOKEN_KEY,
-            );
-            if (!currentToken) return;
+            )
+            if (!currentToken) return
 
-            logout();
+            logout()
 
             showNotice({
-              header: "자동 로그아웃 안내",
+              header: '자동 로그아웃 안내',
               message: (
                 <>
                   인증 기간이 만료되어 자동으로 로그아웃 처리되었습니다.
@@ -153,29 +158,29 @@ const AuthInternalProvider = ({ children }) => {
                   다시 로그인해 주세요.
                 </>
               ),
-            });
+            })
           }
         }
-      };
+      }
 
-      updateRemainingTime();
+      updateRemainingTime()
       if (!GOOGLE_AUTH_PARAMS.DISABLED_RELOGIN) {
-        intervalId = setInterval(updateRemainingTime, 1000);
+        intervalId = setInterval(updateRemainingTime, 1000)
       }
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isSignedIn, extensionPromptShown, extendLogin, logout]);
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [isSignedIn, extensionPromptShown, extendLogin, logout])
 
   // 초 단위를 MM:SS 형식으로 변환
   const formatRemainingTime = (seconds) => {
-    if (seconds <= 0) return "00:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  };
+    if (seconds <= 0) return '00:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
 
   const authValue = useMemo(
     () => ({
@@ -186,14 +191,14 @@ const AuthInternalProvider = ({ children }) => {
       extendLogin,
     }),
     [isInitialized, isSignedIn, login, logout, extendLogin],
-  );
+  )
 
   const timerValue = useMemo(
     () => ({
       authRemainingTime: formatRemainingTime(authRemainingTime),
     }),
     [authRemainingTime],
-  );
+  )
 
   // HTML 렌더링 구역 -----------------------------------------------------------------------------------
   return (
@@ -202,8 +207,8 @@ const AuthInternalProvider = ({ children }) => {
         {children}
       </AuthTimerContext.Provider>
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
 export const AuthProvider = ({ children }) => {
   // HTML 렌더링 구역 -----------------------------------------------------------------------------------
@@ -211,7 +216,8 @@ export const AuthProvider = ({ children }) => {
     <GoogleOAuthProvider clientId={GOOGLE_AUTH_PARAMS.CLIENT_ID}>
       <AuthInternalProvider>{children}</AuthInternalProvider>
     </GoogleOAuthProvider>
-  );
-};
+  )
+}
 
-export { AuthContext, AuthTimerContext };
+export const useAuth = () => useContext(AuthContext)
+export const useAuthTimer = () => useContext(AuthTimerContext)

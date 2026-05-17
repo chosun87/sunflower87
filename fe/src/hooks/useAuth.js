@@ -1,18 +1,18 @@
-import { useContext } from "react";
-import { AuthContext, AuthTimerContext } from "../context/AuthContext";
+import { useContext } from 'react'
+import { AuthContext, AuthTimerContext } from '../context/AuthContext'
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}
 
 export const useAuthTimer = () => {
-  const context = useContext(AuthTimerContext);
+  const context = useContext(AuthTimerContext)
   if (context === undefined) {
-    throw new Error("useAuthTimer must be used within an AuthProvider");
+    throw new Error('useAuthTimer must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}
