@@ -11,7 +11,13 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent.resolve()))
 
 from database import init_db  # noqa: E402
-from routers import stocks, accounts, transactions, recommendations, tasks  # noqa: E402
+from routers import (  # noqa: E402
+    stocks,
+    accounts,
+    transactions,
+    recommendations,
+    tasks,
+)
 
 app = FastAPI(
     title="sunflower87 API 코어",

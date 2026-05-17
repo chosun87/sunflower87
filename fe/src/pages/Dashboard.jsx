@@ -79,7 +79,7 @@ export default function Dashboard() {
   const [displayDialog, setDisplayDialog] = useState(false)
   const [editingTxId, setEditingTxId] = useState(null) // 수정 모드 시 거래 ID 추적
   const [txType, setTxType] = useState('BUY') // BUY 또는 SELL
-  const [txAccount, setTxAccount] = useState('A001') // 대상 귀속 계좌
+  const [txAccount, setTxAccount] = useState('미래-종합') // 대상 귀속 계좌
   const [txCode, setTxCode] = useState('')
   const [txName, setTxName] = useState('')
   const [txQuantity, setTxQuantity] = useState(null)
@@ -243,7 +243,7 @@ export default function Dashboard() {
           // 입력 폼 전면 초기화
           setEditingTxId(null)
           setTxType('BUY')
-          setTxAccount('A001')
+          setTxAccount('미래-종합')
           setTxCode('')
           setTxName('')
           setTxQuantity(null)
@@ -367,10 +367,9 @@ export default function Dashboard() {
 
     // Assign badge colors based on account code for a vibrant and organized aesthetic
     let severity = 'secondary'
-    if (code === 'A001') severity = 'success'
-    else if (code === 'A002') severity = 'warning'
-    else if (code === 'A003') severity = 'info'
-    else if (code === 'A004') severity = 'help'
+    if (code === '미래-종합') severity = 'success'
+    else if (code === '미래-ISA') severity = 'warning'
+    else if (code === '미래-연금') severity = 'info'
 
     return <Badge value={alias} severity={severity} />
   }
@@ -591,7 +590,7 @@ export default function Dashboard() {
                   onClick={() => {
                     setEditingTxId(null)
                     setTxType('BUY')
-                    setTxAccount('')
+                    setTxAccount('미래-종합')
                     setTxCode('')
                     setTxName('')
                     setTxQuantity(null)
