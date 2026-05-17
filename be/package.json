@@ -1,0 +1,14 @@
+{
+  "name": "sunflower87-be",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "format:black": "venv\\Scripts\\python -m black .",
+    "format:prettier": "npx prettier --write \"**/*.{json,md,yml,yaml}\"",
+    "format": "npm run format:black && npm run format:prettier",
+    "lint": "venv\\Scripts\\python -m flake8 ."
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
+  }
+}
