@@ -1,4 +1,4 @@
-import { GOOGLE_AUTH_PARAMS } from '@/config/googleAuthParams'
+import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams'
 
 // GAPI 클라이언트만 초기화 (auth2 제외)
 export const initGoogleApi = () => {

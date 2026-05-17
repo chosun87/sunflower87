@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/context/AuthContext'
 import {
   Card,
   DataTable,
@@ -8,7 +8,7 @@ import {
   Dropdown,
   Badge,
   Button,
-} from '@components/PrimeReact'
+} from '@/assets/js/PrimeReact'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)

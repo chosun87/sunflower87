@@ -1,4 +1,4 @@
-import { confirmDialog } from '@components/PrimeReact'
+import { confirmDialog } from './PrimeReact'
 
 /**
  * 단순 알림/안내용 다이얼로그 (확인 버튼 1개)

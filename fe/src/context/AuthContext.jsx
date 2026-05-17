@@ -11,8 +11,8 @@ import { initGoogleApi, signOut, setToken } from '@/api/googleAuth'
 import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams'
 import { showNotice, showConfirm } from '@/assets/js/dialogUtils'
 
-const AuthContext = createContext(null)
-const AuthTimerContext = createContext(null)
+export const AuthContext = createContext(null)
+export const AuthTimerContext = createContext(null)
 
 const AuthInternalProvider = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false)
@@ -219,5 +219,18 @@ export const AuthProvider = ({ children }) => {
   )
 }
 
-export const useAuth = () => useContext(AuthContext)
-export const useAuthTimer = () => useContext(AuthTimerContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined || context === null) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
+
+export const useAuthTimer = () => {
+  const context = useContext(AuthTimerContext)
+  if (context === undefined || context === null) {
+    throw new Error('useAuthTimer must be used within an AuthProvider')
+  }
+  return context
+}

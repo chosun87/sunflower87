@@ -8,8 +8,8 @@ import {
 import { AuthProvider } from '@/context/AuthContext'
 
 // 시맨틱 레이아웃을 위한 컴포넌트 로드
-import Header from '@components/layout/Header'
-import Footer from '@components/layout/Footer'
+import Header from '@components/common/Header'
+import Footer from '@components/common/Footer'
 
 // 주요 페이지 컴포넌트 다이나믹 로딩 (Lazy Loading) 적용
 const Login = lazy(() => import('@/pages/Login'))

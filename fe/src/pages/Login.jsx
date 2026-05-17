@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Button } from '@components/PrimeReact'
-import { useAuth } from '@/hooks/useAuth'
+import { Card, Button } from '@/assets/js/PrimeReact'
+import { useAuth } from '@/context/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
