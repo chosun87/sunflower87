@@ -19,3 +19,4 @@ export { Divider } from "primereact/divider";
 export { Panel } from "primereact/panel";
 export { Message } from "primereact/message";
 export { Messages } from "primereact/messages";
+export { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
