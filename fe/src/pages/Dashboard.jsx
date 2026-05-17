@@ -105,7 +105,7 @@ export default function Dashboard() {
             setSelectedAccount((prev) => {
               if (prev) {
                 const found = resData.accounts.find(
-                  (a) => a.account_number === prev.account_number,
+                  (a) => a.acc_cd === prev.acc_cd,
                 )
                 if (found) return found
               }
@@ -220,7 +220,7 @@ export default function Dashboard() {
       name: txName,
       quantity: txQuantity,
       price: txPrice,
-      account_number: txAccount,
+      acc_code: txAccount,
       date: formatCustomDate(txDate),
     }
 
@@ -279,7 +279,7 @@ export default function Dashboard() {
   const handleEditTransaction = (rowData) => {
     setEditingTxId(rowData.id)
     setTxType(rowData.type)
-    setTxAccount(rowData.account_number || 'A001')
+    setTxAccount(rowData.acc_code)
     setTxCode(rowData.code)
     setTxName(rowData.name)
     setTxQuantity(rowData.quantity)
@@ -370,16 +370,17 @@ export default function Dashboard() {
 
   // 거래 계좌 뱃지 표시 템플릿
   const accountBodyTemplate = (rowData) => {
-    const accountMap = {
-      A001: { alias: '주식 1', severity: 'success' },
-      A002: { alias: '연금저축', severity: 'warning' },
-      A003: { alias: 'ISA계좌', severity: 'info' },
-    }
-    const info = accountMap[rowData.account_number] || {
-      alias: rowData.account_number,
-      severity: 'secondary',
-    }
-    return <Badge value={info.alias} severity={info.severity} />
+    const alias = rowData.account_alias || rowData.acc_nm || '알 수 없는 계좌'
+    const code = rowData.acc_code || ''
+
+    // Assign badge colors based on account code for a vibrant and organized aesthetic
+    let severity = 'secondary'
+    if (code === 'A001') severity = 'success'
+    else if (code === 'A002') severity = 'warning'
+    else if (code === 'A003') severity = 'info'
+    else if (code === 'A004') severity = 'help'
+
+    return <Badge value={alias} severity={severity} />
   }
 
   // 테이블 최우측 [수정/삭제] 액션 컬럼 정의
@@ -598,7 +599,7 @@ export default function Dashboard() {
                   onClick={() => {
                     setEditingTxId(null)
                     setTxType('BUY')
-                    setTxAccount('111-22-333333')
+                    setTxAccount('')
                     setTxCode('')
                     setTxName('')
                     setTxQuantity(null)
@@ -708,9 +709,9 @@ export default function Dashboard() {
               value={txAccount}
               options={data?.accounts || []}
               onChange={(e) => setTxAccount(e.value)}
-              optionLabel="alias"
-              optionValue="account_number"
-              placeholder="거래 계좌를 선택하세요"
+              optionLabel="acc_nm"
+              optionValue="acc_cd"
+              placeholder="거래가 발생한 계좌 선택"
               className="w-full"
             />
           </div>

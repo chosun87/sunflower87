@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 # 모듈화된 계층 및 DB 관련 임포트
-from mock_data import get_enriched_accounts_data, get_mock_recommendations
 from git_service import commit_and_push_task
 from database import init_db, get_db, Transaction, Stock
 
@@ -29,9 +28,8 @@ class TransactionCreate(BaseModel):
     code: str
     name: str
     quantity: int
-    price: float
-    account_number: Optional[str] = "A001"
-    accCode: Optional[str] = None
+    price: int
+    acc_code: Optional[str] = ""
     date: Optional[str] = None
 
 
@@ -158,20 +156,123 @@ def search_stocks(keyword: str = ""):
     return {"status": "success", "results": results[:10]}
 
 
+def get_enriched_accounts_data(db: Session) -> dict:
+    """SQLite 데이터베이스 account 및 stocks 테이블의 데이터를 로드하고
+    실시간 수익률 및 평가액을 계산하여 프런트엔드 규격에 맞춰 반환합니다.
+    """
+    from database import Account, Stock
+
+    # 1. 활성 계좌 목록 로드 (dt_deleted IS NULL, acc_order ASC)
+    db_accounts = (
+        db.query(Account)
+        .filter(Account.dt_deleted.is_(None))
+        .order_by(Account.acc_order.asc())
+        .all()
+    )
+
+    # 2. 보유 주식 목록 로드
+    db_stocks = db.query(Stock).all()
+
+    # 계좌별 주식 분배 사전 초기화
+    account_stocks_map = {acc.acc_cd: [] for acc in db_accounts}
+
+    # DB에 존재하는 주식을 각각의 계좌 번호에 따라 올바르게 분배 및 계산
+    for stock in db_stocks:
+        acct_code = stock.acc_code or ""
+        if acct_code not in account_stocks_map:
+            account_stocks_map[acct_code] = []
+
+        code = stock.code
+        name = stock.name
+        quantity = stock.quantity
+        avg_price = stock.avg_price
+        current_price = stock.current_price
+
+        # 수익률 계산
+        eval_profit_rate = (
+            round(((current_price - avg_price) / avg_price) * 100, 2)
+            if avg_price > 0
+            else 0.0
+        )
+
+        account_stocks_map[acct_code].append(
+            {
+                "code": code,
+                "name": name,
+                "quantity": quantity,
+                "avg_price": avg_price,
+                "current_price": current_price,
+                "eval_profit_rate": eval_profit_rate,
+            }
+        )
+
+    accounts = []
+    overall_total_eval = 0
+
+    # 각 계좌별로 계산 및 DTO 조립
+    for acc in db_accounts:
+        stocks_list = account_stocks_map.get(acc.acc_cd, [])
+
+        # 주식 평가액 계산
+        stocks_purchase = sum(s["quantity"] * s["avg_price"] for s in stocks_list)
+        stocks_eval = sum(s["quantity"] * s["current_price"] for s in stocks_list)
+
+        # 총 평가금액 (주식 평가액 + 현금 잔고)
+        total_eval = stocks_eval + acc.cash_balance
+        # 총 매입금액 (주식 매입금액 + 현금 잔고)
+        total_purchase = stocks_purchase + acc.cash_balance
+
+        # 수익률 계산
+        profit_rate = (
+            round(((total_eval - total_purchase) / total_purchase) * 100, 2)
+            if total_purchase > 0
+            else 0.0
+        )
+
+        accounts.append(
+            {
+                "id": acc.acc_cd,
+                "account_number": acc.acc_cd,
+                "alias": f"[{acc.acc_company_nm}] {acc.acc_nm}",
+                "balance": acc.cash_balance,  # 예수금 잔액 전달
+                "total_eval": total_eval,  # 총 평가액
+                "profit_rate": profit_rate,  # 계좌 총 수익률
+                "stocks": stocks_list,
+            }
+        )
+        overall_total_eval += total_eval
+
+    return {
+        "status": "success",
+        "total_asset": overall_total_eval,
+        "accounts": accounts,
+    }
+
+
 @app.get("/api/accounts")
-def get_miraeasset_accounts():
+def get_miraeasset_accounts(db: Session = Depends(get_db)):
     """SQLite 데이터베이스 stocks 테이블의 데이터를 기반으로 현재 총자산을 동적 계산하여 반환합니다."""
-    return get_enriched_accounts_data()
+    return get_enriched_accounts_data(db)
 
 
 @app.get("/api/transactions")
 def get_transaction_history(db: Session = Depends(get_db)):
     """최근 거래일시 순(ORDER BY date DESC)으로 매매 거래 내역을 반환합니다."""
     try:
-        transactions = db.query(Transaction).order_by(Transaction.date.desc()).all()
-        return {
-            "status": "success",
-            "data": [
+        from database import Account
+
+        # Outer join transaction with account to get account names
+        results = (
+            db.query(Transaction, Account)
+            .outerjoin(Account, Transaction.acc_code == Account.acc_cd)
+            .order_by(Transaction.date.desc())
+            .all()
+        )
+        data = []
+        for t, acc in results:
+            acc_name = acc.acc_nm if acc else "알 수 없는 계좌"
+            acc_company = acc.acc_company_nm if acc else ""
+            data.append(
                 {
                     "id": t.id,
                     "date": t.date.isoformat(),
@@ -180,11 +281,19 @@ def get_transaction_history(db: Session = Depends(get_db)):
                     "name": t.name,
                     "quantity": t.quantity,
                     "price": t.price,
-                    "accCode": t.accCode,
-                    "account_number": t.accCode,
+                    "acc_code": t.acc_code,
+                    "accCode": t.acc_code,
+                    "account_number": t.acc_code,
+                    "acc_nm": acc_name,
+                    "acc_company_nm": acc_company,
+                    "account_alias": (
+                        f"[{acc_company}] {acc_name}" if acc_company else acc_name
+                    ),
                 }
-                for t in transactions
-            ],
+            )
+        return {
+            "status": "success",
+            "data": data,
         }
     except Exception as e:
         raise HTTPException(
@@ -195,17 +304,16 @@ def get_transaction_history(db: Session = Depends(get_db)):
 
 def recalculate_portfolio_for_account(db: Session, acc_code: str):
     """지정된 계좌의 전체 거래 내역을 연대기순으로 처음부터 끝까지 추적해
-    최종 보유 수량, 평단가 및 예수금 잔고(cashBalance)를 오차 없이 정밀 복원하고
+    최종 보유 수량, 평단가 및 예수금 잔고(cash_balance)를 오차 없이 정밀 복원하고
     stocks 및 account 테이블에 동기화합니다.
     어느 시점이든 보유 수량이나 예수금 잔고가 마이너스가 되면 즉각 400 에러를 발생시킵니다.
     """
     from database import Account, Stock
 
-    account = db.query(Account).filter(Account.accCode == acc_code).first()
+    account = db.query(Account).filter(Account.acc_cd == acc_code).first()
     if not account:
         raise HTTPException(
-            status_code=404,
-            detail=f"Account with code '{acc_code}' not found."
+            status_code=404, detail=f"Account with code '{acc_code}' not found."
         )
 
     # 1. 초기 씨드 자산 설정 (A001 계좌만 초기 보유 주식이 있고, 현금 39,800,000.0원으로 시작)
@@ -224,7 +332,7 @@ def recalculate_portfolio_for_account(db: Session, acc_code: str):
     # 2. 해당 계좌의 모든 거래 기록을 연대기순으로 로드 (date 및 id 기준 오름차순 정렬)
     txs = (
         db.query(Transaction)
-        .filter(Transaction.accCode == acc_code)
+        .filter(Transaction.acc_code == acc_code)
         .order_by(Transaction.date.asc(), Transaction.id.asc())
         .all()
     )
@@ -282,17 +390,30 @@ def recalculate_portfolio_for_account(db: Session, acc_code: str):
                 existing["quantity"] = remaining
 
     # 4. DB 테이블 동기화 (예수금 잔고 반영 및 stocks 테이블 완전 청소 후 재생성)
-    account.cashBalance = cash_balance
+    account.cash_balance = cash_balance
 
-    db.query(Stock).filter(Stock.accCode == acc_code).delete()
+    db.query(Stock).filter(Stock.acc_code == acc_code).delete()
+
+    # Use baseline map for seeded stocks if they don't have transaction history,
+    # otherwise use latest price
+    current_prices_map = {
+        "005930": 77000,
+        "000660": 147000,
+        "005380": 250000,
+        "035420": 185000,
+        "360750": 14250,
+        "069500": 34650,
+    }
 
     for code, info in holdings.items():
+        current_p = current_prices_map.get(code, int(info["avg_price"]))
         new_stock = Stock(
             code=code,
-            accCode=acc_code,
+            acc_code=acc_code,
             name=info["name"],
             quantity=info["quantity"],
             avg_price=info["avg_price"],
+            current_price=current_p,
         )
         db.add(new_stock)
 
@@ -313,7 +434,9 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
             detail="Quantity and price must be greater than zero.",
         )
 
-    acc_code = tx_input.accCode or tx_input.account_number or "A001"
+    acc_code = (
+        tx_input.acc_code or tx_input.accCode or tx_input.account_number or "A001"
+    )
 
     try:
         # 거래일시 파싱 및 자동 복원
@@ -329,19 +452,81 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
                 except Exception:
                     tx_date = datetime.now()
 
+        # 1. account 테이블에서 해당 계좌를 찾아 예수금 잔고(cash_balance)를 보정/검증
+        from database import Account
+
+        account = db.query(Account).filter(Account.acc_cd == acc_code).first()
+        if not account:
+            raise HTTPException(
+                status_code=404, detail=f"Account with code '{acc_code}' not found."
+            )
+
+        cost = tx_input.quantity * tx_input.price
+        if tx_type == "BUY":
+            if account.cash_balance < cost:
+                err_msg = (
+                    f"Insufficient cash balance. Required: {cost:,.0f} KRW, "
+                    f"Available: {account.cash_balance:,.0f} KRW."
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail=err_msg,
+                )
+            account.cash_balance -= cost
+
+            # 2. stocks 테이블에서 WHERE acc_code = :acc_code AND code = :code 조건으로 현재고 보정
+            stock = (
+                db.query(Stock)
+                .filter(Stock.acc_code == acc_code, Stock.code == tx_input.code)
+                .first()
+            )
+            if stock:
+                new_qty = stock.quantity + tx_input.quantity
+                new_avg = (stock.quantity * stock.avg_price + cost) / new_qty
+                stock.quantity = new_qty
+                stock.avg_price = round(new_avg, 2)
+                stock.current_price = tx_input.price
+            else:
+                stock = Stock(
+                    code=tx_input.code,
+                    acc_code=acc_code,
+                    name=tx_input.name,
+                    quantity=tx_input.quantity,
+                    avg_price=tx_input.price,
+                    current_price=tx_input.price,
+                )
+                db.add(stock)
+        elif tx_type == "SELL":
+            # stocks 테이블에서 WHERE acc_code = :acc_code AND code = :code 조건으로 현재고 보정
+            stock = (
+                db.query(Stock)
+                .filter(Stock.acc_code == acc_code, Stock.code == tx_input.code)
+                .first()
+            )
+            if not stock or stock.quantity < tx_input.quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Insufficient stock holdings for SELL transaction.",
+                )
+            account.cash_balance += cost
+            if stock.quantity == tx_input.quantity:
+                db.delete(stock)
+            else:
+                stock.quantity -= tx_input.quantity
+
         new_tx = Transaction(
             type=tx_type,
             code=tx_input.code,
             name=tx_input.name,
             quantity=tx_input.quantity,
             price=tx_input.price,
-            accCode=acc_code,
+            acc_code=acc_code,
             date=tx_date,
         )
         db.add(new_tx)
         db.flush()
 
-        # 자산 포트폴리오 연대기 재계산 수행
+        # 자산 포트폴리오 연대기 재계산 수행으로 완벽한 데이터 무결성 보장
         recalculate_portfolio_for_account(db, acc_code)
 
         db.commit()
@@ -370,7 +555,7 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
             detail=f"Transaction with ID {tx_id} not found.",
         )
 
-    acc_code = tx.accCode
+    acc_code = tx.acc_code
     try:
         db.delete(tx)
         db.flush()
@@ -406,8 +591,10 @@ def update_transaction(
             detail=f"Transaction with ID {tx_id} not found.",
         )
 
-    old_acc_code = tx.accCode
-    new_acc_code = tx_input.accCode or tx_input.account_number or "A001"
+    old_acc_code = tx.acc_code
+    new_acc_code = (
+        tx_input.acc_code or tx_input.accCode or tx_input.account_number or "A001"
+    )
 
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:
@@ -441,7 +628,7 @@ def update_transaction(
         tx.name = tx_input.name
         tx.quantity = tx_input.quantity
         tx.price = tx_input.price
-        tx.accCode = new_acc_code
+        tx.acc_code = new_acc_code
         tx.date = tx_date
 
         db.flush()
@@ -466,58 +653,35 @@ def update_transaction(
             detail=f"Failed to update transaction: {str(e)}",
         )
 
-    try:
-        if not tx_input.date:
-            tx_date = datetime.now()
-        else:
-            try:
-                tx_date = datetime.strptime(tx_input.date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                try:
-                    cleaned_date = tx_input.date.replace("Z", "+00:00")
-                    tx_date = datetime.fromisoformat(cleaned_date)
-                except Exception:
-                    tx_date = datetime.now()
-
-        # 데이터 업데이트
-        tx.type = tx_type
-        tx.code = tx_input.code
-        tx.name = tx_input.name
-        tx.quantity = tx_input.quantity
-        tx.price = tx_input.price
-        tx.account_number = new_account_number
-        tx.date = tx_date
-
-        db.flush()
-
-        # 이전 계좌와 새 계좌의 포트폴리오를 둘 다 안전하게 연대기 재산출
-        recalculate_portfolio_for_account(db, old_account_number)
-        if old_account_number != new_account_number:
-            recalculate_portfolio_for_account(db, new_account_number)
-
-        db.commit()
-        return {
-            "status": "success",
-            "message": "Transaction updated and portfolio recalculated successfully.",
-        }
-    except HTTPException as he:
-        db.rollback()
-        raise he
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update transaction: {str(e)}",
-        )
-
 
 @app.get("/api/recommendations")
-def get_ai_recommendations():
+def get_ai_recommendations(db: Session = Depends(get_db)):
     """기획자 MOON(무니)의 R1 명세 데이터 규격 준수 (date 및 data 키 포맷)
 
     오늘 날짜에 맞춘 주식 가치주/성장주 목록 추천 데이터를 반환합니다.
     """
-    return get_mock_recommendations()
+    from database import Recommendation
+
+    current_date = datetime.now().strftime("%Y%m%d")
+    db_recs = db.query(Recommendation).all()
+
+    data = []
+    for r in db_recs:
+        data.append(
+            {
+                "name": r.name,
+                "code": r.code,
+                "tag": r.tag,
+                "reason": r.reason,
+                "score": r.score,
+            }
+        )
+
+    return {
+        "status": "success",
+        "date": current_date,
+        "data": data,
+    }
 
 
 @app.post("/api/tasks")
