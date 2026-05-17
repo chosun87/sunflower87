@@ -202,7 +202,15 @@ def create_task(task: TaskCreate):
         username = os.getenv("GITHUB_USERNAME", "chosun87")
         repo = os.getenv("GITHUB_REPO", "sunflower87")
 
-        if pat and pat != "YOUR_GITHUB_PAT":
+        # GITHUB_PAT가 실제 유효한 토큰 형식인지 검사 (URL 형식이나 단순 placeholder 배제)
+        is_token_valid = (
+            pat
+            and pat != "YOUR_GITHUB_PAT"
+            and not pat.startswith("http")
+            and "github.com" not in pat
+        )
+
+        if is_token_valid:
             # PAT가 제공된 경우 인증 정보 포함 푸시
             push_url = f"https://{pat}@github.com/{username}/{repo}.git"
             push_res = subprocess.run(
@@ -212,7 +220,8 @@ def create_task(task: TaskCreate):
                 text=True,
             )
         else:
-            # PAT가 없는 경우 로컬 OS 자격 증명(SSH Key, Credential Manager 등) 자동 사용 푸시
+            # PAT가 없거나 올바르지 않은 경우
+            # 로컬 OS 자격 증명(SSH Key, Credential Manager 등) 자동 사용 푸시
             push_res = subprocess.run(
                 ["git", "push", "origin", branch_name],
                 cwd=project_root,
