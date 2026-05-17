@@ -7,6 +7,7 @@ from sqlalchemy import (
     String,
     DateTime,
     ForeignKey,
+    text,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
@@ -55,7 +56,9 @@ class Transaction(Base):
     name = Column(String, nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Integer, nullable=False)
-    acc_code = Column(String, ForeignKey("account.acc_cd"), nullable=False, default="")
+    acc_cd = Column(
+        String, ForeignKey("account.acc_cd"), nullable=False, default=""
+    )
 
 
 class Stock(Base):
@@ -64,7 +67,7 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     code = Column(String, primary_key=True)
-    acc_code = Column(
+    acc_cd = Column(
         String, ForeignKey("account.acc_cd"), primary_key=True, default=""
     )
     name = Column(String, nullable=False)
@@ -97,30 +100,34 @@ class CacheStock(Base):
 
 def init_db():
     """데이터베이스 테이블을 생성하고 기본 초기 데이터를 적재합니다."""
-    # 만약 account_number 또는 구버전 컬럼이 없는 스키마일 경우 테이블 재생성
+    # 만약 acc_cd 또는 구버전 컬럼이 없는 스키마일 경우 테이블 재생성
     db = SessionLocal()
     need_recreate = False
     try:
-        cursor = db.execute("PRAGMA table_info(transactions)")
+        cursor = db.execute(text("PRAGMA table_info(transactions)"))
         t_cols = [row[1] for row in cursor.fetchall()]
-        cursor = db.execute("PRAGMA table_info(stocks)")
+        cursor = db.execute(text("PRAGMA table_info(stocks)"))
         s_cols = [row[1] for row in cursor.fetchall()]
-        cursor = db.execute("PRAGMA table_info(account)")
+        cursor = db.execute(text("PRAGMA table_info(account)"))
         acc_cols = [row[1] for row in cursor.fetchall()]
         cursor = db.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='recommendations'"
+            text(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='recommendations'"
+            )
         )
         rec_exists = cursor.fetchone()
         cursor = db.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='cache_stocks'"
+            text(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='cache_stocks'"
+            )
         )
         cache_exists = cursor.fetchone()
 
         if (
-            (t_cols and "acc_code" not in t_cols)
-            or (s_cols and "acc_code" not in s_cols)
+            (t_cols and "acc_cd" not in t_cols)
+            or (s_cols and "acc_cd" not in s_cols)
             or (s_cols and "current_price" not in s_cols)
             or not acc_cols
             or (acc_cols and "acc_cd" not in acc_cols)
@@ -134,11 +141,104 @@ def init_db():
         db.close()
 
     if need_recreate:
-        print("Schema change detected. Recreating database tables...")
-        engine.dispose()
-        Base.metadata.drop_all(bind=engine)
+        print(
+            "⚠️ WARNING: Schema discrepancy detected! "
+            "Automatic database recreating (drop_all) is disabled to protect "
+            "your registered data."
+        )
 
     Base.metadata.create_all(bind=engine)
+
+    # 초기 기획 및 mock_data의 보유 주식을 SQLite 마이그레이션 (비어있을 경우에만)
+    db = SessionLocal()
+    try:
+        if db.query(Account).count() == 0:
+            default_accounts = [
+                Account(
+                    acc_cd="미래-연금",
+                    acc_nm="연금저축계좌(신)",
+                    acc_company_nm="미래에셋증권",
+                    cash_balance=28539701.0,
+                    acc_order=1,
+                    dt_created=datetime.strptime("2021-11-04", "%Y-%m-%d"),
+                ),
+                Account(
+                    acc_cd="미래-ISA",
+                    acc_nm="ISA(중계형)",
+                    acc_company_nm="미래에셋증권",
+                    cash_balance=40000000.0,
+                    acc_order=2,
+                    dt_created=datetime.strptime("2025-11-06", "%Y-%m-%d"),
+                ),
+                Account(
+                    acc_cd="미래-종합",
+                    acc_nm="종합_주식",
+                    acc_company_nm="미래에셋증권",
+                    cash_balance=20000000.0,
+                    acc_order=3,
+                    dt_created=datetime.strptime("2006-05-15", "%Y-%m-%d"),
+                ),
+            ]
+            db.add_all(default_accounts)
+            db.commit()
+            print("Database initialized with default accounts.")
+
+        if db.query(Stock).count() == 0:
+            # 기본 삼성전자, 현대차 종목 적재
+            default_stocks = [
+                Stock(
+                    code="005930",
+                    name="삼성전자",
+                    quantity=100,
+                    avg_price=72500,
+                    current_price=77000,
+                    acc_cd="미래-종합",
+                ),
+                Stock(
+                    code="005380",
+                    name="현대차",
+                    quantity=30,
+                    avg_price=240000,
+                    current_price=250000,
+                    acc_cd="미래-종합",
+                ),
+            ]
+            db.add_all(default_stocks)
+            db.commit()
+            print("Database initialized with default stocks.")
+
+        if db.query(Recommendation).count() == 0:
+            default_recs = [
+                Recommendation(
+                    code="005930",
+                    name="삼성전자",
+                    tag="가치주",
+                    reason="외국인 최근 5일 연속 순매수세 유입 및 20일 이동평균선 지지 확인.",
+                    score=92,
+                ),
+                Recommendation(
+                    code="005380",
+                    name="현대차",
+                    tag="저PBR/배당",
+                    reason="정부 밸류업 프로그램 최대 수혜 예상. PBR 0.6배 수준으로 극심한 저평가 상태.",
+                    score=88,
+                ),
+                Recommendation(
+                    code="035420",
+                    name="네이버",
+                    tag="기술주",
+                    reason="RSI 지수 30 부근으로 단기 과매도 구간 진입에 따른 기술적 반등 기대.",
+                    score=85,
+                ),
+            ]
+            db.add_all(default_recs)
+            db.commit()
+            print("Database initialized with default recommendations.")
+    except Exception as e:
+        db.rollback()
+        print(f"Error seeding database: {e}")
+    finally:
+        db.close()
 
 
 def get_db():

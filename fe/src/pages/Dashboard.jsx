@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import dayjs from 'dayjs'
 import {
   Card,
   DataTable,
@@ -15,7 +16,6 @@ import {
   InputNumber,
   SelectButton,
   Calendar,
-  ConfirmDialog,
   confirmDialog,
   addLocale,
 } from '@/assets/js/PrimeReact'
@@ -195,16 +195,9 @@ export default function Dashboard() {
       })
   }
 
-  // 커스텀 거래일시 포맷터 함수
+  // 커스텀 거래일시 포맷터 함수 (dayjs 활용)
   const formatCustomDate = (dateObj) => {
-    if (!dateObj) return ''
-    const yyyy = dateObj.getFullYear()
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
-    const dd = String(dateObj.getDate()).padStart(2, '0')
-    const hh = String(dateObj.getHours()).padStart(2, '0')
-    const min = String(dateObj.getMinutes()).padStart(2, '0')
-    const ss = String(dateObj.getSeconds()).padStart(2, '0')
-    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+    return dateObj ? dayjs(dateObj).format('YYYY-MM-DD HH:mm:ss') : ''
   }
 
   // 매수/매도 등록 및 수정 통합 처리 (PUT/POST 분기)
@@ -220,7 +213,7 @@ export default function Dashboard() {
       name: txName,
       quantity: txQuantity,
       price: txPrice,
-      acc_code: txAccount,
+      acc_cd: txAccount,
       date: formatCustomDate(txDate),
     }
 
@@ -279,7 +272,7 @@ export default function Dashboard() {
   const handleEditTransaction = (rowData) => {
     setEditingTxId(rowData.id)
     setTxType(rowData.type)
-    setTxAccount(rowData.acc_code)
+    setTxAccount(rowData.acc_cd)
     setTxCode(rowData.code)
     setTxName(rowData.name)
     setTxQuantity(rowData.quantity)
@@ -362,16 +355,15 @@ export default function Dashboard() {
     )
   }
 
-  // 거래 내역 일시 템플릿
+  // 거래 내역 일시 템플릿 (dayjs 활용 표준 한국어 포맷 강제 적용)
   const dateBodyTemplate = (rowData) => {
-    const d = new Date(rowData.date)
-    return d.toLocaleString()
+    return rowData.date ? dayjs(rowData.date).format('YYYY-MM-DD HH:mm') : ''
   }
 
   // 거래 계좌 뱃지 표시 템플릿
   const accountBodyTemplate = (rowData) => {
     const alias = rowData.account_alias || rowData.acc_nm || '알 수 없는 계좌'
-    const code = rowData.acc_code || ''
+    const code = rowData.acc_cd || ''
 
     // Assign badge colors based on account code for a vibrant and organized aesthetic
     let severity = 'secondary'
@@ -634,7 +626,7 @@ export default function Dashboard() {
                   sortable
                 ></Column>
                 <Column
-                  field="account_number"
+                  field="acc_cd"
                   header="거래 계좌"
                   body={accountBodyTemplate}
                   sortable
@@ -765,6 +757,7 @@ export default function Dashboard() {
               showTime
               hourFormat="24"
               locale="ko"
+              dateFormat="yy-mm-dd"
               placeholder="거래 날짜와 시간을 선택하세요"
             />
           </div>
@@ -802,9 +795,6 @@ export default function Dashboard() {
           </div>
         </div>
       </Dialog>
-
-      {/* ConfirmDialog 컴포넌트 추가 */}
-      <ConfirmDialog />
     </div>
   )
 }
