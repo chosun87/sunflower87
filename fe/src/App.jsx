@@ -18,7 +18,7 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL}>
         <div className="app-container flex flex-column min-h-screen">
           {/* Header 컴포넌트 내부에서 <header> 태그 관리 */}
           <Header />
