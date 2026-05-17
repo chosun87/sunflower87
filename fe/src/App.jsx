@@ -6,6 +6,7 @@ import {
   Navigate,
 } from 'react-router-dom'
 import { AuthProvider } from '@/context/AuthContext'
+import { ConfirmDialog } from '@/assets/js/PrimeReact'
 
 // 시맨틱 레이아웃을 위한 컴포넌트 로드
 import Header from '@components/common/Header'
@@ -18,6 +19,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 function App() {
   return (
     <AuthProvider>
+      <ConfirmDialog />
       <Router basename={import.meta.env.BASE_URL}>
         <div className="app-container flex flex-column min-h-screen">
           {/* Header 컴포넌트 내부에서 <header> 태그 관리 */}

@@ -13,6 +13,8 @@ be/.env
 be/venv/
 be/__pycache__/
 be/*.pyc
+be/data/
+be/sunflower87.db*
 
 # Frontend (fe/)
 fe/.env
