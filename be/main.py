@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
@@ -18,22 +18,71 @@ load_dotenv()
 
 # 기획자 MOON(무니)의 태스크 업로드 스펙 규격 정의
 class TaskCreate(BaseModel):
-    filename: str
-    content: str
+    filename: str = Field(
+        ...,
+        description="저장할 마크다운 태스크 파일명 (예: TASK-04-SWAGGER_DOCUMENTATION_BE_R1.md)",
+        examples=["TASK-04-SWAGGER_DOCUMENTATION_BE_R1.md"],
+    )
+    content: str = Field(
+        ...,
+        description="마크다운 태스크 파일에 기록할 상세 지침/내용",
+        examples=["# TASK-04 상세..."],
+    )
 
 
 # 매매 거래 추가용 Pydantic 모델 정의
 class TransactionCreate(BaseModel):
-    type: str  # BUY / SELL
-    code: str
-    name: str
-    quantity: int
-    price: int
-    acc_code: Optional[str] = ""
-    date: Optional[str] = None
+    type: str = Field(
+        ...,
+        description="매매 구분 (BUY: 매수, SELL: 매도)",
+        examples=["BUY"],
+    )
+    code: str = Field(
+        ...,
+        description="종목/ETF 6자리 고유 코드",
+        examples=["005930"],
+    )
+    name: str = Field(
+        ...,
+        description="종목/ETF 명칭",
+        examples=["삼성전자"],
+    )
+    quantity: int = Field(
+        ...,
+        description="매매 수량 (양의 정수)",
+        examples=[10],
+    )
+    price: int = Field(
+        ...,
+        description="매매 단가 (양의 정수)",
+        examples=[77000],
+    )
+    acc_code: Optional[str] = Field(
+        "",
+        description="account 테이블의 acc_cd 참조 키 (acc_code, accCode, account_number 호환)",
+        examples=["A001"],
+    )
+    date: Optional[str] = Field(
+        None,
+        description="거래일시 문자열 (포맷: YYYY-MM-DD HH:MM:SS 또는 ISO 8601)",
+        examples=["2026-05-17 23:25:46"],
+    )
 
 
-app = FastAPI(title="sunflower87 API")
+# 에러 응답 규격용 Pydantic 모델 정의
+class ErrorResponse(BaseModel):
+    detail: str = Field(
+        ...,
+        description="에러 및 예외 상세 설명 메세지",
+        examples=["Insufficient cash balance. Required: 770k, Available: 0."],
+    )
+
+
+app = FastAPI(
+    title="sunflower87 API 코어",
+    description="미래에셋 멀티 계좌 및 AI 주식 추천 시스템",
+    version="0.1.0",
+)
 
 # 데이터베이스 테이블 초기화 (startup 시점에 안전하게 구동)
 init_db()
@@ -91,7 +140,15 @@ def get_stocks_master():
     return {}
 
 
-@app.get("/api/stocks/search")
+@app.get(
+    "/api/stocks/search",
+    tags=["Market Stock"],
+    summary="종목 검색 자동완성 API",
+    description=(
+        "입력된 키워드(종목명 또는 종목코드)를 기반으로 매칭되는 주식/ETF 목록을 반환합니다. "
+        "Cache Aside 패턴에 따라 DB 캐시 조회를 우선 수행합니다."
+    ),
+)
 def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
     """종목명을 기반으로 종목코드를 자동 검색합니다 (부분 일치).
 
@@ -251,7 +308,15 @@ def get_enriched_accounts_data(db: Session) -> dict:
     }
 
 
-@app.get("/api/accounts")
+@app.get(
+    "/api/accounts",
+    tags=["Account"],
+    summary="총자산 및 계좌별 세부 자산 현황 조회 API",
+    description=(
+        "SQLite 데이터베이스의 account 및 stocks 테이블을 통합 조회하여 "
+        "총 자산 평가액, 계좌별 예수금, 주식 보유 내역 및 실시간 평가 수익률을 동적으로 계산해 반환합니다."
+    ),
+)
 def get_miraeasset_accounts(db: Session = Depends(get_db)):
     """SQLite 데이터베이스 account 및 stocks 테이블을 기반으로 총자산 및 계좌별 세부 자산 현황을 반환합니다.
 
@@ -278,7 +343,12 @@ def get_miraeasset_accounts(db: Session = Depends(get_db)):
     return get_enriched_accounts_data(db)
 
 
-@app.get("/api/transactions")
+@app.get(
+    "/api/transactions",
+    tags=["Transaction"],
+    summary="전체 매매 거래 내역 조회 API",
+    description="데이터베이스에 기록된 모든 매수/매도 거래 이력을 거래일시 역순(date DESC)으로 조회하여 반환합니다.",
+)
 def get_transaction_history(db: Session = Depends(get_db)):
     """최근 거래일시 순(date DESC)으로 전체 매매 거래 내역을 반환합니다.
 
@@ -448,7 +518,25 @@ def recalculate_portfolio_for_account(db: Session, acc_code: str):
         db.add(new_stock)
 
 
-@app.post("/api/transactions/add")
+@app.post(
+    "/api/transactions/add",
+    tags=["Transaction"],
+    summary="매매 거래 기록 추가 및 자산 실시간 재계산 API",
+    description=(
+        "신규 매수/매도 거래를 장부에 기록하고, 해당 계좌의 예수금 및 보유 주식 잔고를 "
+        "연대기 순으로 무결성 안전하게 재산출하여 DB에 실시간 반영합니다."
+    ),
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "매수 잔고(예수금) 부족 또는 과매도 수량 미달 등 유효성 실패",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "해당 식별자의 계좌(Account)를 찾을 수 없음",
+        },
+    },
+)
 def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
     """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다.
 
@@ -600,7 +688,27 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
         )
 
 
-@app.delete("/api/transactions/{tx_id}")
+@app.delete(
+    "/api/transactions/{tx_id}",
+    tags=["Transaction"],
+    summary="거래 기록 삭제 및 자산 역산 복원 API",
+    description=(
+        "지정된 고유 ID의 거래 데이터를 장부에서 안전하게 제거하고, 기존 거래 내역을 처음부터 "
+        "다시 누적 추적함으로써 해당 계좌의 자산을 거래 이전 상태로 역산하여 원상복귀시킵니다."
+    ),
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": (
+                "삭제 후 역산 과정에서 자산이 마이너스가 되는 등의 역산 유효성 실패"
+            ),
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "삭제 요청한 ID의 거래 기록을 찾을 수 없음",
+        },
+    },
+)
 def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
     """지정된 거래를 삭제하고 해당 계좌의 포트폴리오를 역산(Rollback)하여 원상복귀시킵니다.
 
@@ -646,7 +754,27 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
         )
 
 
-@app.put("/api/transactions/{tx_id}")
+@app.put(
+    "/api/transactions/{tx_id}",
+    tags=["Transaction"],
+    summary="거래 수정 및 포트폴리오 안전 재반영 API",
+    description=(
+        "기존 거래 내역 데이터를 완전히 수정하며, 기존 계좌와 신규 계좌의 예수금 및 "
+        "주식 포트폴리오 자산을 분리하여 연대기적으로 완벽하게 재산출 및 복원 처리합니다."
+    ),
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": (
+                "수정 후 기존/신규 계좌의 자산이 마이너스가 되는 등의 역산 유효성 실패"
+            ),
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "수정 요청한 ID의 거래 기록 또는 관련 계좌를 찾을 수 없음",
+        },
+    },
+)
 def update_transaction(
     tx_id: int, tx_input: TransactionCreate, db: Session = Depends(get_db)
 ):
@@ -735,7 +863,15 @@ def update_transaction(
         )
 
 
-@app.get("/api/recommendations")
+@app.get(
+    "/api/recommendations",
+    tags=["Market Stock"],
+    summary="AI 추천 종목 조회 API",
+    description=(
+        "오늘 날짜를 기준으로 AI가 정밀 선별한 우량 가치주, 성장주, 배당주 추천 목록과 "
+        "추천 이유 및 분석 점수를 함께 반환합니다."
+    ),
+)
 def get_ai_recommendations(db: Session = Depends(get_db)):
     """오늘 날짜에 맞춘 주식 가치주/성장주 목록 추천 데이터를 반환합니다 (R1 명세 준수).
 
@@ -781,7 +917,15 @@ def get_ai_recommendations(db: Session = Depends(get_db)):
     }
 
 
-@app.post("/api/tasks")
+@app.post(
+    "/api/tasks",
+    tags=["Task"],
+    summary="기획 마크다운 태스크 생성 및 원격 Git 동기화 API",
+    description=(
+        "입력받은 파일명과 마크다운 내용을 기반으로 로컬 프로젝트 docs/tasks 폴더 내에 "
+        "명세서를 물리 작성하고, Git 형상관리를 통해 원격 리포지토리에 자동 Push합니다."
+    ),
+)
 def create_task(task: TaskCreate):
     """지정된 이름과 내용을 기반으로 docs/tasks 디렉토리에 마크다운 형식 태스크 파일을 생성하고,
 
