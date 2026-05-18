@@ -244,6 +244,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
                 "acc_company_nm": acc.acc_company_nm,
                 "alias": f"[{acc.acc_company_nm}] {acc.acc_nm}",
                 "balance": acc.cash_balance,  # 예수금 잔액 전달
+                "cash_balance": acc.cash_balance,  # FE R9 표준 예수금 잔고 명세 바인딩
                 "total_eval": total_eval,  # 총 평가액
                 "profit_rate": profit_rate,  # 계좌 총 수익률
                 "stocks": stocks_list,

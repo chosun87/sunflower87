@@ -69,7 +69,7 @@ addLocale('ko', {
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
-  const [selectedAccount, setSelectedAccount] = useState(null)
+  const [selectedAccount, setSelectedAccount] = useState(null) // 선택 계좌의 acc_cd 스트링 홀딩
   const [transactions, setTransactions] = useState([])
   const [recommendations, setRecommendations] = useState([])
   const navigate = useNavigate()
@@ -86,6 +86,7 @@ export default function Dashboard() {
   const [txPrice, setTxPrice] = useState(null)
   const [txDate, setTxDate] = useState(new Date())
   const [isSearching, setIsSearching] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (isInitialized && !isSignedIn) {
@@ -95,7 +96,9 @@ export default function Dashboard() {
 
   // 실시간 자산 및 보유 주식 불러오기 (데이터 일관성 보장 바인딩)
   const fetchAccountData = () => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/accounts`)
+    fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/accounts`,
+    )
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -115,13 +118,17 @@ export default function Dashboard() {
           // 계좌가 있고, 기존 선택 계좌가 유지되는 경우 찾아서 재매핑하여 무중단 상태 동기화 제공
           if (enrichedAccounts && enrichedAccounts.length > 0) {
             setSelectedAccount((prev) => {
-              if (prev) {
+              if (prev && typeof prev === 'string') {
+                const found = enrichedAccounts.find((a) => a.acc_cd === prev)
+                if (found) return found.acc_cd
+              }
+              if (prev && typeof prev === 'object' && prev.acc_cd) {
                 const found = enrichedAccounts.find(
                   (a) => a.acc_cd === prev.acc_cd,
                 )
-                if (found) return found
+                if (found) return found.acc_cd
               }
-              return enrichedAccounts[0]
+              return enrichedAccounts[0].acc_cd
             })
           }
         }
@@ -131,7 +138,9 @@ export default function Dashboard() {
 
   // SQLite 거래 히스토리 내역 불러오기
   const loadTransactions = () => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions`)
+    fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions`,
+    )
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -146,7 +155,9 @@ export default function Dashboard() {
     loadTransactions()
 
     // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/recommendations`)
+    fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/recommendations`,
+    )
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -219,13 +230,15 @@ export default function Dashboard() {
       return
     }
 
+    setIsSubmitting(true)
+
     const payload = {
       type: txType,
       code: txCode,
       name: txName,
       quantity: txQuantity,
       price: txPrice,
-      acc_cd: txAccount,
+      acc_cd: txAccount, // DB 스키마 표준 규격에 맞추어 acc_cd로 전면 통일
       date: formatCustomDate(txDate),
     }
 
@@ -278,6 +291,9 @@ export default function Dashboard() {
         console.error('거래 추가/수정 중 에러:', err)
         showError(err.message || '서버 통신 실패')
       })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
   // 거래 내역 편집 활성화 핸들러
@@ -304,9 +320,12 @@ export default function Dashboard() {
       acceptLabel: '삭제',
       rejectLabel: '취소',
       accept: () => {
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${rowData.id}`, {
-          method: 'DELETE',
-        })
+        fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${rowData.id}`,
+          {
+            method: 'DELETE',
+          },
+        )
           .then((res) => {
             if (!res.ok) {
               return res.json().then((errData) => {
@@ -418,13 +437,22 @@ export default function Dashboard() {
         icon="pi pi-times"
         onClick={() => setDisplayDialog(false)}
         className="p-button-text p-button-secondary"
+        disabled={isSubmitting}
       />
       <Button
         label={editingTxId ? '수정 완료' : '거래 등록'}
         icon="pi pi-check"
         onClick={handleSaveTransaction}
         className="p-button-primary font-bold"
-        disabled={!txAccount || !txCode || !txName || !txQuantity || !txPrice}
+        disabled={
+          isSubmitting ||
+          !txAccount ||
+          !txCode ||
+          !txName ||
+          !txQuantity ||
+          !txPrice
+        }
+        loading={isSubmitting}
       />
     </div>
   )
@@ -467,7 +495,8 @@ export default function Dashboard() {
               value={selectedAccount}
               options={data.accounts}
               onChange={(e) => setSelectedAccount(e.value)}
-              optionLabel="alias"
+              optionLabel="acc_nm"
+              optionValue="acc_cd"
               placeholder="조회할 계좌를 선택하세요"
               className="w-full"
             />
@@ -560,6 +589,24 @@ export default function Dashboard() {
                       />
                     </div>
                   </div>
+
+                  {/* 예수금 (Cash Balance) R9 규격 프리미엄 배너 */}
+                  <div className="p-3 mb-3 border-round bg-green-50 border-left-3 border-green-500 flex align-items-center justify-content-between shadow-1">
+                    <div className="flex align-items-center gap-2">
+                      <i className="pi pi-wallet text-green-600 text-xl"></i>
+                      <span className="font-semibold text-800 text-sm">
+                        예수금 (Cash Balance)
+                      </span>
+                    </div>
+                    <span className="text-xl font-bold text-green-700">
+                      {(acc.cash_balance !== undefined
+                        ? acc.cash_balance
+                        : acc.balance
+                      ).toLocaleString()}{' '}
+                      원
+                    </span>
+                  </div>
+
                   <DataTable
                     value={acc.stocks}
                     responsiveLayout="stack"
@@ -719,6 +766,7 @@ export default function Dashboard() {
                 { label: '🔵 매도', value: 'SELL' },
               ]}
               onChange={(e) => setTxType(e.value || 'BUY')}
+              disabled={isSubmitting}
               className={`tx-selectbutton w-full ${
                 txType === 'BUY' ? 'buy-selected' : 'sell-selected'
               }`}
@@ -738,6 +786,7 @@ export default function Dashboard() {
               optionLabel="acc_nm"
               optionValue="acc_cd"
               placeholder="거래가 발생한 계좌 선택"
+              disabled={isSubmitting}
               className="w-full"
             />
           </div>
@@ -753,6 +802,7 @@ export default function Dashboard() {
                 value={txName}
                 onChange={(e) => setTxName(e.target.value)}
                 placeholder="예: 삼성전자"
+                disabled={isSubmitting}
               />
               <Button
                 type="button"
@@ -761,6 +811,7 @@ export default function Dashboard() {
                 onClick={handleSearchStock}
                 tooltip="종목코드 자동 검색"
                 loading={isSearching}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -775,6 +826,7 @@ export default function Dashboard() {
               value={txCode}
               placeholder="종목명을 검색하면 자동 입력됩니다"
               readOnly
+              disabled={isSubmitting}
               className="bg-gray-100 cursor-not-allowed"
             />
           </div>
@@ -793,6 +845,7 @@ export default function Dashboard() {
               locale="ko"
               dateFormat="yy-mm-dd"
               placeholder="거래 날짜와 시간을 선택하세요"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -808,6 +861,7 @@ export default function Dashboard() {
               placeholder="예: 100"
               min={1}
               showButtons
+              disabled={isSubmitting}
             />
           </div>
 
@@ -825,6 +879,7 @@ export default function Dashboard() {
               mode="currency"
               currency="KRW"
               locale="ko-KR"
+              disabled={isSubmitting}
             />
           </div>
         </div>
