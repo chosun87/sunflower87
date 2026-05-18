@@ -1,9 +1,12 @@
+TRADE_DATE_PERIOD = 60      # 기본 확보 거래일수 (약 3개월치 컴팩트 유지)
+DATA_GAP_THRESHOLD = 120    # 데이터 공백 허용 임계치 (순수 거래일 기준 6개월치 통제)
+
 import sys
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from config import TRADE_DATE_PERIOD  # noqa: F401
+from config import TRADE_DATE_PERIOD as CONFIG_TRADE_DATE_PERIOD  # noqa: F401
 
 # 보안 지침: 프로젝트 환경변수 로드
 load_dotenv()

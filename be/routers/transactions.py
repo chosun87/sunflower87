@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db, Transaction, Stock
 from schemas import TransactionCreate, ErrorResponse
@@ -75,7 +75,7 @@ def get_transaction_history(db: Session = Depends(get_db)):
         },
     },
 )
-def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
+def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다."""
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:
@@ -91,6 +91,9 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
         )
 
     acc_cd = tx_input.acc_cd or "A001"
+
+    # 전체 계좌(포트폴리오) 관점에서 이 주식이 한 번도 보유하지 않았던 신규 편입 종목인지 검증
+    is_new_stock = db.query(Stock).filter(Stock.code == tx_input.code).count() == 0
 
     try:
         # TransactionCreate validator에 의해 완벽히 정규화되어 들어온 날짜 파싱
@@ -176,6 +179,21 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
         recalculate_portfolio_for_account(db, acc_cd)
 
         db.commit()
+
+        # 신규 종목 매수 성공 시 백그라운드로 60거래일치 시세 캐시 즉시 선행 적재 (트리거 B)
+        if tx_type == "BUY" and is_new_stock:
+            from database import SessionLocal
+            from portfolio_service import sync_ohlcv_cache
+            
+            def run_sync_in_bg(session_factory, code):
+                bg_db = session_factory()
+                try:
+                    sync_ohlcv_cache(bg_db, code)
+                finally:
+                    bg_db.close()
+            
+            background_tasks.add_task(run_sync_in_bg, SessionLocal, tx_input.code)
+
         return {
             "status": "success",
             "message": (
