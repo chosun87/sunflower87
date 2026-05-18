@@ -84,6 +84,7 @@ export default function Dashboard() {
   const [txName, setTxName] = useState('')
   const [txQuantity, setTxQuantity] = useState(null)
   const [txPrice, setTxPrice] = useState(null)
+  const [txTaxFee, setTxTaxFee] = useState(0)
   const [txDate, setTxDate] = useState(new Date())
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -238,6 +239,7 @@ export default function Dashboard() {
       name: txName,
       quantity: txQuantity,
       price: txPrice,
+      tax_fee: txTaxFee || 0,
       acc_cd: txAccount, // DB 스키마 표준 규격에 맞추어 acc_cd로 전면 통일
       date: formatCustomDate(txDate),
     }
@@ -273,6 +275,7 @@ export default function Dashboard() {
           setTxName('')
           setTxQuantity(null)
           setTxPrice(null)
+          setTxTaxFee(0)
           setTxDate(new Date())
 
           // 성공 알림 및 리액티브 자산 실시간 동기화
@@ -305,6 +308,7 @@ export default function Dashboard() {
     setTxName(rowData.name)
     setTxQuantity(rowData.quantity)
     setTxPrice(rowData.price)
+    setTxTaxFee(rowData.tax_fee || 0)
     setTxDate(new Date(rowData.date))
     setDisplayDialog(true)
   }
@@ -354,59 +358,178 @@ export default function Dashboard() {
     })
   }
 
-  // 수익률 컬러 템플릿
+  // 수익률 컬러 템플릿 (Excel 정합을 위해 % 생략, 국내 증시 규격에 맞춰 positive=red, negative=blue)
   const profitTemplate = (rowData) => {
-    const rate = Number(rowData.eval_profit_rate || 0)
-    const isPositive = rate >= 0
-    const colorClass = isPositive
-      ? 'text-red-600 font-bold'
-      : 'text-blue-600 font-bold'
+    const buy_amount = rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0)
+    
+    if (buy_amount === 0) {
+      return (
+        <span className="monospace">0.00</span>
+      )
+    }
+
+    const rate = rowData.return_rate !== undefined ? rowData.return_rate : (
+      buy_amount > 0 ? (
+        ((rowData.quantity || 0) * (rowData.current_price || 0) - buy_amount) / buy_amount * 100
+      ) : 0
+    )
+
+    if (rate === 0) {
+      return (
+        <span className="monospace">0.00</span>
+      )
+    }
+
+    const isPositive = rate > 0
+    const style = {
+      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
+      fontWeight: 'bold',
+    }
     return (
-      <span className={colorClass}>
+      <span className="monospace" style={style}>
         {isPositive ? '+' : ''}
-        {rate.toFixed(2)}%
+        {rate.toFixed(2)}
       </span>
     )
   }
 
-  // 금액 포맷터
-  const currencyTemplate = (amount) => {
-    return amount.toLocaleString() + ' 원'
-  }
-
-  // 거래 내역 구분 템플릿
+  // 거래 내역 구분 템플릿 (국내 규격 매수=Red, 매도=Blue)
   const txTypeBodyTemplate = (rowData) => {
     const isBuy = rowData.type === 'BUY'
-    return (
-      <span
-        className={`font-bold p-1 px-2 border-round text-xs ${
-          isBuy
-            ? 'bg-red-100 text-red-700 border-red-200'
-            : 'bg-blue-100 text-blue-700 border-blue-200'
-        }`}
-      >
-        {isBuy ? '● 매수' : '○ 매도'}
-      </span>
+    return isBuy ? (
+      <Badge
+        value="매수"
+        style={{ backgroundColor: 'var(--red-600)', color: '#fff' }}
+      />
+    ) : (
+      <Badge
+        value="매도"
+        style={{ backgroundColor: 'var(--blue-600)', color: '#fff' }}
+      />
     )
   }
 
   // 거래 내역 일시 템플릿 (dayjs 활용 표준 한국어 포맷 강제 적용)
   const dateBodyTemplate = (rowData) => {
-    return rowData.date ? dayjs(rowData.date).format('YYYY-MM-DD HH:mm') : ''
+    return rowData.date ? (
+      <span className="monospace">
+        {dayjs(rowData.date).format('YYYY-MM-DD HH:mm')}
+      </span>
+    ) : (
+      ''
+    )
   }
 
   // 거래 계좌 뱃지 표시 템플릿
   const accountBodyTemplate = (rowData) => {
-    const alias = rowData.account_alias || rowData.acc_nm || '알 수 없는 계좌'
-    const code = rowData.acc_cd || ''
+    const company = rowData.acc_company_nm || ''
+    const name = rowData.acc_nm || '알 수 없는 계좌'
+    if (company) {
+      const shortCompany = company.substring(0, 2)
+      return `[${shortCompany}] ${name}`
+    }
+    return name
+  }
 
-    // Assign badge colors based on account code for a vibrant and organized aesthetic
-    let severity = 'secondary'
-    if (code === '미래-종합') severity = 'success'
-    else if (code === '미래-ISA') severity = 'warning'
-    else if (code === '미래-연금') severity = 'info'
+  // 보유 자산 상세 컬럼 템플릿들 (Excel 정합을 위해 원/주/% 생략)
+  const codeBodyTemplate = (rowData) => {
+    return <span className="monospace">{rowData.code}</span>
+  }
 
-    return <Badge value={alias} severity={severity} />
+  const quantityBodyTemplate = (rowData) => {
+    return (
+      <span className="monospace">{rowData.quantity.toLocaleString()}</span>
+    )
+  }
+
+  const currentPriceBodyTemplate = (rowData) => {
+    return (
+      <span className="monospace">
+        {rowData.current_price.toLocaleString()}
+      </span>
+    )
+  }
+
+  const avgPriceBodyTemplate = (rowData) => {
+    const val = Math.floor(rowData.avg_price || 0)
+    return (
+      <span className="monospace">{val.toLocaleString()}</span>
+    )
+  }
+
+  const evalAmountBodyTemplate = (rowData) => {
+    const val = Math.round(rowData.total_eval_amt !== undefined ? rowData.total_eval_amt : (rowData.quantity || 0) * (rowData.current_price || 0))
+    return (
+      <span className="monospace">
+        {val.toLocaleString()}
+      </span>
+    )
+  }
+
+  const buyAmountBodyTemplate = (rowData) => {
+    const buy_amount = Math.round(rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0))
+    return <span className="monospace">{buy_amount.toLocaleString()}</span>
+  }
+
+  const totalTaxFeeBodyTemplate = (rowData) => {
+    const val = Math.round(rowData.total_tax_fee || 0)
+    return <span className="monospace">{val.toLocaleString()}</span>
+  }
+
+  const evalProfitBodyTemplate = (rowData) => {
+    const buy_amount = Math.round(rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0))
+    const profit = Math.round(rowData.total_profit_loss !== undefined ? rowData.total_profit_loss : (
+      (rowData.total_eval_amt !== undefined ? rowData.total_eval_amt : (rowData.quantity || 0) * (rowData.current_price || 0)) -
+      buy_amount
+    ))
+
+    if (buy_amount === 0 || profit === 0) {
+      return (
+        <span className="monospace">0</span>
+      )
+    }
+
+    const isPositive = profit > 0
+    const style = {
+      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
+      fontWeight: 'bold',
+    }
+    return (
+      <span className="monospace" style={style}>
+        {isPositive ? '+' : ''}
+        {profit.toLocaleString()}
+      </span>
+    )
+  }
+
+  // 거래 내역 히스토리 전용 추가 템플릿
+  const txCodeBodyTemplate = (rowData) => {
+    return <span className="monospace">{rowData.code}</span>
+  }
+
+  const txQuantityBodyTemplate = (rowData) => {
+    return (
+      <span className="monospace">{rowData.quantity.toLocaleString()} 주</span>
+    )
+  }
+
+  const txPriceBodyTemplate = (rowData) => {
+    return (
+      <span className="monospace">{rowData.price.toLocaleString()} 원</span>
+    )
+  }
+
+  const txTotalBodyTemplate = (rowData) => {
+    return (
+      <span className="monospace">
+        {(rowData.quantity * rowData.price).toLocaleString()} 원
+      </span>
+    )
+  }
+
+  const txTaxFeeBodyTemplate = (rowData) => {
+    const fee = rowData.tax_fee || 0
+    return <span className="monospace">{fee.toLocaleString()} 원</span>
   }
 
   // 테이블 최우측 [수정/삭제] 액션 컬럼 정의
@@ -505,7 +628,7 @@ export default function Dashboard() {
       </div>
 
       {/* 오늘의 AI 추천 종목 섹션 */}
-      <div className="mb-6">
+      <div className="mb-6 hidden">
         <div className="flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
           <div className="flex align-items-center gap-2">
             <i className="pi pi-sparkles text-amber-500 text-2xl"></i>
@@ -595,7 +718,8 @@ export default function Dashboard() {
                     <div className="flex align-items-center gap-2">
                       <i className="pi pi-wallet text-green-600 text-xl"></i>
                       <span className="font-semibold text-800 text-sm">
-                        예수금 (Cash Balance)
+                        예수금 (Cash Balance) - {acc.acc_company_nm}{' '}
+                        {acc.acc_nm}
                       </span>
                     </div>
                     <span className="text-xl font-bold text-green-700">
@@ -618,30 +742,57 @@ export default function Dashboard() {
                     <Column field="name" header="종목명" sortable></Column>
                     <Column
                       field="quantity"
-                      header="보유수량"
-                      sortable
-                    ></Column>
-                    <Column
-                      field="avg_price"
-                      header="매입평단가"
-                      body={(rd) => currencyTemplate(rd.avg_price)}
+                      header="총 보유수량"
+                      align="right"
+                      body={quantityBodyTemplate}
                       sortable
                     ></Column>
                     <Column
                       field="current_price"
                       header="현재가"
-                      body={(rd) => currencyTemplate(rd.current_price)}
+                      align="right"
+                      body={currentPriceBodyTemplate}
                       sortable
                     ></Column>
                     <Column
-                      field="eval_amount"
-                      header="평가금액"
-                      body={(rd) => currencyTemplate(rd.eval_amount)}
+                      field="avg_price"
+                      header="매입평단가"
+                      align="right"
+                      body={avgPriceBodyTemplate}
                       sortable
                     ></Column>
                     <Column
-                      field="eval_profit_rate"
+                      field="total_eval_amt"
+                      header="총 평가금액"
+                      align="right"
+                      body={evalAmountBodyTemplate}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="total_purchase_amt"
+                      header="총 매수금액"
+                      align="right"
+                      body={buyAmountBodyTemplate}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="total_tax_fee"
+                      header="총 세금+수수료"
+                      align="right"
+                      body={totalTaxFeeBodyTemplate}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="total_profit_loss"
+                      header="총 평가손익"
+                      align="right"
+                      body={evalProfitBodyTemplate}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="return_rate"
                       header="수익률"
+                      align="right"
                       body={profitTemplate}
                       sortable
                     ></Column>
@@ -677,6 +828,7 @@ export default function Dashboard() {
                     setTxName('')
                     setTxQuantity(null)
                     setTxPrice(null)
+                    setTxTaxFee(0)
                     setTxDate(new Date())
                     setDisplayDialog(true)
                   }}
@@ -712,23 +864,38 @@ export default function Dashboard() {
                   body={accountBodyTemplate}
                   sortable
                 ></Column>
-                <Column field="code" header="종목코드" sortable></Column>
+                <Column
+                  field="code"
+                  header="종목코드"
+                  body={txCodeBodyTemplate}
+                  sortable
+                ></Column>
                 <Column field="name" header="종목명" sortable></Column>
                 <Column
                   field="quantity"
                   header="거래 수량"
-                  body={(rd) => `${rd.quantity.toLocaleString()} 주`}
+                  align="right"
+                  body={txQuantityBodyTemplate}
                   sortable
                 ></Column>
                 <Column
                   field="price"
                   header="거래 단가"
-                  body={(rd) => currencyTemplate(rd.price)}
+                  align="right"
+                  body={txPriceBodyTemplate}
                   sortable
                 ></Column>
                 <Column
                   header="총 거래금액"
-                  body={(rd) => currencyTemplate(rd.quantity * rd.price)}
+                  align="right"
+                  body={txTotalBodyTemplate}
+                  sortable
+                ></Column>
+                <Column
+                  field="tax_fee"
+                  header="세금+수수료"
+                  align="right"
+                  body={txTaxFeeBodyTemplate}
                   sortable
                 ></Column>
                 <Column
@@ -876,6 +1043,24 @@ export default function Dashboard() {
               onValueChange={(e) => setTxPrice(e.value)}
               placeholder="예: 72500"
               min={1}
+              mode="currency"
+              currency="KRW"
+              locale="ko-KR"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* 세금 및 수수료 입력 */}
+          <div className="flex flex-column gap-2">
+            <label htmlFor="txTaxFee" className="font-semibold text-900">
+              세금+수수료 (원)
+            </label>
+            <InputNumber
+              id="txTaxFee"
+              value={txTaxFee}
+              onValueChange={(e) => setTxTaxFee(e.value || 0)}
+              placeholder="예: 1500"
+              min={0}
               mode="currency"
               currency="KRW"
               locale="ko-KR"

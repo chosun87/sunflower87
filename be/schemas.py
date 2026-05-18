@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, validator
 
@@ -17,8 +18,6 @@ class TaskCreate(BaseModel):
         examples=["# TASK-04 상세..."],
     )
 
-
-from datetime import datetime
 
 class TransactionCreate(BaseModel):
     date: Optional[str] = Field(
@@ -56,13 +55,18 @@ class TransactionCreate(BaseModel):
         description="account 테이블의 acc_cd 참조 키",
         examples=["A001"],
     )
+    tax_fee: Optional[int] = Field(
+        0,
+        description="거래 세금 및 수수료 (기본값: 0)",
+        examples=[1500],
+    )
 
     @validator("date", pre=True, always=True)
     def parse_and_normalize_date(cls, v):
         """다양한 유형의 날짜 입력을 파싱하고 YYYY-MM-DD HH:MM:SS 표준 포맷으로 자동 정규화합니다."""
         if not v:
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         if isinstance(v, datetime):
             return v.strftime("%Y-%m-%d %H:%M:%S")
 

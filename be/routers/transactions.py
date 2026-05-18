@@ -38,6 +38,7 @@ def get_transaction_history(db: Session = Depends(get_db)):
                     "name": t.name,
                     "quantity": t.quantity,
                     "price": t.price,
+                    "tax_fee": t.tax_fee,
                     "acc_cd": t.acc_cd,
                     "acc_nm": acc_name,
                     "acc_company_nm": acc_company,
@@ -75,7 +76,11 @@ def get_transaction_history(db: Session = Depends(get_db)):
         },
     },
 )
-def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def add_transaction(
+    tx_input: TransactionCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """매매 거래 기록을 추가하고 지정된 계좌의 자산을 연대기적으로 재계산합니다."""
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:
@@ -110,17 +115,19 @@ def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTas
             )
 
         cost = tx_input.quantity * tx_input.price
+        tx_fee = tx_input.tax_fee or 0
         if tx_type == "BUY":
-            if account.cash_balance < cost:
+            total_outflow = cost + tx_fee
+            if account.cash_balance < total_outflow:
                 err_msg = (
-                    f"Insufficient cash balance. Required: {cost:,.0f} KRW, "
+                    f"Insufficient cash balance. Required: {total_outflow:,.0f} KRW, "
                     f"Available: {account.cash_balance:,.0f} KRW."
                 )
                 raise HTTPException(
                     status_code=400,
                     detail=err_msg,
                 )
-            account.cash_balance -= cost
+            account.cash_balance -= total_outflow
 
             # 2. stocks 테이블에서 WHERE acc_cd = :acc_cd AND code = :code
             # 조건으로 현재고 보정
@@ -133,7 +140,7 @@ def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTas
                 new_qty = stock.quantity + tx_input.quantity
                 new_avg = (stock.quantity * stock.avg_price + cost) / new_qty
                 stock.quantity = new_qty
-                stock.avg_price = round(new_avg, 2)
+                stock.avg_price = int(round(new_avg))
                 stock.current_price = tx_input.price
             else:
                 stock = Stock(
@@ -157,7 +164,7 @@ def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTas
                     status_code=400,
                     detail="Insufficient stock holdings for SELL transaction.",
                 )
-            account.cash_balance += cost
+            account.cash_balance += (cost - tx_fee)
             if stock.quantity == tx_input.quantity:
                 db.delete(stock)
             else:
@@ -169,6 +176,7 @@ def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTas
             name=tx_input.name,
             quantity=tx_input.quantity,
             price=tx_input.price,
+            tax_fee=tx_fee,
             acc_cd=acc_cd,
             date=tx_date,
         )
@@ -184,14 +192,14 @@ def add_transaction(tx_input: TransactionCreate, background_tasks: BackgroundTas
         if tx_type == "BUY" and is_new_stock:
             from database import SessionLocal
             from portfolio_service import sync_ohlcv_cache
-            
+
             def run_sync_in_bg(session_factory, code):
                 bg_db = session_factory()
                 try:
                     sync_ohlcv_cache(bg_db, code)
                 finally:
                     bg_db.close()
-            
+
             background_tasks.add_task(run_sync_in_bg, SessionLocal, tx_input.code)
 
         return {
@@ -321,6 +329,7 @@ def update_transaction(
         tx.name = tx_input.name
         tx.quantity = tx_input.quantity
         tx.price = tx_input.price
+        tx.tax_fee = tx_input.tax_fee or 0
         tx.acc_cd = new_acc_cd
         tx.date = tx_date
 

@@ -33,9 +33,14 @@
 | **TASK-03-FE-R7** | 어띠페 (FE) | DB 기반 종목 검색 캐싱 레이어 연동 검증 UI (_FE_R7) | **완료 (Success)** | 외부 스크래퍼 로드 속도 랙 제거 및 두 번째 검색 시 실시간 초고속 자동 매핑 검증 |
 | **TASK-03-FE-R8** | 어띠페 (FE) | 전일 종가 기반 자산 평가 및 수익률 UI 컴포넌트 구현 (_FE_R8) | **완료 (Success)** | `current_price` 기준 평가금액 및 수익률 연산. 양수 (+) Red 톤, 음수 (-) Blue 톤 적용 |
 | **TASK-03-FE-R9** | 어띠페 (FE) | 전일 종가 자산 평가 및 수익률 연동 UI 최종 완성 (_FE_R9) | **완료 (Success)** | `acc_cd` 식별자 단일화, 원화 포맷 예수금(Cash Balance) 뷰, `isSubmitting` 중복 차단 완비 |
-| **TASK-04-R1** | 어띠베 (BE) | 16시 타임윈도우 분기형 60일 주가 캐싱 구현 (_BE_R1) | **완료 (Success)** | 16시 이후 당일 시세 반영 종료일 동적 역산 및 Gap 백필/지우기 완비 |
+| **TASK-04-BE-R1** | 어띠베 (BE) | 16시 타임윈도우 분기형 60일 주가 캐싱 구현 (_BE_R1) | **완료 (Success)** | 16시 이후 당일 시세 반영 종료일 동적 역산 및 Gap 백필/지우기 완비 |
+| **TASK-04-BE-R2** | 어띠베 (BE) | 계좌 정보 조회 데이터 맵핑 및 KOSPI 인덱스 연동 (_BE_R2) | **완료 (Success)** | acc_nm/acc_company_nm 컬럼명 API 키 매핑 통일 및 KOSPI 시세 슬라이싱 안전 폴백 연동 완비 |
+| **TASK-04-BE-R3** | 어띠베 (BE) | 세금+수수료(tax_fee) 필드 확장 및 시계열 자산 평가 API 구현 (_BE_R3) | **완료 (Success)** | SQLite transactions 테이블 내 tax_fee 컬럼 추가 및 chronological replay 예수금 차감/가산 구현 완비 |
 | **TASK-04-FE-R1** | 어띠페 (FE) | 시점 분기형 종가 자산 평가 및 예수금 UI 연동 (_FE_R1) | **완료 (Success)** | acc_cd 식별자 매핑, 실시간 예수금 천 단위 콤마 배너, loading 중복 제출 방지 및 리프레시 완비 |
-| **TASK-04-R2** | FE / BE | FastAPI 내장 Swagger UI 문서화 고도화 및 세션 연장 연동 | **완료 (Success)** | API tags/descriptions, Pydantic 주석화 완비, 헤더 내 세션 MM:SS 타이머 & 클릭 연장 구현 |
+| **TASK-04-FE-R2** | 어띠페 (FE) | 글로벌 파이낸스 그리드 스타일링 구현 (_FE_R2) | **완료 (Success)** | 수량/금액 우측 정렬, .monospace 주입, 매수(파랑)/매도(빨강) 및 평가손익 컬러 반전 스펙 완비 |
+| **TASK-04-FE-R3** | 어띠페 (FE) | API 규격 정규화 및 가시성 고도화 그리드 구현 (_FE_R3) | **완료 (Success)** | acc_company_nm/acc_nm 배너 표기, R3 Badge 도입, isSubmitting/acc_cd 트랜잭션 수립 완비 |
+| **TASK-04-FE-R4** | 어띠페 (FE) | 매매 히스토리 세금+수수료 컬럼 주입 및 UI 구현 (_FE_R4) | **완료 (Success)** | tax_fee 컬럼 우측 정렬 및 monospace 적용, 수동 입력 폼 InputNumber 신설 및 payload 연동 완비 |
+| **TASK-04-R5** | FE / BE | FastAPI 내장 Swagger UI 문서화 고도화 및 세션 연장 연동 | **완료 (Success)** | API tags/descriptions, Pydantic 주석화 완비, 헤더 내 세션 MM:SS 타이머 & 클릭 연장 구현 |
 
 ---
 
@@ -59,9 +64,11 @@
 1.  **TabView 기반 포트폴리오 및 폼 입력 고도화 (`Dashboard.jsx`):**
     *   `TabView`와 `TabPanel`을 사용하여 [보유 자산 상세], [매매 내역 히스토리] 영역 구분 탑재.
     *   `p-inputgroup` 및 자동완성 인터페이스를 연동하여 검색 시 백엔드 캐시 테이블 조회(Hit)로 인한 1ms 수준의 초고속 종목코드 바인딩 및 `readOnly` 필드로 코드 오염 통제.
-2.  **정량 자산 평가 및 금융 가시성 제고:**
-    *   백엔드 송출 전일 종가(`current_price`)를 기반으로 평가금액 및 소수점 2자리 제한 수익률(`.toFixed(2)`)을 실시간 계산 표출.
-    *   수익률 부호에 맞게 **Red 톤 텍스트** 및 **Blue 톤 텍스트** 스타일링 적용.
+2.  **글로벌 파이낸스 디자인 톤 그리드 스타일링 및 가시성 극대화:**
+    *   백엔드 송출 전일/당일 종가(`current_price`)를 기반으로 평가금액, 평가손익 및 소수점 2자리 제한 수익률(`.toFixed(2)`)을 실시간 계산 표출.
+    *   **글로벌 파이낸스 컬러 규칙 준수:** 주가 상승/평가익/매수는 **파란색(`var(--blue-600)`)**, 주가 하락/평가손/매도는 **빨간색(`var(--red-600)`)**으로 컬러 브레이크를 명확히 구현.
+    *   모든 숫자, 단가, 수량, 거래 금액 컬럼에 **`.monospace`** 폰트 주입 및 우측 정렬 적용 완료.
+    *   구분 컬럼에 디자인 지침을 준수한 `Badge` 컴포넌트(매수: 파란색, 매도: 빨간색)를 탑재하여 독해 가시성(Scannability) 극대화.
 3.  **예수금(Cash Balance) 배너 및 데이터 리프레시 프로토콜:**
     *   보유 자산 상세 탭 상단에 백엔드 `cash_balance` 필드 연동 원화 포맷 프리미엄 예수금 배너 표기.
     *   거래 추가/수정/삭제 시 상위 대시보드의 `fetchAccountData()`를 연쇄 refetch 트리거하여 실시간 화면 깜빡임 없는 동기화 제공.

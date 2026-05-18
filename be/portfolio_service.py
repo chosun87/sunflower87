@@ -8,7 +8,7 @@ from config import TRADE_DATE_PERIOD, DATA_GAP_THRESHOLD
 
 
 def get_exact_trade_date_limits(target_period=60):
-    """표준 영업일 개장일(삼성전자 005930 시세 캘린더 기준)을 조회하여,
+    """표준 영업일 개장일(KOSPI 지수 및 삼성전자 005930 기준)을 조회하여,
     정확히 target_period 개수만큼의 실제 한국 거래소 표준 영업일
     시작일과 종료일(16시 이전=전일, 16시 이후=당일)을 반환합니다.
     """
@@ -24,19 +24,31 @@ def get_exact_trade_date_limits(target_period=60):
     # 휴장일 필터링용 넉넉한 120일짜리 달력 버퍼 가동
     safe_start_str = (now - timedelta(days=120)).strftime("%Y%m%d")
 
+    actual_trade_dates = []
     try:
-        # pykrx의 지수(KOSPI) 타입 캐스팅 오류 회피를 위해,
-        # 개장일이 완전히 일치하는 삼성전자(005930) 시세 인덱스로 캘린더 획득
+        # R2 지침: KOSPI 인덱스로 먼저 개장일 캘린더 획득 시도
         df_market = krx_stock.get_market_ohlcv_by_date(
-            safe_start_str, target_end_str, "005930"
+            safe_start_str, target_end_str, "KOSPI"
         )
-        if df_market is not None and not df_market.empty:
-            actual_trade_dates = df_market.index.strftime("%Y%m%d").tolist()
-            # 뒤에서부터 정확하게 target_period(60일)만큼 슬라이싱하여 시작일 and 종료일 확정
-            valid_dates = actual_trade_dates[-target_period:]
-            return valid_dates[0], valid_dates[-1]
-    except Exception as e:
-        print(f"[WARNING] Failed to fetch market limits: {e}")
+        if df_market is None or df_market.empty:
+            raise ValueError("Empty df")
+        actual_trade_dates = df_market.index.strftime("%Y%m%d").tolist()
+    except Exception:
+        try:
+            # pykrx의 지수(KOSPI) 타입 캐스팅 오류 회피를 위해,
+            # 개장일이 완전히 일치하는 삼성전자(005930) 시세 인덱스로 캘린더 안전 획득
+            df_market = krx_stock.get_market_ohlcv_by_date(
+                safe_start_str, target_end_str, "005930"
+            )
+            if df_market is not None and not df_market.empty:
+                actual_trade_dates = df_market.index.strftime("%Y%m%d").tolist()
+        except Exception as e:
+            print(f"[WARNING] Failed to fetch market limits: {e}")
+
+    if actual_trade_dates:
+        # 뒤에서부터 정확하게 target_period(60일)만큼 슬라이싱하여 시작일 and 종료일 확정
+        valid_dates = actual_trade_dates[-target_period:]
+        return valid_dates[0], valid_dates[-1]
 
     # Fail-safe 예외 대안: API 실패 시에는 단순 캘린더 데이 역산 반환
     safe_fallback_start = (
@@ -203,6 +215,57 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
     db.commit()
 
 
+def calculate_stock_balance(transactions, target_stock_code, acc_cd):
+    """특정 계좌의 특정 종목의 거래 히스토리를 시간순으로 순회하며,
+    '현재 보유 중인 수량'에 대한 '진짜 누적 매수 금액' 및 '누적 세금/수수료'를 1원의 오차도 없이 추적한다.
+    """
+    holding_quantity = 0
+    total_purchase_amt = 0.0  # 현재 잔고를 구성하는 진짜 총 매수 금액
+    total_tax_fee = 0.0      # 현재 잔고를 구성하는 진짜 총 세금+수수료
+
+    # 거래 내역을 과거부터 최신순으로 정렬하여 순회
+    sorted_tx = sorted(
+        [
+            t for t in transactions
+            if t.code == target_stock_code and t.acc_cd == acc_cd
+        ],
+        key=lambda x: x.date
+    )
+
+    for tx in sorted_tx:
+        cost = tx.quantity * tx.price
+        t_fee = float(tx.tax_fee or 0.0)
+        if tx.type == "BUY":
+            # 매수 시: 수량과 금액(세금/수수료 포함)을 그대로 누적
+            tx_amt = cost + t_fee
+            holding_quantity += tx.quantity
+            total_purchase_amt += tx_amt
+            total_tax_fee += t_fee
+
+        elif tx.type == "SELL":
+            # 매도 시: 전량 매도 혹은 분할 매도 처리
+            if holding_quantity <= 0:
+                continue
+
+            # 이동평균 평단가 및 평단 수수료 계산 (소수점 유지)
+            current_avg_price = total_purchase_amt / holding_quantity
+            current_avg_tax_fee = total_tax_fee / holding_quantity
+
+            # 매도된 수량만큼의 '매수 원가' 및 '누적 수수료'를 차감하여 잔고 평단가 유지
+            holding_quantity -= tx.quantity
+            if holding_quantity <= 0:
+                # 전량 매도되어 잔고가 0이 된 경우, 완전히 초기화
+                holding_quantity = 0
+                total_purchase_amt = 0.0
+                total_tax_fee = 0.0
+            else:
+                # 분할 매도인 경우 현재 평단가 기준으로 남은 금액들 재정산
+                total_purchase_amt = holding_quantity * current_avg_price
+                total_tax_fee = holding_quantity * current_avg_tax_fee
+
+    return holding_quantity, total_purchase_amt, total_tax_fee
+
+
 def get_enriched_accounts_data(db: Session) -> dict:
     """SQLite 데이터베이스 account 및 stocks 테이블의 데이터를 로드하고
     실시간 수익률 및 평가액을 계산하여 프런트엔드 규격에 맞춰 반환합니다.
@@ -217,8 +280,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
 
     # 2. 보유 주식 목록 로드
     db_stocks = db.query(Stock).all()
-
-    # 계좌별 주식 분배 사전 초기화
+    all_transactions = db.query(Transaction).all()
 
     # 계좌별 주식 분배 사전 초기화
     account_stocks_map = {acc.acc_cd: [] for acc in db_accounts}
@@ -231,8 +293,19 @@ def get_enriched_accounts_data(db: Session) -> dict:
 
         code = stock.code
         name = stock.name
-        quantity = stock.quantity
-        avg_price = stock.avg_price
+
+        # 1. 거래 기록 기반 이동평균법 정밀 정산 (어띠베 BE_CRITICAL 긴급 지시서 반영)
+        qty, purchase_amt, total_tax_fee = calculate_stock_balance(
+            all_transactions, stock.code, acct_cd
+        )
+
+        # 2. 거래 기록이 전혀 없는 레거시 보유 주식에 대한 하이브리드 안전 가드 (Heal/Fallback)
+        if qty <= 0 and stock.quantity > 0:
+            qty = stock.quantity
+            purchase_amt = float(stock.purchase_amount or 0.0)
+            if purchase_amt <= 0 and stock.avg_price > 0:
+                purchase_amt = qty * float(stock.avg_price)
+            total_tax_fee = 0.0
 
         # 캐시 테이블에서 해당 종목의 최신(전일 종가) 가격 획득
         latest_cache = (
@@ -245,23 +318,41 @@ def get_enriched_accounts_data(db: Session) -> dict:
             stock.current_price = latest_cache.close_price
             db.add(stock)
 
-        current_price = stock.current_price
+        current_price = int(round(stock.current_price or 0))
 
-        # 수익률 계산
-        eval_profit_rate = (
-            round(((current_price - avg_price) / avg_price) * 100, 2)
-            if avg_price > 0
-            else 0.0
-        )
+        # BE R4/R5 정산 공식 전면 구현 및 ZeroDivisionError 원천 방어
+        # 수수료/세금을 더하지 않고 순수 매수금액으로 연산하도록 요청 조정 반영
+        total_purchase_amt_with_tax = purchase_amt
+        total_tax_fee_val = total_tax_fee
+        total_purchase_amt_pure = total_purchase_amt_with_tax - total_tax_fee_val
+
+        total_eval_amt = qty * current_price
+        total_profit_loss = total_eval_amt - total_purchase_amt_pure
+
+        if qty <= 0 or total_purchase_amt_pure <= 0:
+            avg_price_val = 0.0
+            return_rate = 0.0
+        else:
+            # 평단가 산정 시에는 세금/수수료 포함된 단가를 추적 (엑셀 32921 매칭)
+            avg_price_val = total_purchase_amt_with_tax / qty
+            return_rate = round(
+                (total_profit_loss / total_purchase_amt_pure) * 100, 2
+            )
 
         account_stocks_map[acct_cd].append(
             {
                 "code": code,
                 "name": name,
-                "quantity": quantity,
-                "avg_price": avg_price,
+                "quantity": qty,
+                "avg_price": avg_price_val,
                 "current_price": current_price,
-                "eval_profit_rate": eval_profit_rate,
+                "purchase_amount": total_purchase_amt_pure,  # backward compatibility
+                "total_purchase_amt": total_purchase_amt_pure,  # BE R4 표준 규격
+                "total_eval_amt": total_eval_amt,  # BE R4 표준 규격
+                "total_profit_loss": total_profit_loss,  # BE R4 표준 규격
+                "return_rate": return_rate,  # BE R4 표준 규격
+                "eval_profit_rate": return_rate,  # backward compatibility
+                "total_tax_fee": total_tax_fee_val,  # 총 세금+수수료
             }
         )
 
@@ -276,14 +367,18 @@ def get_enriched_accounts_data(db: Session) -> dict:
         stocks_list = account_stocks_map.get(acc.acc_cd, [])
 
         # 주식 평가액 계산
-        stocks_purchase = sum(s["quantity"] * s["avg_price"] for s in stocks_list)
-        stocks_eval = sum(s["quantity"] * s["current_price"] for s in stocks_list)
+        stocks_purchase = int(
+            round(sum(s["purchase_amount"] for s in stocks_list))
+        )
+        stocks_eval = int(
+            round(sum(s["quantity"] * s["current_price"] for s in stocks_list))
+        )
 
         # 총 평가금액 (주식 평가액 + 현금 잔고)
-        total_eval = stocks_eval + acc.cash_balance
+        total_eval = int(round(stocks_eval + acc.cash_balance))
 
         # 총 매입금액 (주식 매입금액 + 현금 잔고)
-        total_purchase = stocks_purchase + acc.cash_balance
+        total_purchase = int(round(stocks_purchase + acc.cash_balance))
 
         # 수익률 계산
         profit_rate = (
@@ -299,8 +394,8 @@ def get_enriched_accounts_data(db: Session) -> dict:
                 "acc_nm": acc.acc_nm,
                 "acc_company_nm": acc.acc_company_nm,
                 "alias": f"[{acc.acc_company_nm}] {acc.acc_nm}",
-                "balance": acc.cash_balance,  # 예수금 잔액 전달
-                "cash_balance": acc.cash_balance,  # FE R9 표준 예수금 잔고 명세 바인딩
+                "balance": int(round(acc.cash_balance)),  # 예수금 잔액 전달
+                "cash_balance": int(round(acc.cash_balance)),  # FE R9 표준 예수금 잔고 명세 바인딩
                 "total_eval": total_eval,  # 총 평가액
                 "profit_rate": profit_rate,  # 계좌 총 수익률
                 "stocks": stocks_list,
@@ -310,7 +405,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
 
     return {
         "status": "success",
-        "total_asset": overall_total_eval,
+        "total_asset": int(round(overall_total_eval)),
         "accounts": accounts,
     }
 
@@ -346,36 +441,40 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
         qty = tx.quantity
         price = tx.price
         cost = qty * price
+        t_fee = float(tx.tax_fee or 0.0)
 
         if tx.type == "BUY":
+            total_outflow = cost + t_fee
             # 매수 시 현금 차감 (예수금 부족 시 에러 유발)
-            if cash_balance < cost:
+            if cash_balance < total_outflow:
                 detail_err = (
                     f"Insufficient cash balance for BUY transaction. "
-                    f"Required: {cost:,.0f} KRW, "
-                    f"Available: {cash_balance:,.0f} KRW."
+                    f"Required: {total_outflow:,.0f} KRW (Cost: {cost:,.0f}, "
+                    f"Fee: {t_fee:,.0f}), Available: {cash_balance:,.0f} KRW."
                 )
                 raise HTTPException(status_code=400, detail=detail_err)
-            cash_balance -= cost
+            cash_balance -= total_outflow
 
-            # 주식 보유고 갱신
+            # 기획 표준 연산 공식:
+            # 총 매수금액 = 각 매수 거래의 (수량 * 단가) 총합 + 각 거래의 tax_fee 총합 = total_outflow
             if code in holdings:
                 existing = holdings[code]
                 total_qty = existing["quantity"] + qty
-                weighted_avg = (
-                    (existing["quantity"] * existing["avg_price"]) + cost
-                ) / total_qty
+                new_purchase_amount = existing["purchase_amount"] + total_outflow
                 existing["quantity"] = total_qty
-                existing["avg_price"] = round(weighted_avg, 2)
+                existing["purchase_amount"] = new_purchase_amount
+                existing["avg_price"] = new_purchase_amount / total_qty
             else:
                 holdings[code] = {
                     "name": name,
                     "quantity": qty,
-                    "avg_price": price,
+                    "purchase_amount": float(total_outflow),
+                    "avg_price": float(total_outflow) / qty,
                 }
         elif tx.type == "SELL":
+            total_inflow = cost - t_fee
             # 매도 시 현금 합산
-            cash_balance += cost
+            cash_balance += total_inflow
 
             # 주식 보유고 갱신 (보유 주식 부족 시 에러 유발)
             if code not in holdings or holdings[code]["quantity"] < qty:
@@ -386,14 +485,17 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
                 raise HTTPException(status_code=400, detail=detail_err)
 
             existing = holdings[code]
+            realized_cost = qty * existing["avg_price"]
             remaining = existing["quantity"] - qty
             if remaining == 0:
                 del holdings[code]
             else:
                 existing["quantity"] = remaining
+                existing["purchase_amount"] -= realized_cost
+                existing["avg_price"] = existing["purchase_amount"] / remaining
 
     # 4. DB 테이블 동기화 (예수금 잔고 반영 및 stocks 테이블 완전 청소 후 재생성)
-    account.cash_balance = cash_balance
+    account.cash_balance = int(round(cash_balance))
 
     db.query(Stock).filter(Stock.acc_cd == acc_cd).delete()
 
@@ -410,7 +512,7 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
             current_p = latest_cache.close_price
         else:
             # 시세 캐시가 없을 경우 평단가를 현재가로 폴백 적용
-            current_p = int(info["avg_price"])
+            current_p = int(round(info["avg_price"]))
 
         new_stock = Stock(
             code=code,
@@ -419,5 +521,6 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
             quantity=info["quantity"],
             avg_price=info["avg_price"],
             current_price=current_p,
+            purchase_amount=info["purchase_amount"],
         )
         db.add(new_stock)

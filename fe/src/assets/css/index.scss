@@ -49,6 +49,12 @@ h1 {
   margin: 0 auto;
 }
 
+.monospace {
+  font-feature-settings: 'tnum';
+  /* 최신 브라우저 권장 */
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
