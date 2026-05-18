@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import dayjs from 'dayjs'
+import '@/assets/css/earchfe.css'
 import {
   Card,
   DataTable,
@@ -19,53 +20,11 @@ import {
   confirmDialog,
   addLocale,
 } from '@/assets/js/PrimeReact'
+import { PrimeReact_locale } from '@/assets/js/PrimeReact'
 import { showNotice, showError } from '@/assets/js/dialogUtils'
 
 // PrimeReact Calendar 한국어(ko) 로컬라이징 사전 등록
-addLocale('ko', {
-  firstDayOfWeek: 0,
-  dayNames: [
-    '일요일',
-    '월요일',
-    '화요일',
-    '수요일',
-    '목요일',
-    '금요일',
-    '토요일',
-  ],
-  dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
-  dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
-  monthNames: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  monthNamesShort: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  today: '오늘',
-  clear: '초기화',
-})
+addLocale('ko', PrimeReact_locale.ko.Calendar)
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
@@ -97,9 +56,7 @@ export default function Dashboard() {
 
   // 실시간 자산 및 보유 주식 불러오기 (데이터 일관성 보장 바인딩)
   const fetchAccountData = () => {
-    fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/accounts`,
-    )
+    fetch(`${import.meta.env.VITE_API_URL}/api/accounts`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -139,9 +96,7 @@ export default function Dashboard() {
 
   // SQLite 거래 히스토리 내역 불러오기
   const loadTransactions = () => {
-    fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions`,
-    )
+    fetch(`${import.meta.env.VITE_API_URL}/api/transactions`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -156,9 +111,7 @@ export default function Dashboard() {
     loadTransactions()
 
     // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
-    fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/recommendations`,
-    )
+    fetch(`${import.meta.env.VITE_API_URL}/api/recommendations`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -192,7 +145,7 @@ export default function Dashboard() {
 
     setIsSearching(true)
     fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/stocks/search?keyword=${encodeURIComponent(keyword)}`,
+      `${import.meta.env.VITE_API_URL}/api/stocks/search?keyword=${encodeURIComponent(keyword)}`,
     )
       .then((res) => res.json())
       .then((resData) => {
@@ -245,8 +198,8 @@ export default function Dashboard() {
     }
 
     const url = editingTxId
-      ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${editingTxId}`
-      : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/add`
+      ? `${import.meta.env.VITE_API_URL}/api/transactions/${editingTxId}`
+      : `${import.meta.env.VITE_API_URL}/api/transactions/add`
     const method = editingTxId ? 'PUT' : 'POST'
 
     fetch(url, {
@@ -325,7 +278,7 @@ export default function Dashboard() {
       rejectLabel: '취소',
       accept: () => {
         fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${rowData.id}`,
+          `${import.meta.env.VITE_API_URL}/api/transactions/${rowData.id}`,
           {
             method: 'DELETE',
           },
@@ -360,24 +313,27 @@ export default function Dashboard() {
 
   // 수익률 컬러 템플릿 (Excel 정합을 위해 % 생략, 국내 증시 규격에 맞춰 positive=red, negative=blue)
   const profitTemplate = (rowData) => {
-    const buy_amount = rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0)
-    
+    const buy_amount =
+      rowData.total_purchase_amt !== undefined
+        ? rowData.total_purchase_amt
+        : rowData.purchase_amount || 0
+
     if (buy_amount === 0) {
-      return (
-        <span className="monospace">0.00</span>
-      )
+      return <span className="monospace">0.00</span>
     }
 
-    const rate = rowData.return_rate !== undefined ? rowData.return_rate : (
-      buy_amount > 0 ? (
-        ((rowData.quantity || 0) * (rowData.current_price || 0) - buy_amount) / buy_amount * 100
-      ) : 0
-    )
+    const rate =
+      rowData.return_rate !== undefined
+        ? rowData.return_rate
+        : buy_amount > 0
+          ? (((rowData.quantity || 0) * (rowData.current_price || 0) -
+              buy_amount) /
+              buy_amount) *
+            100
+          : 0
 
     if (rate === 0) {
-      return (
-        <span className="monospace">0.00</span>
-      )
+      return <span className="monospace">0.00</span>
     }
 
     const isPositive = rate > 0
@@ -397,15 +353,9 @@ export default function Dashboard() {
   const txTypeBodyTemplate = (rowData) => {
     const isBuy = rowData.type === 'BUY'
     return isBuy ? (
-      <Badge
-        value="매수"
-        style={{ backgroundColor: 'var(--red-600)', color: '#fff' }}
-      />
+      <Badge value="매수" className="type-buy" />
     ) : (
-      <Badge
-        value="매도"
-        style={{ backgroundColor: 'var(--blue-600)', color: '#fff' }}
-      />
+      <Badge value="매도" className="type-sell" />
     )
   }
 
@@ -432,9 +382,6 @@ export default function Dashboard() {
   }
 
   // 보유 자산 상세 컬럼 템플릿들 (Excel 정합을 위해 원/주/% 생략)
-  const codeBodyTemplate = (rowData) => {
-    return <span className="monospace">{rowData.code}</span>
-  }
 
   const quantityBodyTemplate = (rowData) => {
     return (
@@ -452,22 +399,24 @@ export default function Dashboard() {
 
   const avgPriceBodyTemplate = (rowData) => {
     const val = Math.floor(rowData.avg_price || 0)
-    return (
-      <span className="monospace">{val.toLocaleString()}</span>
-    )
+    return <span className="monospace">{val.toLocaleString()}</span>
   }
 
   const evalAmountBodyTemplate = (rowData) => {
-    const val = Math.round(rowData.total_eval_amt !== undefined ? rowData.total_eval_amt : (rowData.quantity || 0) * (rowData.current_price || 0))
-    return (
-      <span className="monospace">
-        {val.toLocaleString()}
-      </span>
+    const val = Math.round(
+      rowData.total_eval_amt !== undefined
+        ? rowData.total_eval_amt
+        : (rowData.quantity || 0) * (rowData.current_price || 0),
     )
+    return <span className="monospace">{val.toLocaleString()}</span>
   }
 
   const buyAmountBodyTemplate = (rowData) => {
-    const buy_amount = Math.round(rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0))
+    const buy_amount = Math.round(
+      rowData.total_purchase_amt !== undefined
+        ? rowData.total_purchase_amt
+        : rowData.purchase_amount || 0,
+    )
     return <span className="monospace">{buy_amount.toLocaleString()}</span>
   }
 
@@ -477,16 +426,22 @@ export default function Dashboard() {
   }
 
   const evalProfitBodyTemplate = (rowData) => {
-    const buy_amount = Math.round(rowData.total_purchase_amt !== undefined ? rowData.total_purchase_amt : (rowData.purchase_amount || 0))
-    const profit = Math.round(rowData.total_profit_loss !== undefined ? rowData.total_profit_loss : (
-      (rowData.total_eval_amt !== undefined ? rowData.total_eval_amt : (rowData.quantity || 0) * (rowData.current_price || 0)) -
-      buy_amount
-    ))
+    const buy_amount = Math.round(
+      rowData.total_purchase_amt !== undefined
+        ? rowData.total_purchase_amt
+        : rowData.purchase_amount || 0,
+    )
+    const profit = Math.round(
+      rowData.total_profit_loss !== undefined
+        ? rowData.total_profit_loss
+        : (rowData.total_eval_amt !== undefined
+            ? rowData.total_eval_amt
+            : (rowData.quantity || 0) * (rowData.current_price || 0)) -
+            buy_amount,
+    )
 
     if (buy_amount === 0 || profit === 0) {
-      return (
-        <span className="monospace">0</span>
-      )
+      return <span className="monospace">0</span>
     }
 
     const isPositive = profit > 0
@@ -582,20 +537,6 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* 매수/매도 커스텀 CSS 컬러 오버라이드 */}
-      <style>{`
-        .tx-selectbutton.buy-selected .p-button.p-highlight {
-          background-color: #ef4444 !important;
-          border-color: #ef4444 !important;
-          color: #ffffff !important;
-        }
-        .tx-selectbutton.sell-selected .p-button.p-highlight {
-          background-color: #3b82f6 !important;
-          border-color: #3b82f6 !important;
-          color: #ffffff !important;
-        }
-      `}</style>
-
       <div className="flex align-items-center justify-content-between mb-6">
         <h1 className="text-4xl font-bold text-900 m-0">
           🌻 sunflower87 Dashboard

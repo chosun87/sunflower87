@@ -115,52 +115,17 @@ def init_db():
     """데이터베이스 테이블을 생성하고 기본 초기 데이터를 적재합니다."""
     Base.metadata.create_all(bind=engine)
 
-    # 초기 기획 및 mock_data의 보유 주식을 SQLite 마이그레이션 (비어있을 경우에만)
     db = SessionLocal()
     try:
-        if db.query(Account).count() == 0:
-            default_accounts = [
-                Account(
-                    acc_cd="미래-연금",
-                    acc_nm="연금저축계좌(신)",
-                    acc_company_nm="미래에셋증권",
-                    cash_balance=28539701.0,
-                    initial_cash=28539701.0,
-                    acc_order=1,
-                    dt_created=datetime.strptime("2021-11-04", "%Y-%m-%d"),
-                ),
-                Account(
-                    acc_cd="미래-ISA",
-                    acc_nm="ISA(중계형)",
-                    acc_company_nm="미래에셋증권",
-                    cash_balance=40000000.0,
-                    initial_cash=40000000.0,
-                    acc_order=2,
-                    dt_created=datetime.strptime("2025-11-06", "%Y-%m-%d"),
-                ),
-                Account(
-                    acc_cd="미래-종합",
-                    acc_nm="종합_주식",
-                    acc_company_nm="미래에셋증권",
-                    cash_balance=20000000.0,
-                    initial_cash=20000000.0,
-                    acc_order=3,
-                    dt_created=datetime.strptime("2006-05-15", "%Y-%m-%d"),
-                ),
-            ]
-            db.add_all(default_accounts)
-            db.commit()
-            print("Database initialized with default accounts.")
-
-        # 초기 적재 완료 후, 각 계좌별로 연대기 포트폴리오를 최초 자동 동기화/재계산 처리
+        # 각 계좌별로 연대기 포트폴리오를 최초 자동 동기화/재계산 처리
         from portfolio_service import recalculate_portfolio_for_account
+
         for acc in db.query(Account).filter(Account.dt_deleted.is_(None)).all():
             try:
                 recalculate_portfolio_for_account(db, acc.acc_cd)
             except Exception as re_err:
                 err_info = (
-                    f"Error pre-calculating portfolio for "
-                    f"{acc.acc_cd} on startup:"
+                    f"Error pre-calculating portfolio for " f"{acc.acc_cd} on startup:"
                 )
                 print(f"{err_info} {re_err}")
     except Exception as e:

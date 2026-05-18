@@ -1,5 +1,5 @@
 # sunflower87 전역 환경 및 업무 구성 변수 정의 파일
 # 확장 기간 제어용 전역 변수
 
-TRADE_DATE_PERIOD = 60      # 기본 확보 거래일수 (약 3개월치 컴팩트 유지)
-DATA_GAP_THRESHOLD = 120    # 데이터 공백 허용 임계치 (순수 거래일 기준 6개월치 통제)
+TRADE_DATE_PERIOD = 60  # 기본 확보 거래일수 (약 3개월치 컴팩트 유지)
+DATA_GAP_THRESHOLD = 120  # 데이터 공백 허용 임계치 (순수 거래일 기준 6개월치 통제)

@@ -164,7 +164,7 @@ def add_transaction(
                     status_code=400,
                     detail="Insufficient stock holdings for SELL transaction.",
                 )
-            account.cash_balance += (cost - tx_fee)
+            account.cash_balance += cost - tx_fee
             if stock.quantity == tx_input.quantity:
                 db.delete(stock)
             else:

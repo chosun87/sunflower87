@@ -19,9 +19,6 @@ from routers import (  # noqa: E402
     tasks,
 )
 
-TRADE_DATE_PERIOD = 60      # 기본 확보 거래일수 (약 3개월치 컴팩트 유지)
-DATA_GAP_THRESHOLD = 120    # 데이터 공백 허용 임계치 (순수 거래일 기준 6개월치 통제)
-
 app = FastAPI(
     title="sunflower87 API 코어",
     description="미래에셋 멀티 계좌 및 AI 주식 추천 시스템",

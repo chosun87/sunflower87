@@ -11,6 +11,7 @@ def sync_portfolio_prices_background(db_session_factory, stock_codes):
     db = db_session_factory()
     try:
         from portfolio_service import sync_ohlcv_cache
+
         for code in stock_codes:
             sync_ohlcv_cache(db, code)
         print(
@@ -48,6 +49,7 @@ def get_miraeasset_accounts(
 
     if stock_codes:
         from database import SessionLocal
+
         background_tasks.add_task(
             sync_portfolio_prices_background, SessionLocal, list(stock_codes)
         )

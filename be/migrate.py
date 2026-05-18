@@ -40,8 +40,7 @@ def run_migrations():
         stocks_cols = [row[1] for row in cursor.fetchall()]
         if stocks_cols and "purchase_amount" not in stocks_cols:
             cursor.execute(
-                "ALTER TABLE stocks ADD COLUMN "
-                "purchase_amount REAL DEFAULT 0.0"
+                "ALTER TABLE stocks ADD COLUMN " "purchase_amount REAL DEFAULT 0.0"
             )
             print("✅ Migration: Added purchase_amount column to stocks.")
 

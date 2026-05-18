@@ -51,9 +51,9 @@ def get_exact_trade_date_limits(target_period=60):
         return valid_dates[0], valid_dates[-1]
 
     # Fail-safe 예외 대안: API 실패 시에는 단순 캘린더 데이 역산 반환
-    safe_fallback_start = (
-        now - timedelta(days=int(target_period * 1.5))
-    ).strftime("%Y%m%d")
+    safe_fallback_start = (now - timedelta(days=int(target_period * 1.5))).strftime(
+        "%Y%m%d"
+    )
     return safe_fallback_start, target_end_str
 
 
@@ -221,15 +221,12 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
     """
     holding_quantity = 0
     total_purchase_amt = 0.0  # 현재 잔고를 구성하는 진짜 총 매수 금액
-    total_tax_fee = 0.0      # 현재 잔고를 구성하는 진짜 총 세금+수수료
+    total_tax_fee = 0.0  # 현재 잔고를 구성하는 진짜 총 세금+수수료
 
     # 거래 내역을 과거부터 최신순으로 정렬하여 순회
     sorted_tx = sorted(
-        [
-            t for t in transactions
-            if t.code == target_stock_code and t.acc_cd == acc_cd
-        ],
-        key=lambda x: x.date
+        [t for t in transactions if t.code == target_stock_code and t.acc_cd == acc_cd],
+        key=lambda x: x.date,
     )
 
     for tx in sorted_tx:
@@ -335,9 +332,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
         else:
             # 평단가 산정 시에는 세금/수수료 포함된 단가를 추적 (엑셀 32921 매칭)
             avg_price_val = total_purchase_amt_with_tax / qty
-            return_rate = round(
-                (total_profit_loss / total_purchase_amt_pure) * 100, 2
-            )
+            return_rate = round((total_profit_loss / total_purchase_amt_pure) * 100, 2)
 
         account_stocks_map[acct_cd].append(
             {
@@ -367,9 +362,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
         stocks_list = account_stocks_map.get(acc.acc_cd, [])
 
         # 주식 평가액 계산
-        stocks_purchase = int(
-            round(sum(s["purchase_amount"] for s in stocks_list))
-        )
+        stocks_purchase = int(round(sum(s["purchase_amount"] for s in stocks_list)))
         stocks_eval = int(
             round(sum(s["quantity"] * s["current_price"] for s in stocks_list))
         )
@@ -395,7 +388,9 @@ def get_enriched_accounts_data(db: Session) -> dict:
                 "acc_company_nm": acc.acc_company_nm,
                 "alias": f"[{acc.acc_company_nm}] {acc.acc_nm}",
                 "balance": int(round(acc.cash_balance)),  # 예수금 잔액 전달
-                "cash_balance": int(round(acc.cash_balance)),  # FE R9 표준 예수금 잔고 명세 바인딩
+                "cash_balance": int(
+                    round(acc.cash_balance)
+                ),  # FE R9 표준 예수금 잔고 명세 바인딩
                 "total_eval": total_eval,  # 총 평가액
                 "profit_rate": profit_rate,  # 계좌 총 수익률
                 "stocks": stocks_list,
