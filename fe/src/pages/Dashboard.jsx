@@ -95,21 +95,33 @@ export default function Dashboard() {
 
   // 실시간 자산 및 보유 주식 불러오기 (데이터 일관성 보장 바인딩)
   const fetchAccountData = () => {
-    fetch('http://localhost:8000/api/accounts')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/accounts`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
-          setData(resData)
+          // 데이터 로드 시 평가금액(eval_amount) 계산하여 정밀 정렬 지원 바인딩
+          const enrichedAccounts = (resData.accounts || []).map((acc) => ({
+            ...acc,
+            stocks: (acc.stocks || []).map((stock) => ({
+              ...stock,
+              eval_amount: stock.quantity * stock.current_price,
+            })),
+          }))
+          const enrichedData = {
+            ...resData,
+            accounts: enrichedAccounts,
+          }
+          setData(enrichedData)
           // 계좌가 있고, 기존 선택 계좌가 유지되는 경우 찾아서 재매핑하여 무중단 상태 동기화 제공
-          if (resData.accounts && resData.accounts.length > 0) {
+          if (enrichedAccounts && enrichedAccounts.length > 0) {
             setSelectedAccount((prev) => {
               if (prev) {
-                const found = resData.accounts.find(
+                const found = enrichedAccounts.find(
                   (a) => a.acc_cd === prev.acc_cd,
                 )
                 if (found) return found
               }
-              return resData.accounts[0]
+              return enrichedAccounts[0]
             })
           }
         }
@@ -119,7 +131,7 @@ export default function Dashboard() {
 
   // SQLite 거래 히스토리 내역 불러오기
   const loadTransactions = () => {
-    fetch('http://localhost:8000/api/transactions')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -134,7 +146,7 @@ export default function Dashboard() {
     loadTransactions()
 
     // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
-    fetch('http://localhost:8000/api/recommendations')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/recommendations`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -168,7 +180,7 @@ export default function Dashboard() {
 
     setIsSearching(true)
     fetch(
-      `http://localhost:8000/api/stocks/search?keyword=${encodeURIComponent(keyword)}`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/stocks/search?keyword=${encodeURIComponent(keyword)}`,
     )
       .then((res) => res.json())
       .then((resData) => {
@@ -218,8 +230,8 @@ export default function Dashboard() {
     }
 
     const url = editingTxId
-      ? `http://localhost:8000/api/transactions/${editingTxId}`
-      : 'http://localhost:8000/api/transactions/add'
+      ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${editingTxId}`
+      : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/add`
     const method = editingTxId ? 'PUT' : 'POST'
 
     fetch(url, {
@@ -292,7 +304,7 @@ export default function Dashboard() {
       acceptLabel: '삭제',
       rejectLabel: '취소',
       accept: () => {
-        fetch(`http://localhost:8000/api/transactions/${rowData.id}`, {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/transactions/${rowData.id}`, {
           method: 'DELETE',
         })
           .then((res) => {
@@ -325,12 +337,16 @@ export default function Dashboard() {
 
   // 수익률 컬러 템플릿
   const profitTemplate = (rowData) => {
-    const isPositive = rowData.eval_profit_rate >= 0
+    const rate = Number(rowData.eval_profit_rate || 0)
+    const isPositive = rate >= 0
+    const colorClass = isPositive
+      ? 'text-red-600 font-bold'
+      : 'text-blue-600 font-bold'
     return (
-      <Badge
-        value={`${rowData.eval_profit_rate}%`}
-        severity={isPositive ? 'danger' : 'info'}
-      />
+      <span className={colorClass}>
+        {isPositive ? '+' : ''}
+        {rate.toFixed(2)}%
+      </span>
     )
   }
 
@@ -568,6 +584,12 @@ export default function Dashboard() {
                       field="current_price"
                       header="현재가"
                       body={(rd) => currencyTemplate(rd.current_price)}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="eval_amount"
+                      header="평가금액"
+                      body={(rd) => currencyTemplate(rd.eval_amount)}
                       sortable
                     ></Column>
                     <Column

@@ -93,18 +93,8 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
     acc_cd = tx_input.acc_cd or "A001"
 
     try:
-        # 거래일시 파싱 및 자동 복원
-        if not tx_input.date:
-            tx_date = datetime.now()
-        else:
-            try:
-                tx_date = datetime.strptime(tx_input.date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                try:
-                    cleaned_date = tx_input.date.replace("Z", "+00:00")
-                    tx_date = datetime.fromisoformat(cleaned_date)
-                except Exception:
-                    tx_date = datetime.now()
+        # TransactionCreate validator에 의해 완벽히 정규화되어 들어온 날짜 파싱
+        tx_date = datetime.strptime(tx_input.date, "%Y-%m-%d %H:%M:%S")
 
         # 1. account 테이블에서 해당 계좌를 찾아 예수금 잔고(cash_balance)를 보정/검증
         from database import Account
@@ -304,17 +294,8 @@ def update_transaction(
         )
 
     try:
-        if not tx_input.date:
-            tx_date = datetime.now()
-        else:
-            try:
-                tx_date = datetime.strptime(tx_input.date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                try:
-                    cleaned_date = tx_input.date.replace("Z", "+00:00")
-                    tx_date = datetime.fromisoformat(cleaned_date)
-                except Exception:
-                    tx_date = datetime.now()
+        # TransactionCreate validator에 의해 완벽히 정규화되어 들어온 날짜 파싱
+        tx_date = datetime.strptime(tx_input.date, "%Y-%m-%d %H:%M:%S")
 
         # 데이터 업데이트
         tx.type = tx_type

@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from config import TRADE_DATE_PERIOD  # noqa: F401
 
 # 보안 지침: 프로젝트 환경변수 로드
 load_dotenv()

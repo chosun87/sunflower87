@@ -40,6 +40,7 @@ class Account(Base):
     acc_company_nm = Column(String, nullable=False)
     acc_order = Column(Integer, nullable=False, default=1)
     cash_balance = Column(Integer, nullable=False, default=0.0)
+    initial_cash = Column(Integer, nullable=False, default=0.0)
     dt_created = Column(DateTime, default=datetime.utcnow, nullable=False)
     dt_deleted = Column(DateTime, nullable=True)
 
@@ -94,9 +95,47 @@ class CacheStock(Base):
     dt_cached = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class StockOHLCVCache(Base):
+    """시고저종(OHLCV) 주가 캐시용 (stock_ohlcv_cache) 테이블 모델"""
+
+    __tablename__ = "stock_ohlcv_cache"
+
+    stock_code = Column(String, primary_key=True)
+    trade_date = Column(String, primary_key=True)
+    open_price = Column(Integer, nullable=False)
+    high_price = Column(Integer, nullable=False)
+    low_price = Column(Integer, nullable=False)
+    close_price = Column(Integer, nullable=False)
+    volume = Column(Integer, nullable=False)
+
+
 def init_db():
     """데이터베이스 테이블을 생성하고 기본 초기 데이터를 적재합니다."""
-    # 만약 acc_cd 또는 구버전 컬럼이 없는 스키마일 경우 테이블 재생성
+    # 1. [마이그레이션] account 테이블에 initial_cash 컬럼이 없는 구 스키마 대응 및 값 강제 정렬
+    db = SessionLocal()
+    try:
+        # account 테이블이 이미 존재할 때, 컬럼 정보 획득
+        cursor = db.execute(text("PRAGMA table_info(account)"))
+        acc_cols = [row[1] for row in cursor.fetchall()]
+        if acc_cols and "initial_cash" not in acc_cols:
+            db.execute(text("ALTER TABLE account ADD COLUMN initial_cash INTEGER DEFAULT 0"))
+            db.commit()
+            print("Successfully migrated: Added initial_cash column.")
+        
+        if acc_cols:
+            # 기존 데이터가 존재하는 구 DB의 역산 무결성을 지키기 위해 기획 초기 자산값으로 동기화 정렬
+            db.execute(text("UPDATE account SET initial_cash = 28539701 WHERE acc_cd = '미래-연금'"))
+            db.execute(text("UPDATE account SET initial_cash = 40000000 WHERE acc_cd = '미래-ISA'"))
+            db.execute(text("UPDATE account SET initial_cash = 20000000 WHERE acc_cd = '미래-종합'"))
+            db.commit()
+            print("Aligned initial_cash values for standard default accounts.")
+    except Exception as migration_err:
+        db.rollback()
+        print(f"Migration initial_cash check/execution failed (safe to ignore if table doesn't exist yet): {migration_err}")
+    finally:
+        db.close()
+
+    # 만약 acc_cd 또는 구버전 컬럼이 없는 스키마일 경우 테이블 재생성 경고 감지
     db = SessionLocal()
     need_recreate = False
     try:
@@ -121,14 +160,24 @@ def init_db():
         )
         cache_exists = cursor.fetchone()
 
+        cursor = db.execute(
+            text(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='stock_ohlcv_cache'"
+            )
+        )
+        ohlcv_exists = cursor.fetchone()
+
         if (
             (t_cols and "acc_cd" not in t_cols)
             or (s_cols and "acc_cd" not in s_cols)
             or (s_cols and "current_price" not in s_cols)
             or not acc_cols
             or (acc_cols and "acc_cd" not in acc_cols)
+            or (acc_cols and "initial_cash" not in acc_cols)
             or not rec_exists
             or not cache_exists
+            or not ohlcv_exists
         ):
             need_recreate = True
     except Exception:
@@ -155,6 +204,7 @@ def init_db():
                     acc_nm="연금저축계좌(신)",
                     acc_company_nm="미래에셋증권",
                     cash_balance=28539701.0,
+                    initial_cash=28539701.0,
                     acc_order=1,
                     dt_created=datetime.strptime("2021-11-04", "%Y-%m-%d"),
                 ),
@@ -163,6 +213,7 @@ def init_db():
                     acc_nm="ISA(중계형)",
                     acc_company_nm="미래에셋증권",
                     cash_balance=40000000.0,
+                    initial_cash=40000000.0,
                     acc_order=2,
                     dt_created=datetime.strptime("2025-11-06", "%Y-%m-%d"),
                 ),
@@ -171,6 +222,7 @@ def init_db():
                     acc_nm="종합_주식",
                     acc_company_nm="미래에셋증권",
                     cash_balance=20000000.0,
+                    initial_cash=20000000.0,
                     acc_order=3,
                     dt_created=datetime.strptime("2006-05-15", "%Y-%m-%d"),
                 ),
@@ -179,29 +231,32 @@ def init_db():
             db.commit()
             print("Database initialized with default accounts.")
 
-        if db.query(Stock).count() == 0:
-            # 기본 삼성전자, 현대차 종목 적재
-            default_stocks = [
-                Stock(
-                    code="005930",
-                    name="삼성전자",
-                    quantity=100,
-                    avg_price=72500,
-                    current_price=77000,
-                    acc_cd="미래-종합",
-                ),
-                Stock(
-                    code="005380",
-                    name="현대차",
-                    quantity=30,
-                    avg_price=240000,
-                    current_price=250000,
-                    acc_cd="미래-종합",
-                ),
-            ]
-            db.add_all(default_stocks)
-            db.commit()
-            print("Database initialized with default stocks.")
+            if db.query(Transaction).count() == 0:
+                # 초기 거래 이력을 시딩하여 포트폴리오가 거래 장부 기준으로 무결하게 산출되도록 처리
+                default_transactions = [
+                    # 미래-종합 계좌의 초기 주식 시드 거래 이력 (2025년 12월 01일 매수 가정)
+                    Transaction(
+                        date=datetime.strptime("2025-12-01 09:00:00", "%Y-%m-%d %H:%M:%S"),
+                        type="BUY",
+                        code="005930",
+                        name="삼성전자",
+                        quantity=100,
+                        price=72500,
+                        acc_cd="미래-종합"
+                    ),
+                    Transaction(
+                        date=datetime.strptime("2025-12-01 09:10:00", "%Y-%m-%d %H:%M:%S"),
+                        type="BUY",
+                        code="005380",
+                        name="현대차",
+                        quantity=30,
+                        price=240000,
+                        acc_cd="미래-종합"
+                    )
+                ]
+                db.add_all(default_transactions)
+                db.commit()
+                print("Database initialized with default transactions.")
 
         if db.query(Recommendation).count() == 0:
             default_recs = [
@@ -230,6 +285,14 @@ def init_db():
             db.add_all(default_recs)
             db.commit()
             print("Database initialized with default recommendations.")
+
+        # 초기 적재 완료 후, 각 계좌별로 연대기 포트폴리오를 최초 자동 동기화/재계산 처리
+        from portfolio_service import recalculate_portfolio_for_account
+        for acc in db.query(Account).filter(Account.dt_deleted.is_(None)).all():
+            try:
+                recalculate_portfolio_for_account(db, acc.acc_cd)
+            except Exception as re_err:
+                print(f"Error pre-calculating portfolio for {acc.acc_cd} on startup: {re_err}")
     except Exception as e:
         db.rollback()
         print(f"Error seeding database: {e}")

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class TaskCreate(BaseModel):
@@ -17,6 +17,8 @@ class TaskCreate(BaseModel):
         examples=["# TASK-04 상세..."],
     )
 
+
+from datetime import datetime
 
 class TransactionCreate(BaseModel):
     date: Optional[str] = Field(
@@ -54,6 +56,44 @@ class TransactionCreate(BaseModel):
         description="account 테이블의 acc_cd 참조 키",
         examples=["A001"],
     )
+
+    @validator("date", pre=True, always=True)
+    def parse_and_normalize_date(cls, v):
+        """다양한 유형의 날짜 입력을 파싱하고 YYYY-MM-DD HH:MM:SS 표준 포맷으로 자동 정규화합니다."""
+        if not v:
+            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if isinstance(v, datetime):
+            return v.strftime("%Y-%m-%d %H:%M:%S")
+
+        v_str = str(v).strip()
+        # ISO 'Z' 대응
+        if v_str.endswith("Z"):
+            v_str = v_str[:-1] + "+00:00"
+
+        # 1. 표준 포맷
+        try:
+            parsed = datetime.strptime(v_str, "%Y-%m-%d %H:%M:%S")
+            return parsed.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            pass
+
+        # 2. ISO 8601 포맷
+        try:
+            parsed = datetime.fromisoformat(v_str)
+            return parsed.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            pass
+
+        # 3. 단순 일자 포맷
+        try:
+            parsed = datetime.strptime(v_str, "%Y-%m-%d")
+            return parsed.strftime("%Y-%m-%d 00:00:00")
+        except ValueError:
+            pass
+
+        # 폴백
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 class ErrorResponse(BaseModel):

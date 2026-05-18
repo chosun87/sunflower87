@@ -1,6 +1,88 @@
+from datetime import datetime, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from database import Account, Stock, Transaction
+from pykrx import stock as krx_stock
+
+from database import Account, Stock, Transaction, StockOHLCVCache
+from config import TRADE_DATE_PERIOD
+
+
+def sync_ohlcv_cache(db: Session, stock_code: str):
+    """지정된 종목코드에 대해 pykrx 연동 60일 주가 시계열을 증분 캐싱합니다."""
+    # 1. DB에서 해당 종목의 캐시 개수 조회
+    cache_count = (
+        db.query(StockOHLCVCache)
+        .filter(StockOHLCVCache.stock_code == stock_code)
+        .count()
+    )
+
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    yesterday_str = yesterday.strftime("%Y%m%d")
+
+    try:
+        if cache_count == 0:
+            # 케이스 1) 신규 등록 종목: 60일치 OHLCV 일괄 적재
+            start_date = yesterday - timedelta(days=TRADE_DATE_PERIOD - 1)
+            start_date_str = start_date.strftime("%Y%m%d")
+
+            df = krx_stock.get_market_ohlcv_by_date(
+                start_date_str, yesterday_str, stock_code
+            )
+            _save_ohlcv_to_db(db, stock_code, df)
+        else:
+            # 케이스 2) 기 등록 종목
+            if cache_count >= TRADE_DATE_PERIOD:
+                # 60일치 이상이 꽉 채워진 경우: 오직 전일자 1일치만 조회 추가
+                df = krx_stock.get_market_ohlcv_by_date(
+                    yesterday_str, yesterday_str, stock_code
+                )
+                _save_ohlcv_to_db(db, stock_code, df)
+            else:
+                # 60일치가 덜 찬 경우: 60일치를 다시 덮어서 채워줌
+                start_date = yesterday - timedelta(days=TRADE_DATE_PERIOD - 1)
+                start_date_str = start_date.strftime("%Y%m%d")
+
+                df = krx_stock.get_market_ohlcv_by_date(
+                    start_date_str, yesterday_str, stock_code
+                )
+                _save_ohlcv_to_db(db, stock_code, df)
+    except Exception as e:
+        # 외부 API 장애 혹은 크롤러 에러 시 캐싱 실패로 전체 시스템 마비 차단
+        print(f"⚠️ Failed to sync OHLCV cache for {stock_code}: {e}")
+
+
+def _save_ohlcv_to_db(db: Session, stock_code: str, df):
+    """DataFrame 데이터를 stock_ohlcv_cache 테이블에 저장합니다."""
+    if df is None or df.empty:
+        return
+
+    for date, row in df.iterrows():
+        trade_date = date.strftime("%Y%m%d")
+
+        # 동일 종목의 동일 날짜 중복 삽입 방지 검증 (PK 충돌 배제)
+        existing = (
+            db.query(StockOHLCVCache)
+            .filter(
+                StockOHLCVCache.stock_code == stock_code,
+                StockOHLCVCache.trade_date == trade_date,
+            )
+            .first()
+        )
+
+        if not existing:
+            cache_entry = StockOHLCVCache(
+                stock_code=stock_code,
+                trade_date=trade_date,
+                open_price=int(row["시가"]),
+                high_price=int(row["고가"]),
+                low_price=int(row["저가"]),
+                close_price=int(row["종가"]),
+                volume=int(row["거래량"]),
+            )
+            db.add(cache_entry)
+
+    db.commit()
 
 
 def get_enriched_accounts_data(db: Session) -> dict:
@@ -19,6 +101,8 @@ def get_enriched_accounts_data(db: Session) -> dict:
     db_stocks = db.query(Stock).all()
 
     # 계좌별 주식 분배 사전 초기화
+
+    # 계좌별 주식 분배 사전 초기화
     account_stocks_map = {acc.acc_cd: [] for acc in db_accounts}
 
     # DB에 존재하는 주식을 각각의 계좌 번호에 따라 올바르게 분배 및 계산
@@ -31,6 +115,18 @@ def get_enriched_accounts_data(db: Session) -> dict:
         name = stock.name
         quantity = stock.quantity
         avg_price = stock.avg_price
+
+        # 캐시 테이블에서 해당 종목의 최신(전일 종가) 가격 획득
+        latest_cache = (
+            db.query(StockOHLCVCache)
+            .filter(StockOHLCVCache.stock_code == stock.code)
+            .order_by(StockOHLCVCache.trade_date.desc())
+            .first()
+        )
+        if latest_cache:
+            stock.current_price = latest_cache.close_price
+            db.add(stock)
+
         current_price = stock.current_price
 
         # 수익률 계산
@@ -50,6 +146,9 @@ def get_enriched_accounts_data(db: Session) -> dict:
                 "eval_profit_rate": eval_profit_rate,
             }
         )
+
+    if db_stocks:
+        db.commit()
 
     accounts = []
     overall_total_eval = 0
@@ -109,22 +208,9 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
             status_code=404, detail=f"Account with code '{acc_cd}' not found."
         )
 
-    # 1. 초기 시드 자산 설정 (신규 미래에셋 계좌별 초기 보유 현금 및 주식 마스터 매핑)
+    # 1. 초기 자산 설정 (데이터베이스의 account.initial_cash 값을 사용하며 소스코드 하드코딩은 완전 제거)
+    cash_balance = float(account.initial_cash or 0.0)
     holdings = {}
-    if acc_cd == "미래-종합":
-        initial_cash = 20000000.0
-        holdings = {
-            "005930": {"name": "삼성전자", "quantity": 100, "avg_price": 72500.0},
-            "005380": {"name": "현대차", "quantity": 30, "avg_price": 240000.0},
-        }
-    elif acc_cd == "미래-ISA":
-        initial_cash = 40000000.0
-    elif acc_cd == "미래-연금":
-        initial_cash = 28539701.0
-    else:
-        initial_cash = 0.0
-
-    cash_balance = initial_cash
 
     # 2. 해당 계좌의 모든 거래 기록을 연대기순으로 로드 (date 및 id 기준 오름차순 정렬)
     txs = (
@@ -192,18 +278,21 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
 
     db.query(Stock).filter(Stock.acc_cd == acc_cd).delete()
 
-    # 초기 적재용 현재가 맵 (평가 수익률 연산용 일관성 유지)
-    current_prices_map = {
-        "005930": 77000,
-        "000660": 147000,
-        "005380": 250000,
-        "035420": 185000,
-        "360750": 14250,
-        "069500": 34650,
-    }
-
     for code, info in holdings.items():
-        current_p = current_prices_map.get(code, int(info["avg_price"]))
+        # 하드코딩 시세 맵 제거 -> StockOHLCVCache에서 최신 전일 종가 조회
+        latest_cache = (
+            db.query(StockOHLCVCache)
+            .filter(StockOHLCVCache.stock_code == code)
+            .order_by(StockOHLCVCache.trade_date.desc())
+            .first()
+        )
+        
+        if latest_cache:
+            current_p = latest_cache.close_price
+        else:
+            # 시세 캐시가 없을 경우 평단가를 현재가로 폴백 적용
+            current_p = int(info["avg_price"])
+
         new_stock = Stock(
             code=code,
             acc_cd=acc_cd,
