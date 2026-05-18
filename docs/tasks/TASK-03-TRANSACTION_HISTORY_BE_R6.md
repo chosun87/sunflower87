@@ -1,4 +1,4 @@
-# TASK-03: SQLite 내 account 테이블 신설 및 acc_code 기반 자산 격리 API 구현 (_BE_R6)
+# TASK-03: SQLite 내 account 테이블 신설 및 매매 거래-보유 자산 실시간 연동 구현 (_BE_R6)
 
 - **작성일:** 2026. 05. 17
 - **작성자:** 기획자 MOON(무니)
@@ -8,8 +8,8 @@
 ---
 
 ## 📌 [COMMON] 공통 요구사항
-- **계좌 마스터 데이터베이스화:** 하드코딩 방식의 계좌 관리를 철회하고, SQLite DB 내에 `account` 테이블을 신설하여 계좌 데이터를 관리한다.
-- **네이밍 컨벤션 표준화:** 계좌 테이블의 컬럼명은 지정된 약어 규칙을 준수하며, 타 테이블(`transactions`, `stocks`)과의 외래키 연결 고리는 **`acc_code`**로 전면 통일하여 명확성을 확보한다.
+- **실시간 자산 연동 (핵심):** 사용자가 매매 거래 내역을 수동 입력하면, 해당 계좌의 **[보유 자산 상세(stocks)]** 및 **[현금 잔고(cash_balance)]**가 데이터 정합성에 맞게 실시간으로 자동 가감 연동되어야 한다.
+- **네이밍 컨벤션 표준화:** 계좌 테이블의 컬럼명은 지정된 약어 규칙을 준수하며, 외래키 연결 고리는 `acc_code`로 전면 통일한다.
 
 ---
 
@@ -17,31 +17,22 @@
 
 ### 1. 작업 디렉토리: `be/`
 
-### 2. SQLite 데이터베이스 `account` 테이블 신설 (Schema)
-`SQLAlchemy` 모델을 활용하여 아래 스펙에 지정된 명칭 그대로 계좌 마스터 테이블을 생성하라.
-- **`account` 테이블 정의:**
-  - `acc_cd`: String (Primary Key, 내부 관리용 계좌 고유 코드 - 예: 'A001', 'A002')
-  - `acc_nm`: String (계좌 별칭 - 예: '주식계좌 1', '연금계좌')
-  - `acc_company_nm`: String (증권사/금융기관명 - 예: '미래에셋증권')
-  - `acc_order`: Integer (사용자 화면 노출 정렬 순서, Default: 1)
-  - `cash_balance`: Float (계좌 내 보유 현금 예수금 잔액, Default: 0.0)
-  - `dt_created`: DateTime (계좌 등록 일시, 기본값: 현재시각)
-  - `dt_deleted`: DateTime (계좌 삭제/해지 일시, Nullable)
+### 2. SQLite 데이터베이스 스키마 및 계좌 마스터 구조 (`account`)
+- 지정된 약어 명칭 그대로 `account` 테이블을 생성하라.
+  - `acc_cd` (PK), `acc_nm`, `acc_company_nm`, `acc_order`, `cash_balance`, `dt_created`, `dt_deleted`
 
-### 3. 연관 테이블 외래키(FK) 연동 패치
-- `transactions` 및 `stocks` 테이블에 존재하던 기존 계좌 식별 컬럼(`account_number` 등)을 전부 **`acc_code` (String)** 로 전면 교체하라. (이 `acc_code` 값은 `account` 테이블의 `acc_cd` 값을 참조한다.)
-- `stocks(현재고)` 테이블은 계좌별 보유 잔고 격리를 위해 `acc_code` + `code`(종목코드) 복합 키(Composite Key) 구조를 유지하라.
+### 3. ★ 매매 등록(`POST /api/transactions/add`) 시 자산 실시간 연동 로직
+사용자가 매매 거래를 제출하면 `transactions` 테이블에 인서트함과 동시에, **단일 DB 트랜잭션** 내에서 아래 자산 보정 연산을 연동하여 처리하라.
 
-### 4. API 엔드포인트 개정 및 자산 연동 (FastAPI)
-- **`GET /api/accounts`:** `account` 테이블에서 `dt_deleted`가 없는 활성 계좌들을 정렬 순서(`ORDER BY acc_order ASC`)대로 조회하여 반환하라.
-- **`POST /api/transactions/add`:**
-  - 수신 DTO의 계좌 식별 파라미터명을 `acc_code`로 정의하라.
-  - 매수/매도 트랜잭션 가동 시, `stocks` 테이블에서 `WHERE acc_code = :acc_code AND code = :code` 조건으로 현재고를 보정하라.
-  - **예수금 연동:** 매수 시에는 해당 계좌의 `cash_balance`에서 (수량 × 단가)만큼 차감하고, 매도 시에는 합산하도록 단일 트랜잭션 내에서 `account` 테이블도 동시 업데이트하라.
+*   **보유 자산 상세 (`stocks` 테이블 연동):**
+    - **`BUY` (매수) 발생 시:** `stocks` 테이블에서 `WHERE acc_code = :acc_code AND code = :code`를 조회하라. 이미 보유 중인 종목이라면 수량을 더하고 **[평균 매입단가 = (기존 총매입금액 + 신규 매입금액) / 총수량]**을 재계산하여 `UPSERT` 하라. 보유하지 않은 종목이라면 행을 신설하라.
+    - **`SELL` (매도) 발생 시:** 현재 보유 수량에서 매도 수량만큼 차감하라. 만약 차감 후 **잔고 수량이 0이 되면 `stocks` 테이블에서 해당 종목 행(Row)을 완전히 `DELETE`** 처리하라. (보유 수량보다 많은 과매도 요청 시 `400 Bad Request` 에러 반환)
+*   **현금 잔고 변동 (`account` 테이블 연동):**
+    - 매수 시에는 해당 계좌의 `cash_balance`에서 (수량 × 단가)만큼 차감하고, 매도 시에는 수수료 등을 제외한 예수금을 즉시 합산(`UPDATE`) 하라.
 
 ---
 
 ## 🏁 완료 조건
-1. `sunflower87.db` 내에 지정된 7개 약어 규격의 `account` 테이블이 정상 생성되는가?
-2. `transactions` 및 `stocks` 테이블의 계좌 매핑 키가 `acc_code`로 완벽히 리팩토링되었는가?
+1. 매매 거래를 등록했을 때 `transactions`, `stocks`, `account` 3개 테이블의 수량과 금액이 수학적으로 완벽하게 정합성을 유지하는가?
+2. 특정 종목을 전량 매도 완료했을 때 `stocks` 테이블에서 해당 데이터 행이 깔끔하게 지워지는가?
 3. Python 소스코드에 `black` 포맷터 및 `flake8` 린트 규칙이 에러 없이 통과되는가?
