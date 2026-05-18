@@ -90,7 +90,7 @@ def add_transaction(tx_input: TransactionCreate, db: Session = Depends(get_db)):
             detail="Quantity and price must be greater than zero.",
         )
 
-    acc_cd = tx_input.acc_code or tx_input.acc_cd or "A001"
+    acc_cd = tx_input.acc_cd or "A001"
 
     try:
         # 거래일시 파싱 및 자동 복원
@@ -288,7 +288,7 @@ def update_transaction(
         )
 
     old_acc_cd = tx.acc_cd
-    new_acc_cd = tx_input.acc_code or tx_input.acc_cd or "A001"
+    new_acc_cd = tx_input.acc_cd or "A001"
 
     tx_type = tx_input.type.upper()
     if tx_type not in ["BUY", "SELL"]:

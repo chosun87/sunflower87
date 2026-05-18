@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # .env 로드 및 기본 폴백 설정
-env_db_url = os.getenv("DATABASE_URL")
+env_db_url = os.getenv("DATABASE_URL", "sqlite:///sunflower87.db")
 
 # SQLite URL 규격화 검증 및 방어적 변환 지원
 if env_db_url and not env_db_url.startswith("sqlite:///"):

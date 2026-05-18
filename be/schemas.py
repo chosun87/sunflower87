@@ -54,11 +54,6 @@ class TransactionCreate(BaseModel):
         description="account 테이블의 acc_cd 참조 키",
         examples=["A001"],
     )
-    acc_code: Optional[str] = Field(
-        "",
-        description="account 테이블의 acc_cd 참조 키 (호환용)",
-        examples=["A001"],
-    )
 
 
 class ErrorResponse(BaseModel):

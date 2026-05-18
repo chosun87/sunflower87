@@ -94,7 +94,7 @@ export default function Dashboard() {
   }, [isInitialized, isSignedIn, navigate])
 
   // 실시간 자산 및 보유 주식 불러오기 (데이터 일관성 보장 바인딩)
-  const loadAccounts = () => {
+  const fetchAccountData = () => {
     fetch('http://localhost:8000/api/accounts')
       .then((res) => res.json())
       .then((resData) => {
@@ -130,7 +130,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadAccounts()
+    fetchAccountData()
     loadTransactions()
 
     // 백엔드 API로부터 오늘의 AI 추천 종목 데이터 바인딩
@@ -258,7 +258,7 @@ export default function Dashboard() {
               resData.message || '매매 내역이 정상적으로 처리되었습니다.',
           })
 
-          loadAccounts()
+          fetchAccountData()
           loadTransactions()
         }
       })
@@ -311,7 +311,7 @@ export default function Dashboard() {
                 message:
                   '매매 거래 내역 삭제 및 자산 역산 처리가 완료되었습니다.',
               })
-              loadAccounts()
+              fetchAccountData()
               loadTransactions()
             }
           })
@@ -530,42 +530,55 @@ export default function Dashboard() {
             header="보유 자산 상세"
             leftIcon="pi pi-wallet mr-2 text-primary"
           >
-            {selectedAccount ? (
-              <div className="mt-3">
-                <div className="flex align-items-center justify-content-between mb-3">
-                  <h3 className="text-xl font-bold m-0 text-700">
-                    {selectedAccount.alias} 보유 현황
-                  </h3>
+            {data && data.accounts && data.accounts.length > 0 ? (
+              data.accounts.map((acc) => (
+                <div className="mt-3 mb-6" key={acc.acc_cd}>
+                  <div className="flex align-items-center justify-content-between mb-3 border-bottom-1 pb-2 border-100">
+                    <div className="flex align-items-center gap-3">
+                      <h3 className="text-xl font-bold m-0 text-700">
+                        {acc.alias} 보유 현황
+                      </h3>
+                      <Badge
+                        value={`현금 잔고: ${acc.balance.toLocaleString()} 원`}
+                        severity="success"
+                      />
+                    </div>
+                  </div>
+                  <DataTable
+                    value={acc.stocks}
+                    responsiveLayout="stack"
+                    breakpoint="960px"
+                    sortMode="multiple"
+                    stripedRows
+                    emptyMessage="보유 중인 주식이 없습니다."
+                  >
+                    <Column field="name" header="종목명" sortable></Column>
+                    <Column
+                      field="quantity"
+                      header="보유수량"
+                      sortable
+                    ></Column>
+                    <Column
+                      field="avg_price"
+                      header="매입평단가"
+                      body={(rd) => currencyTemplate(rd.avg_price)}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="current_price"
+                      header="현재가"
+                      body={(rd) => currencyTemplate(rd.current_price)}
+                      sortable
+                    ></Column>
+                    <Column
+                      field="eval_profit_rate"
+                      header="수익률"
+                      body={profitTemplate}
+                      sortable
+                    ></Column>
+                  </DataTable>
                 </div>
-                <DataTable
-                  value={selectedAccount.stocks}
-                  responsiveLayout="stack"
-                  breakpoint="960px"
-                  sortMode="multiple"
-                  stripedRows
-                >
-                  <Column field="name" header="종목명" sortable></Column>
-                  <Column field="quantity" header="보유수량" sortable></Column>
-                  <Column
-                    field="avg_price"
-                    header="매입평단가"
-                    body={(rd) => currencyTemplate(rd.avg_price)}
-                    sortable
-                  ></Column>
-                  <Column
-                    field="current_price"
-                    header="현재가"
-                    body={(rd) => currencyTemplate(rd.current_price)}
-                    sortable
-                  ></Column>
-                  <Column
-                    field="eval_profit_rate"
-                    header="수익률"
-                    body={profitTemplate}
-                    sortable
-                  ></Column>
-                </DataTable>
-              </div>
+              ))
             ) : (
               <div className="p-4 text-center text-500">
                 조회 가능한 계좌 정보가 없습니다.
