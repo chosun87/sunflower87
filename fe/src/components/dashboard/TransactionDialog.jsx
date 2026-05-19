@@ -139,9 +139,13 @@ export default function TransactionDialog({
     <Dialog
       header={
         <div className="flex align-items-center gap-2">
-          <i className="pi pi-file-edit text-primary text-xl"></i>
+          <i
+            className={`pi ${
+              editingTx ? 'pi-file-edit' : 'pi-plus-circle'
+            } text-primary text-xl`}
+          ></i>
           <span className="font-bold text-xl">
-            {editingTx ? '📝 매매 거래 기록 수정' : '➕ 신규 매매 거래 등록'}
+            {editingTx ? '매매 거래 기록 수정' : '신규 매매 거래 등록'}
           </span>
         </div>
       }

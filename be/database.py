@@ -161,10 +161,10 @@ def init_db():
                                 .filter(CacheStock.stock_code == ticker)
                                 .first()
                             )
+                            market_type = (
+                                "ETF" if ticker in etf_tickers else "KOSPI"
+                            )
                             if not existing:
-                                market_type = (
-                                    "ETF" if ticker in etf_tickers else "KOSPI"
-                                )
                                 db.add(
                                     CacheStock(
                                         stock_code=ticker,
@@ -173,6 +173,8 @@ def init_db():
                                         is_active=1,
                                     )
                                 )
+                            elif existing.market is None:
+                                existing.market = market_type
 
                         # KOSDAQ 수집적재 (ETF 여부 자동 판별)
                         for ticker, row in df_kosdaq.iterrows():
@@ -182,10 +184,10 @@ def init_db():
                                 .filter(CacheStock.stock_code == ticker)
                                 .first()
                             )
+                            market_type = (
+                                "ETF" if ticker in etf_tickers else "KOSDAQ"
+                            )
                             if not existing:
-                                market_type = (
-                                    "ETF" if ticker in etf_tickers else "KOSDAQ"
-                                )
                                 db.add(
                                     CacheStock(
                                         stock_code=ticker,
@@ -194,6 +196,8 @@ def init_db():
                                         is_active=1,
                                     )
                                 )
+                            elif existing.market is None:
+                                existing.market = market_type
 
                         # ETF 및 기타 오프라인 사전 주요 종목 결합 보충 (브랜드 키워드 및 동적 리스트 결합 검출)
                         from routers.stocks import get_offline_stocks
@@ -218,12 +222,12 @@ def init_db():
                                 .filter(CacheStock.stock_code == code)
                                 .first()
                             )
+                            market_type = "KOSPI"
+                            if code in etf_tickers or any(
+                                kw in name.upper() for kw in etf_keywords
+                            ):
+                                market_type = "ETF"
                             if not existing:
-                                market_type = "KOSPI"
-                                if code in etf_tickers or any(
-                                    kw in name.upper() for kw in etf_keywords
-                                ):
-                                    market_type = "ETF"
                                 db.add(
                                     CacheStock(
                                         stock_code=code,
@@ -232,6 +236,8 @@ def init_db():
                                         is_active=1,
                                     )
                                 )
+                            elif existing.market is None:
+                                existing.market = market_type
 
                         db.commit()
                         print(
@@ -241,6 +247,7 @@ def init_db():
                         masters_seeded = True
                         break
                 except Exception as day_err:
+                    db.rollback()  # 스키마/네트워크 에러 시 SQLAlchemy 세션 무효화 상태를 정상 롤백 처리
                     print(
                         f"[WARNING] Seeding attempt for {date_str} skipped: {day_err}"
                     )
@@ -293,6 +300,8 @@ def init_db():
                                 is_active=1,
                             )
                         )
+                    elif existing_stock.market is None:
+                        existing_stock.market = market_type
                 db.commit()
                 print(
                     "[sunflower87] Offline fallback stock masters successfully seeded."

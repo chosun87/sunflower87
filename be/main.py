@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -10,6 +11,7 @@ load_dotenv()
 # 모듈 경로 추가로 패키지 임포트 보장
 sys.path.append(str(Path(__file__).parent.resolve()))
 
+from migrate import run_migrations  # noqa: E402
 from database import init_db  # noqa: E402
 from routers import (  # noqa: E402
     stocks,
@@ -19,14 +21,20 @@ from routers import (  # noqa: E402
     tasks,
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 데이터베이스 마이그레이션 우선 기동 (스키마 보장)
+    run_migrations()
+    # 데이터베이스 테이블 초기화 및 무결성 검증 (구동 시점에 구동)
+    init_db()
+    yield
+
 app = FastAPI(
     title="sunflower87 API 코어",
     description="미래에셋 멀티 계좌 및 AI 주식 추천 시스템",
     version="0.1.0",
+    lifespan=lifespan,
 )
-
-# 데이터베이스 테이블 초기화 및 무결성 검증 (구동 시점에 구동)
-init_db()
 
 # CORS 허용 정책 설정
 app.add_middleware(

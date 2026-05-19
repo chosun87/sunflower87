@@ -14,6 +14,18 @@ export default function StockDetail() {
   const [isChartLoading, setIsChartLoading] = useState(true)
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
+  // 클릭 기반 커스텀 툴팁을 관리하는 상태 (Label 1)
+  const [customClickTooltip, setCustomClickTooltip] = useState({
+    visible: false,
+    item: null,
+    prevClose: null,
+    ma5Val: null,
+    ma20Val: null,
+    x: 0,
+    y: 0,
+    dataPointIndex: -1,
+  })
+
   // 반응형 X축 눈금 제어를 위해 화면 크기(창 너비) 실시간 감지 레이어 구현
   useEffect(() => {
     const handleResize = () => {
@@ -120,7 +132,9 @@ export default function StockDetail() {
       const { label, year, monthStr, dayStr } = tempTransitions[index]
 
       // 수동 솎아내기(빈 문자열 주입)를 제거하여, tickAmount 솎아내기 기능과 충돌을 파쇄하고 모든 눈금 영역에 올바른 날짜를 노출
-      categories.push(label)
+      // 중요: ApexCharts의 category 축에서 중복된 문자열(예: '11')이 들어가면
+      // 틱 생성 알고리즘이 망가지므로, 무조건 고유값인 trade_date를 카테고리로 씁니다.
+      categories.push(item.trade_date)
 
       return {
         trade_date: item.trade_date,
@@ -160,13 +174,13 @@ export default function StockDetail() {
       }
     }
 
-    // 3단계: 인덱스(idx) 1:1 매칭 기반 오버레이 시리즈 빌드
+    // 3단계: 고유 문자열(trade_date) 매칭 기반 오버레이 시리즈 빌드
     const series = [
       {
         name: '현재가 (OHLC)',
         type: 'candlestick',
-        data: rawList.map((item, idx) => ({
-          x: idx, // 타임스탬프 대신 1:1 순차 인덱스를 사용하여 공백 파쇄
+        data: rawList.map((item) => ({
+          x: item.trade_date, // 숫자 인덱스가 아닌 고유 날짜 문자열로 완벽 결합
           y: [
             item.open_price,
             item.high_price,
@@ -179,7 +193,7 @@ export default function StockDetail() {
         name: '5일 이동평균선',
         type: 'line',
         data: ma5Data.map((val, idx) => ({
-          x: idx,
+          x: rawList[idx].trade_date,
           y: val,
         })),
       },
@@ -187,13 +201,13 @@ export default function StockDetail() {
         name: '20일 이동평균선',
         type: 'line',
         data: ma20Data.map((val, idx) => ({
-          x: idx,
+          x: rawList[idx].trade_date,
           y: val,
         })),
       },
     ]
 
-    return { categories, series, rawList }
+    return { categories, series, rawList, tempTransitions }
   }, [ohlcvData])
 
   // 창 크기에 대응되는 최적의 X축 눈금 개수(tickAmount) 연산
@@ -213,8 +227,42 @@ export default function StockDetail() {
           show: true,
         },
         background: 'transparent',
+        events: {
+          click: function (event, chartContext, config) {
+            const idx = config.dataPointIndex
+            // 캔들/데이터 포인트를 클릭했을 때만 툴팁 토글 동작
+            if (idx !== undefined && idx !== -1) {
+              setCustomClickTooltip((prev) => {
+                // 동일한 캔들을 다시 클릭하면 숨김
+                if (prev.visible && prev.dataPointIndex === idx) {
+                  return { ...prev, visible: false }
+                }
+                const item = chartData.rawList[idx]
+                const prevItem = idx > 0 ? chartData.rawList[idx - 1] : null
+                const prevClose = prevItem
+                  ? prevItem.close_price
+                  : item.open_price
+                const ma5Val = chartData.series[1].data[idx].y
+                const ma20Val = chartData.series[2].data[idx].y
+                return {
+                  visible: true,
+                  item,
+                  prevClose,
+                  ma5Val,
+                  ma20Val,
+                  x: event.clientX,
+                  y: event.clientY,
+                  dataPointIndex: idx,
+                }
+              })
+            } else {
+              // 차트의 빈 공간 클릭 시 툴팁 숨김
+              setCustomClickTooltip((prev) => ({ ...prev, visible: false }))
+            }
+          },
+        },
       },
-      colors: ['var(--blue-600)', '#ff9800', '#9c27b0'], // 상승 블루 / 오렌지 5일선 / 보라 20일선 지정
+      colors: ['#eb3c46', '#ff9436', '#3f72df'], // 미래에셋 기준 색상: 상승 레드, 5일선 오렌지, 20일선 블루
       stroke: {
         width: [1, 2, 2], // 캔들 테두리: 1px / 5일선 및 20일선 두께: 2px 규격 적용
         curve: 'straight', // 왜곡 없이 올바르게 렌더링
@@ -245,16 +293,34 @@ export default function StockDetail() {
       xaxis: {
         type: 'category', // 카테고리 축으로 선언하여 주말/휴장일의 빈 공간(공백)을 100% 완벽하게 소멸
         categories: chartData.categories, // 미리 솎아낸 눈금 및 변곡점 라벨 주입
-        tickAmount: tickAmount,
+        tickPlacement: 'on', // 틱 마크와 라벨을 캔들 중앙에 완벽히 정렬합니다.
+        // tickAmount를 제거하여 틱이 캔들과 100% 일치하도록 강제 결합합니다.
         axisBorder: {
           color: 'var(--surface-border)',
         },
         axisTicks: {
           color: 'var(--surface-border)',
         },
+        tooltip: {
+          enabled: false, // Label 2: 하단 X축 크로스헤어 라벨 영구 숨김
+        },
         labels: {
           rotate: 0, // 글자가 45도로 눕지 않고 완벽한 수평 정렬을 유지하도록 통제
           rotateAlways: false,
+          hideOverlappingLabels: true, // 겹치는 라벨 자동 숨김 (수동 솎아내기 제거)
+          formatter: (val) => {
+            if (!val || typeof val !== 'string') return val
+            const idx = chartData.rawList.findIndex((r) => r.trade_date === val)
+            if (
+              idx !== -1 &&
+              chartData.tempTransitions &&
+              chartData.tempTransitions[idx]
+            ) {
+              // 솎아내지 않고 무조건 정확한 라벨을 반환하여 어긋남(Shift) 착시 방지
+              return chartData.tempTransitions[idx].label
+            }
+            return val
+          },
           style: {
             colors: 'var(--text-color-secondary)',
             cssClass: 'monospace',
@@ -276,8 +342,8 @@ export default function StockDetail() {
       plotOptions: {
         candlestick: {
           colors: {
-            upward: 'var(--blue-600)', // 양봉(상승): 파란색 통제
-            downward: 'var(--red-600)', // 음봉(하락): 빨간색 통제
+            upward: '#eb3c46', // 양봉(상승): 미래에셋 레드
+            downward: '#2b7eed', // 음봉(하락): 미래에셋 블루
           },
           wick: {
             useFillColor: true, // 꼬리 굵기 및 발색 최적화
@@ -305,46 +371,9 @@ export default function StockDetail() {
       },
       tooltip: {
         shared: true,
-        // 카테고리 축 전용 명품 Glassmorphism 다크 툴팁 팝업 출력
-        custom: ({ dataPointIndex, w }) => {
-          const item = chartData.rawList[dataPointIndex]
-          const ma5Val = w.config.series[1].data[dataPointIndex]?.y
-          const ma20Val = w.config.series[2].data[dataPointIndex]?.y
-
-          if (!item) return ''
-
-          return `
-            <div class="p-3 monospace" style="
-              font-size: 12px;
-              line-height: 1.6;
-              background: rgba(33, 37, 41, 0.9);
-              backdrop-filter: blur(8px);
-              color: #f8f9fa;
-              border: 1px solid rgba(255, 255, 255, 0.15);
-              border-radius: 8px;
-              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-              min-width: 180px;
-            ">
-              <div style="font-weight: 800; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 6px; font-size: 13px; color: #ced4da;">
-                📅 ${item.rawDate}
-              </div>
-              <div style="display: flex; justify-content: space-between;">시가: <span style="font-weight: bold; color: #f8f9fa;">${item.open_price.toLocaleString()}</span></div>
-              <div style="display: flex; justify-content: space-between;">고가: <span style="color: #64b5f6; font-weight: bold;">▲ ${item.high_price.toLocaleString()}</span></div>
-              <div style="display: flex; justify-content: space-between;">저가: <span style="color: #ef5350; font-weight: bold;">▼ ${item.low_price.toLocaleString()}</span></div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 4px;">
-                종가: <span style="font-weight: bold; color: #f8f9fa;">${item.close_price.toLocaleString()}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                <span style="color: #ffb74d; font-weight: bold;">5일선:</span>
-                <span style="font-weight: bold;">${ma5Val !== null && ma5Val !== undefined ? `${ma5Val.toLocaleString()} 원` : '-'}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
-                <span style="color: #ba68c8; font-weight: bold;">20일선:</span>
-                <span style="font-weight: bold;">${ma20Val !== null && ma20Val !== undefined ? `${ma20Val.toLocaleString()} 원` : '-'}</span>
-              </div>
-            </div>
-          `
-        },
+        // 기본 툴팁 박스는 렌더링하지 않음 (대신 React 오버레이 컴포넌트로 렌더링)
+        // 빈 문자열을 반환하면 십자선(Crosshair)은 유지되면서 내용은 비워집니다.
+        custom: () => '<div style="display: none;"></div>',
       },
     }
   }, [stockName, stockCode, chartData, tickAmount])
@@ -397,6 +426,232 @@ export default function StockDetail() {
           </div>
         )}
       </Card>
+
+      {/* 기본 ApexCharts 툴팁 잔여 껍데기를 가리는 글로벌 스타일 */}
+      <style>{`
+        .apexcharts-tooltip {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
+
+      {/* 클릭 기반 React 커스텀 툴팁 (Label 1) */}
+      {customClickTooltip.visible &&
+        customClickTooltip.item &&
+        (() => {
+          const { item, prevClose, ma5Val, ma20Val } = customClickTooltip
+
+          // 이전 거래일 종가(또는 당일 시가) 대비 등락 색상 계산 (다크 배경용 밝은 컬러)
+          const getPriceColor = (price) => {
+            if (!prevClose || price === prevClose) return '#f8f9fa'
+            return price > prevClose ? '#ff6666' : '#64a0ff'
+          }
+
+          // 등락률 문자열 계산 (Prime Icon 적용)
+          const getDiffNode = (price) => {
+            if (!prevClose || price === prevClose) return <span>0.00%</span>
+            const diff = ((price - prevClose) / prevClose) * 100
+            const isUp = diff > 0
+            return (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                <i className={`pi ${isUp ? 'pi-caret-up' : 'pi-caret-down'}`} style={{ fontSize: '0.75rem' }}></i>
+                {Math.abs(diff).toFixed(2)}%
+              </span>
+            )
+          }
+
+          return (
+            <div
+              className="monospace"
+              style={{
+                position: 'fixed',
+                top:
+                  Math.min(
+                    customClickTooltip.y + 15,
+                    window.innerHeight - 250,
+                  ) + 'px',
+                left:
+                  Math.min(customClickTooltip.x + 15, window.innerWidth - 250) +
+                  'px',
+                zIndex: 9999,
+                fontSize: '12px',
+                lineHeight: 1.6,
+                background: 'rgba(33, 37, 41, 0.95)',
+                backdropFilter: 'blur(8px)',
+                color: '#f8f9fa',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '8px',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.35)',
+                minWidth: '220px',
+                padding: '12px',
+                pointerEvents: 'none', // 클릭을 방해하지 않음
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  marginBottom: '8px',
+                  borderBottom: '1px solid rgba(255,255,255,0.15)',
+                  paddingBottom: '6px',
+                  fontSize: '13px',
+                  color: '#ced4da',
+                }}
+              >
+                <i className="pi pi-calendar" style={{ marginRight: '6px', fontSize: '0.9rem' }}></i>
+                {item.rawDate}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '2px',
+                }}
+              >
+                시가:{' '}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      color: getPriceColor(item.open_price),
+                    }}
+                  >
+                    {item.open_price.toLocaleString()}
+                  </span>
+                  <span
+                    style={{
+                      color: getPriceColor(item.open_price),
+                      minWidth: '65px',
+                      textAlign: 'right',
+                    }}
+                  >
+                    {getDiffNode(item.open_price)}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '2px',
+                }}
+              >
+                고가:{' '}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      color: getPriceColor(item.high_price),
+                    }}
+                  >
+                    {item.high_price.toLocaleString()}
+                  </span>
+                  <span
+                    style={{
+                      color: getPriceColor(item.high_price),
+                      minWidth: '65px',
+                      textAlign: 'right',
+                    }}
+                  >
+                    {getDiffNode(item.high_price)}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '2px',
+                }}
+              >
+                저가:{' '}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      color: getPriceColor(item.low_price),
+                    }}
+                  >
+                    {item.low_price.toLocaleString()}
+                  </span>
+                  <span
+                    style={{
+                      color: getPriceColor(item.low_price),
+                      minWidth: '65px',
+                      textAlign: 'right',
+                    }}
+                  >
+                    {getDiffNode(item.low_price)}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                  borderBottom: '1px dashed rgba(255,255,255,0.1)',
+                  paddingBottom: '6px',
+                }}
+              >
+                종가:{' '}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      color: getPriceColor(item.close_price),
+                    }}
+                  >
+                    {item.close_price.toLocaleString()}
+                  </span>
+                  <span
+                    style={{
+                      color: getPriceColor(item.close_price),
+                      minWidth: '65px',
+                      textAlign: 'right',
+                    }}
+                  >
+                    {getDiffNode(item.close_price)}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '4px',
+                }}
+              >
+                <span style={{ color: '#ff9436', fontWeight: 'bold' }}>
+                  5일선:
+                </span>
+                <span style={{ fontWeight: 'bold' }}>
+                  {ma5Val !== null && ma5Val !== undefined
+                    ? `${ma5Val.toLocaleString()} 원`
+                    : '-'}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '2px',
+                }}
+              >
+                <span style={{ color: '#3f72df', fontWeight: 'bold' }}>
+                  20일선:
+                </span>
+                <span style={{ fontWeight: 'bold' }}>
+                  {ma20Val !== null && ma20Val !== undefined
+                    ? `${ma20Val.toLocaleString()} 원`
+                    : '-'}
+                </span>
+              </div>
+            </div>
+          )
+        })()}
     </div>
   )
 }
