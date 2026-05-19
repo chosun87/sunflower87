@@ -12,7 +12,6 @@ export default function StockDetail() {
   const [ohlcvData, setOhlcvData] = useState([])
   const [stockName, setStockName] = useState('')
   const [isChartLoading, setIsChartLoading] = useState(true)
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
   // 클릭 기반 커스텀 툴팁을 관리하는 상태 (Label 1)
   const [customClickTooltip, setCustomClickTooltip] = useState({
@@ -25,17 +24,6 @@ export default function StockDetail() {
     y: 0,
     dataPointIndex: -1,
   })
-
-  // 반응형 X축 눈금 제어를 위해 화면 크기(창 너비) 실시간 감지 레이어 구현
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [])
 
   // 주가 API 비동기 조회 및 상태 매핑 (20ms 마운트 가드 레이어 탑재)
   useEffect(() => {
@@ -129,7 +117,7 @@ export default function StockDetail() {
 
     // 1단계 [B]: 2차 루프를 돌며 각 영업일의 포맷팅된 날짜 라벨을 100% 매핑 (ApexCharts가 tickAmount 조건에 맞춰 최적으로 자동 솎아냄)
     const rawList = ohlcvData.map((item, index) => {
-      const { label, year, monthStr, dayStr } = tempTransitions[index]
+      const { year, monthStr, dayStr } = tempTransitions[index]
 
       // 수동 솎아내기(빈 문자열 주입)를 제거하여, tickAmount 솎아내기 기능과 충돌을 파쇄하고 모든 눈금 영역에 올바른 날짜를 노출
       // 중요: ApexCharts의 category 축에서 중복된 문자열(예: '11')이 들어가면
@@ -209,13 +197,6 @@ export default function StockDetail() {
 
     return { categories, series, rawList, tempTransitions }
   }, [ohlcvData])
-
-  // 창 크기에 대응되는 최적의 X축 눈금 개수(tickAmount) 연산
-  const tickAmount = useMemo(() => {
-    if (windowWidth <= 768) return 8
-    if (windowWidth <= 1200) return 14
-    return 20
-  }, [windowWidth])
 
   // React 성능 최적화: 차트 옵션 메모이제이션 (카테고리 축 기반의 정밀 레이아웃 정립)
   const chartOptions = useMemo(() => {
@@ -376,7 +357,7 @@ export default function StockDetail() {
         custom: () => '<div style="display: none;"></div>',
       },
     }
-  }, [stockName, stockCode, chartData, tickAmount])
+  }, [stockName, stockCode, chartData])
 
   return (
     <div className="p-4 md:p-6 lg:p-8 animate-fadein">
@@ -454,8 +435,18 @@ export default function StockDetail() {
             const diff = ((price - prevClose) / prevClose) * 100
             const isUp = diff > 0
             return (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                <i className={`pi ${isUp ? 'pi-caret-up' : 'pi-caret-down'}`} style={{ fontSize: '0.75rem' }}></i>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '4px',
+                }}
+              >
+                <i
+                  className={`pi ${isUp ? 'pi-caret-up' : 'pi-caret-down'}`}
+                  style={{ fontSize: '0.75rem' }}
+                ></i>
                 {Math.abs(diff).toFixed(2)}%
               </span>
             )
@@ -463,9 +454,8 @@ export default function StockDetail() {
 
           return (
             <div
-              className="monospace"
+              className="monospace custom-stock-tooltip"
               style={{
-                position: 'fixed',
                 top:
                   Math.min(
                     customClickTooltip.y + 15,
@@ -474,176 +464,95 @@ export default function StockDetail() {
                 left:
                   Math.min(customClickTooltip.x + 15, window.innerWidth - 250) +
                   'px',
-                zIndex: 9999,
-                fontSize: '12px',
-                lineHeight: 1.6,
-                background: 'rgba(33, 37, 41, 0.95)',
-                backdropFilter: 'blur(8px)',
-                color: '#f8f9fa',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '8px',
-                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.35)',
-                minWidth: '220px',
-                padding: '12px',
-                pointerEvents: 'none', // 클릭을 방해하지 않음
               }}
             >
-              <div
-                style={{
-                  fontWeight: 800,
-                  marginBottom: '8px',
-                  borderBottom: '1px solid rgba(255,255,255,0.15)',
-                  paddingBottom: '6px',
-                  fontSize: '13px',
-                  color: '#ced4da',
-                }}
-              >
-                <i className="pi pi-calendar" style={{ marginRight: '6px', fontSize: '0.9rem' }}></i>
+              <div className="tooltip-header">
+                <i className="pi pi-calendar"></i>
                 {item.rawDate}
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '2px',
-                }}
-              >
+              <div className="price-row">
                 시가:{' '}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="price-group">
                   <span
-                    style={{
-                      fontWeight: 'bold',
-                      color: getPriceColor(item.open_price),
-                    }}
+                    className="price-val"
+                    style={{ color: getPriceColor(item.open_price) }}
                   >
                     {item.open_price.toLocaleString()}
                   </span>
                   <span
-                    style={{
-                      color: getPriceColor(item.open_price),
-                      minWidth: '65px',
-                      textAlign: 'right',
-                    }}
+                    className="price-diff"
+                    style={{ color: getPriceColor(item.open_price) }}
                   >
                     {getDiffNode(item.open_price)}
                   </span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '2px',
-                }}
-              >
+              <div className="price-row">
                 고가:{' '}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="price-group">
                   <span
-                    style={{
-                      fontWeight: 'bold',
-                      color: getPriceColor(item.high_price),
-                    }}
+                    className="price-val"
+                    style={{ color: getPriceColor(item.high_price) }}
                   >
                     {item.high_price.toLocaleString()}
                   </span>
                   <span
-                    style={{
-                      color: getPriceColor(item.high_price),
-                      minWidth: '65px',
-                      textAlign: 'right',
-                    }}
+                    className="price-diff"
+                    style={{ color: getPriceColor(item.high_price) }}
                   >
                     {getDiffNode(item.high_price)}
                   </span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '2px',
-                }}
-              >
+              <div className="price-row">
                 저가:{' '}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="price-group">
                   <span
-                    style={{
-                      fontWeight: 'bold',
-                      color: getPriceColor(item.low_price),
-                    }}
+                    className="price-val"
+                    style={{ color: getPriceColor(item.low_price) }}
                   >
                     {item.low_price.toLocaleString()}
                   </span>
                   <span
-                    style={{
-                      color: getPriceColor(item.low_price),
-                      minWidth: '65px',
-                      textAlign: 'right',
-                    }}
+                    className="price-diff"
+                    style={{ color: getPriceColor(item.low_price) }}
                   >
                     {getDiffNode(item.low_price)}
                   </span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '6px',
-                  borderBottom: '1px dashed rgba(255,255,255,0.1)',
-                  paddingBottom: '6px',
-                }}
-              >
+              <div className="price-row border-dashed">
                 종가:{' '}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="price-group">
                   <span
-                    style={{
-                      fontWeight: 'bold',
-                      color: getPriceColor(item.close_price),
-                    }}
+                    className="price-val"
+                    style={{ color: getPriceColor(item.close_price) }}
                   >
                     {item.close_price.toLocaleString()}
                   </span>
                   <span
-                    style={{
-                      color: getPriceColor(item.close_price),
-                      minWidth: '65px',
-                      textAlign: 'right',
-                    }}
+                    className="price-diff"
+                    style={{ color: getPriceColor(item.close_price) }}
                   >
                     {getDiffNode(item.close_price)}
                   </span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '4px',
-                }}
-              >
-                <span style={{ color: '#ff9436', fontWeight: 'bold' }}>
+              <div className="ma-row mt-4">
+                <span className="ma-label" style={{ color: '#ff9436' }}>
                   5일선:
                 </span>
-                <span style={{ fontWeight: 'bold' }}>
+                <span className="ma-val">
                   {ma5Val !== null && ma5Val !== undefined
                     ? `${ma5Val.toLocaleString()} 원`
                     : '-'}
                 </span>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '2px',
-                }}
-              >
-                <span style={{ color: '#3f72df', fontWeight: 'bold' }}>
+              <div className="ma-row mt-2">
+                <span className="ma-label" style={{ color: '#3f72df' }}>
                   20일선:
                 </span>
-                <span style={{ fontWeight: 'bold' }}>
+                <span className="ma-val">
                   {ma20Val !== null && ma20Val !== undefined
                     ? `${ma20Val.toLocaleString()} 원`
                     : '-'}

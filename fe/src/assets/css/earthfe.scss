@@ -1,0 +1,104 @@
+/* 어띠페(Antigravity) 전용 프론트엔드 스타일 영역 */
+
+/* 매수/매도 커스텀 CSS 컬러 오버라이드 */
+.tx-selectbutton.buy-selected .p-button.p-highlight {
+  background-color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.tx-selectbutton.sell-selected .p-button.p-highlight {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+/* 거래 내역 구분 배지 스타일 */
+.type-buy {
+  background-color: var(--red-600) !important;
+  color: #ffffff !important;
+}
+
+.type-sell {
+  background-color: var(--blue-600) !important;
+  color: #ffffff !important;
+}
+
+/* 커스텀 주식 차트 툴팁 스타일 */
+.custom-stock-tooltip {
+  position: fixed;
+  z-index: 9999;
+  font-size: 12px;
+  line-height: 1.6;
+  background: rgba(33, 37, 41, 0.95);
+  backdrop-filter: blur(8px);
+  color: #f8f9fa;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  min-width: 220px;
+  padding: 12px;
+  pointer-events: none;
+
+  .tooltip-header {
+    font-weight: 800;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 6px;
+    font-size: 13px;
+    color: #ced4da;
+
+    i {
+      margin-right: 6px;
+      font-size: 0.9rem;
+    }
+  }
+
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+
+    &.border-dashed {
+      margin-bottom: 6px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-bottom: 6px;
+    }
+
+    .price-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .price-val {
+      font-weight: bold;
+    }
+
+    .price-diff {
+      min-width: 65px;
+      text-align: right;
+    }
+  }
+
+  .ma-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &.mt-4 {
+      margin-top: 4px;
+    }
+
+    &.mt-2 {
+      margin-top: 2px;
+    }
+
+    .ma-label {
+      font-weight: bold;
+    }
+
+    .ma-val {
+      font-weight: bold;
+    }
+  }
+}

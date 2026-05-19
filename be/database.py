@@ -161,9 +161,7 @@ def init_db():
                                 .filter(CacheStock.stock_code == ticker)
                                 .first()
                             )
-                            market_type = (
-                                "ETF" if ticker in etf_tickers else "KOSPI"
-                            )
+                            market_type = "ETF" if ticker in etf_tickers else "KOSPI"
                             if not existing:
                                 db.add(
                                     CacheStock(
@@ -184,9 +182,7 @@ def init_db():
                                 .filter(CacheStock.stock_code == ticker)
                                 .first()
                             )
-                            market_type = (
-                                "ETF" if ticker in etf_tickers else "KOSDAQ"
-                            )
+                            market_type = "ETF" if ticker in etf_tickers else "KOSDAQ"
                             if not existing:
                                 db.add(
                                     CacheStock(

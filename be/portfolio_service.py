@@ -26,6 +26,7 @@ def get_exact_trade_date_limits(target_period=60):
     actual_trade_dates = []
     try:
         from pykrx import stock as krx_stock
+
         # R2 지침: KOSPI 인덱스로 먼저 개장일 캘린더 획득 시도
         df_market = krx_stock.get_market_ohlcv_by_date(
             safe_start_str, target_end_str, "KOSPI"
@@ -63,6 +64,7 @@ def get_market_trade_dates(start_date_str: str, end_date_str: str) -> list:
     """
     try:
         from pykrx import stock as krx_stock
+
         df_market = krx_stock.get_market_ohlcv_by_date(
             start_date_str, end_date_str, "005930"
         )
@@ -136,6 +138,7 @@ def sync_ohlcv_cache(db: Session, stock_code: str):
 
                 if start_date_str <= target_end_str:
                     from pykrx import stock as krx_stock
+
                     df_gap = krx_stock.get_market_ohlcv_by_date(
                         start_date_str, target_end_str, stock_code
                     )
@@ -182,6 +185,7 @@ def _fetch_and_save_initial_ohlcv(db: Session, stock_code: str):
     )
 
     from pykrx import stock as krx_stock
+
     df = krx_stock.get_market_ohlcv_by_date(start_str, end_str, stock_code)
     if df is not None and not df.empty:
         _save_ohlcv_to_db(db, stock_code, df)

@@ -21,6 +21,7 @@ from routers import (  # noqa: E402
     tasks,
 )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 데이터베이스 마이그레이션 우선 기동 (스키마 보장)
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
     # 데이터베이스 테이블 초기화 및 무결성 검증 (구동 시점에 구동)
     init_db()
     yield
+
 
 app = FastAPI(
     title="sunflower87 API 코어",
