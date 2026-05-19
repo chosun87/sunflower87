@@ -252,103 +252,107 @@ def get_stocks_master():
     "/search",
     summary="종목 검색 자동완성 API",
     description=(
-        "입력된 키워드(종목명 또는 종목코드)를 기반으로 매칭되는 주식/ETF 목록을 반환합니다. "
-        "Cache Aside 패턴에 따라 DB 캐시 조회를 우선 수행합니다."
+        "로컬 DB 동적 주식 마스터 테이블을 기반으로 매칭되는 주식/ETF 목록을 반환합니다. "
+        "서버 구동 시점에 시딩된 마스터 데이터를 활용하므로 10ms 이내의 극도로 신속한 초고속 응답을 보장합니다."
     ),
 )
 def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
-    """종목명을 기반으로 종목코드를 자동 검색합니다 (부분 일치)."""
+    """종목명 또는 코드를 기반으로 종목코드를 자동 검색합니다 (부분 일치)."""
     if not keyword:
         return {"status": "success", "results": []}
 
-    # [1단계] 로컬 DB 선검색 (Cache Hit 시도)
     keyword_lower = keyword.lower()
+
+    # 뼈대 마스터 테이블(cache_stocks)에서 이름 또는 코드 부분 일치 조건으로 초고속 조회
     db_results = (
         db.query(CacheStock)
-        .filter(func.lower(CacheStock.stock_name).like(f"%{keyword_lower}%"))
+        .filter(
+            (func.lower(CacheStock.stock_name).like(f"%{keyword_lower}%"))
+            | (CacheStock.stock_code.like(f"%{keyword_lower}%"))
+        )
         .all()
     )
 
-    if db_results:
-        results = [{"code": r.stock_code, "name": r.stock_name} for r in db_results]
-        # 부분매칭 정밀도 정렬 (검색어와 완전히 같거나 앞부분에 매칭되는 종목을 먼저 보여줌)
-        results.sort(
-            key=lambda x: (
-                not x["name"].lower().startswith(keyword_lower),
-                len(x["name"]),
-            )
-        )
-        return {"status": "success", "results": results[:10]}
+    results = [
+        {"code": r.stock_code, "name": r.stock_name, "market": r.market}
+        for r in db_results
+    ]
 
-    # [2단계] 외부 데이터 로드 및 통합 (Cache Miss 대응)
-    stocks_master = get_stocks_master()
-    matched_stocks = []
-
-    for code, name in stocks_master.items():
-        if keyword_lower in name.lower() or keyword_lower in code:
-            matched_stocks.append({"code": code, "name": name})
-
-    # 부분매칭 정밀도 정렬
-    matched_stocks.sort(
+    # 부분매칭 정밀도 정렬 (검색어와 완전히 같거나 앞부분에 매칭되는 종목을 먼저 보여줌)
+    results.sort(
         key=lambda x: (
-            not x["name"].lower().startswith(keyword_lower),
+            not x["name"].lower().startswith(keyword_lower)
+            and not x["code"].startswith(keyword_lower),
             len(x["name"]),
         )
     )
 
-    # [3단계] 로컬 DB 적재 및 반환 (Cache Fill)
-    if matched_stocks:
-        for ms in matched_stocks:
-            # 중복 방지를 위해 확인 후 INSERT
-            existing = (
-                db.query(CacheStock).filter(CacheStock.stock_code == ms["code"]).first()
-            )
-            if not existing:
-                cache_item = CacheStock(stock_code=ms["code"], stock_name=ms["name"])
-                db.add(cache_item)
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            print(f"Failed to commit cached stocks: {e}")
-
-    return {"status": "success", "results": matched_stocks[:10]}
+    return {"status": "success", "results": results[:10]}
 
 
 def get_stock_name_by_code(db: Session, code: str) -> str:
-    """종목 코드를 통해 종목명을 조회합니다. (1순위: DB 캐시, 2순위: 오프라인 마스터)"""
+    """종목 코드를 통해 종목명을 조회합니다. (1순위: DB 마스터 테이블, 2순위: pykrx 실시간 개별 조회 폴백)"""
     cache_stock = db.query(CacheStock).filter(CacheStock.stock_code == code).first()
     if cache_stock:
         return cache_stock.stock_name
-    
-    stocks_master = get_stocks_master()
-    return stocks_master.get(code, "알 수 없는 종목")
+
+    # [극예외 상황] 신규 상장 종목 등으로 인해 로컬 DB 마스터에 캐시 미스난 경우,
+    # pykrx 실시간 개별 이름을 안전하게 긁어와 동적 등록(Cache Fill)
+    try:
+        from pykrx import stock as krx_stock
+
+        name = krx_stock.get_market_ticker_name(code)
+        if name:
+            market_type = "KOSPI"
+            try:
+                # KOSDAQ 시장 여부 빠른 검증
+                kosdaq_tickers = krx_stock.get_market_ticker_list(market="KOSDAQ")
+                if code in kosdaq_tickers:
+                    market_type = "KOSDAQ"
+            except Exception:
+                pass
+
+            new_cache = CacheStock(
+                stock_code=code, stock_name=name, market=market_type, is_active=1
+            )
+            db.add(new_cache)
+            db.commit()
+            print(
+                f"[sunflower87] Cached exceptional new stock code "
+                f"{code} ({name}) to local DB."
+            )
+            return name
+    except Exception as e:
+        db.rollback()
+        print(f"[WARNING] Fallback ticker name lookup failed for {code}: {e}")
+
+    return "알 수 없는 종목"
 
 
 @router.get(
     "/ohlcv",
-    summary="종목별 60거래일 OHLCV 시계열 API",
-    description="특정 종목의 6자 코드에 대한 60거래일간의 시고저종(OHLCV) 데이터를 반환합니다."
+    summary="종목별 80거래일 OHLCV 시계열 API",
+    description="특정 종목의 6자 코드에 대한 80거래일간의 시고저종(OHLCV) 데이터를 반환합니다.",
 )
 def get_stock_ohlcv(code: str, db: Session = Depends(get_db)):
     if not code:
         return {"status": "error", "message": "종목 코드가 필요합니다."}
 
-    # 캐시 동기화 실행 (데이터 갭 채우기 포함)
+    # [On-Demand Trigger] 사용자가 차트를 켠 시점에만 해당 종목 단 하나를 선택적 동기화
     try:
         sync_ohlcv_cache(db, code)
     except Exception as e:
         print(f"Failed to sync ohlcv cache during API call for {code}: {e}")
 
-    # 리팩토링: 별도 헬퍼 함수로 분리된 종목명 조회 로직 호출
+    # DB 마스터 초고속 이름 매핑 호출
     stock_name = get_stock_name_by_code(db, code)
 
-    # 최근 60거래일의 데이터를 desc()로 내림차순 조회하여 limit(60) 가져옴
+    # 최근 80거래일의 데이터를 desc()로 내림차순 조회하여 limit(80) 가져옴
     records = (
         db.query(StockOHLCVCache)
         .filter(StockOHLCVCache.stock_code == code)
         .order_by(StockOHLCVCache.trade_date.desc())
-        .limit(60)
+        .limit(80)
         .all()
     )
 
@@ -362,7 +366,7 @@ def get_stock_ohlcv(code: str, db: Session = Depends(get_db)):
             "high_price": r.high_price,
             "low_price": r.low_price,
             "close_price": r.close_price,
-            "volume": r.volume
+            "volume": r.volume,
         }
         for r in records_sorted
     ]

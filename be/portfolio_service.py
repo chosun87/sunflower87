@@ -104,6 +104,14 @@ def sync_ohlcv_cache(db: Session, stock_code: str):
         else:
             last_date_str = last_cache.trade_date
 
+            # 조기 탈출(Early Exit): 이미 최종 캐시 날짜가 기준 종료일 이상이면 pykrx 네트워크 호출 차단
+            if last_date_str >= target_end_str:
+                print(
+                    f"Cache is already up to-date ({last_date_str}) "
+                    f"for {stock_code}. Skipping pykrx API sync."
+                )
+                return
+
             # [Step 2] 120거래일 임계치 기반 데이터 공백 계산
             # KOSPI 표준 영업일 캘린더 리스트 획득
             trade_dates = get_market_trade_dates(last_date_str, target_end_str)
