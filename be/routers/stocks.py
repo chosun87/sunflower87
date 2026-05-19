@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_db, CacheStock
+from database import get_db, CacheStock, StockOHLCVCache
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from portfolio_service import sync_ohlcv_cache
 
 router = APIRouter(prefix="/api/stocks", tags=["Market Stock"])
 
@@ -312,3 +313,58 @@ def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
             print(f"Failed to commit cached stocks: {e}")
 
     return {"status": "success", "results": matched_stocks[:10]}
+
+
+def get_stock_name_by_code(db: Session, code: str) -> str:
+    """종목 코드를 통해 종목명을 조회합니다. (1순위: DB 캐시, 2순위: 오프라인 마스터)"""
+    cache_stock = db.query(CacheStock).filter(CacheStock.stock_code == code).first()
+    if cache_stock:
+        return cache_stock.stock_name
+    
+    stocks_master = get_stocks_master()
+    return stocks_master.get(code, "알 수 없는 종목")
+
+
+@router.get(
+    "/ohlcv",
+    summary="종목별 60거래일 OHLCV 시계열 API",
+    description="특정 종목의 6자 코드에 대한 60거래일간의 시고저종(OHLCV) 데이터를 반환합니다."
+)
+def get_stock_ohlcv(code: str, db: Session = Depends(get_db)):
+    if not code:
+        return {"status": "error", "message": "종목 코드가 필요합니다."}
+
+    # 캐시 동기화 실행 (데이터 갭 채우기 포함)
+    try:
+        sync_ohlcv_cache(db, code)
+    except Exception as e:
+        print(f"Failed to sync ohlcv cache during API call for {code}: {e}")
+
+    # 리팩토링: 별도 헬퍼 함수로 분리된 종목명 조회 로직 호출
+    stock_name = get_stock_name_by_code(db, code)
+
+    # 최근 60거래일의 데이터를 desc()로 내림차순 조회하여 limit(60) 가져옴
+    records = (
+        db.query(StockOHLCVCache)
+        .filter(StockOHLCVCache.stock_code == code)
+        .order_by(StockOHLCVCache.trade_date.desc())
+        .limit(60)
+        .all()
+    )
+
+    # 캔들차트 표현 및 시간 순서 정렬을 위해 날짜 오름차순으로 뒤집기
+    records_sorted = sorted(records, key=lambda x: x.trade_date)
+
+    results = [
+        {
+            "trade_date": r.trade_date,
+            "open_price": r.open_price,
+            "high_price": r.high_price,
+            "low_price": r.low_price,
+            "close_price": r.close_price,
+            "volume": r.volume
+        }
+        for r in records_sorted
+    ]
+
+    return {"status": "success", "stock_name": stock_name, "data": results}

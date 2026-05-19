@@ -349,6 +349,19 @@ export default function Dashboard() {
     )
   }
 
+  // 보유 자산 상세 종목명 클릭 시 차트 페이지 이동 템플릿
+  const nameBodyTemplate = (rowData) => {
+    return (
+      <Button
+        label={rowData.name}
+        className="p-button-link p-0 text-left font-bold text-primary hover:underline"
+        onClick={() => navigate(`/stock?code=${rowData.code}`)}
+        tooltip="클릭 시 60거래일 캔들 차트 분석 페이지로 이동"
+        tooltipOptions={{ position: 'top' }}
+      />
+    )
+  }
+
   // 거래 내역 구분 템플릿 (국내 규격 매수=Red, 매도=Blue)
   const txTypeBodyTemplate = (rowData) => {
     const isBuy = rowData.type === 'BUY'
@@ -680,7 +693,12 @@ export default function Dashboard() {
                     stripedRows
                     emptyMessage="보유 중인 주식이 없습니다."
                   >
-                    <Column field="name" header="종목명" sortable></Column>
+                    <Column
+                      field="name"
+                      header="종목명"
+                      body={nameBodyTemplate}
+                      sortable
+                    ></Column>
                     <Column
                       field="quantity"
                       header="총 보유수량"

@@ -15,6 +15,7 @@ import Footer from '@components/common/Footer'
 // 주요 페이지 컴포넌트 다이나믹 로딩 (Lazy Loading) 적용
 const Login = lazy(() => import('@/pages/Login'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const StockDetail = lazy(() => import('@/pages/StockDetail'))
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
                 {/* 메뉴 라우팅 설정 */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/stock" element={<StockDetail />} />
 
                 {/* 기본 경로 접근 시 로그인 또는 대시보드로 리다이렉트 */}
                 <Route path="*" element={<Navigate to="/login" replace />} />

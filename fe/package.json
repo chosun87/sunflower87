@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
+    "apexcharts": "^5.12.0",
     "dayjs": "^1.11.20",
     "eslint-plugin-prettier": "^5.5.5",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.8",
     "react": "^19.2.6",
+    "react-apexcharts": "^2.1.0",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
     "sass": "^1.99.0"
