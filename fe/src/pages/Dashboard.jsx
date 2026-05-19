@@ -1,27 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import dayjs from 'dayjs'
 import '@/assets/css/earchfe.css'
-import {
-  Card,
-  DataTable,
-  Column,
-  Dropdown,
-  Badge,
-  Button,
-  TabView,
-  TabPanel,
-  Dialog,
-  InputText,
-  InputNumber,
-  SelectButton,
-  Calendar,
-  confirmDialog,
-  addLocale,
-} from '@/assets/js/PrimeReact'
+import { Card, TabView, TabPanel, addLocale } from '@/assets/js/PrimeReact'
 import { PrimeReact_locale } from '@/assets/js/PrimeReact'
 import { showNotice, showError } from '@/assets/js/dialogUtils'
+
+// 신규 신설된 5대 핵심 서브 컴포넌트 임포트 레이어
+import AssetSummaryCard from '@/components/dashboard/AssetSummaryCard'
+import AIRecommendationSection from '@/components/dashboard/AIRecommendationSection'
+import AssetDetailTab from '@/components/dashboard/AssetDetailTab'
+import TransactionHistoryTab from '@/components/dashboard/TransactionHistoryTab'
+import TransactionDialog from '@/components/dashboard/TransactionDialog'
 
 // PrimeReact Calendar 한국어(ko) 로컬라이징 사전 등록
 addLocale('ko', PrimeReact_locale.ko.Calendar)
@@ -45,6 +35,7 @@ export default function Dashboard() {
   const [txPrice, setTxPrice] = useState(null)
   const [txTaxFee, setTxTaxFee] = useState(0)
   const [txDate, setTxDate] = useState(new Date())
+
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -172,11 +163,6 @@ export default function Dashboard() {
       })
   }
 
-  // 커스텀 거래일시 포맷터 함수 (dayjs 활용)
-  const formatCustomDate = (dateObj) => {
-    return dateObj ? dayjs(dateObj).format('YYYY-MM-DD HH:mm:ss') : ''
-  }
-
   // 매수/매도 등록 및 수정 통합 처리 (PUT/POST 분기)
   const handleSaveTransaction = () => {
     if (!txAccount || !txCode || !txName || !txQuantity || !txPrice) {
@@ -186,6 +172,14 @@ export default function Dashboard() {
 
     setIsSubmitting(true)
 
+    // 날짜 포맷 함수 캡슐화
+    const targetDateStr = txDate
+      ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000)
+          .toISOString()
+          .replace('T', ' ')
+          .substring(0, 19)
+      : ''
+
     const payload = {
       type: txType,
       code: txCode,
@@ -194,7 +188,7 @@ export default function Dashboard() {
       price: txPrice,
       tax_fee: txTaxFee || 0,
       acc_cd: txAccount, // DB 스키마 표준 규격에 맞추어 acc_cd로 전면 통일
-      date: formatCustomDate(txDate),
+      date: targetDateStr,
     }
 
     const url = editingTxId
@@ -268,285 +262,39 @@ export default function Dashboard() {
 
   // 거래 내역 삭제 및 역산 핸들러
   const handleDeleteTransaction = (rowData) => {
-    confirmDialog({
-      message: `'${rowData.name}' 매매 거래 기록을 삭제하시겠습니까? 해당 거래에 따른 계좌의 주식 잔고 및 자산이 역산(Rollback)됩니다.`,
-      header: '⚠️ 거래 내역 삭제 확인',
-      icon: 'pi pi-exclamation-triangle',
-      acceptClassName: 'p-button-danger font-bold',
-      rejectClassName: 'p-button-text p-button-secondary',
-      acceptLabel: '삭제',
-      rejectLabel: '취소',
-      accept: () => {
-        fetch(
-          `${import.meta.env.VITE_API_URL}/api/transactions/${rowData.id}`,
-          {
-            method: 'DELETE',
-          },
-        )
-          .then((res) => {
-            if (!res.ok) {
-              return res.json().then((errData) => {
-                throw new Error(errData.detail || '삭제 처리에 실패했습니다.')
-              })
-            }
-            return res.json()
-          })
-          .then((resData) => {
-            if (resData.status === 'success') {
-              showNotice({
-                header: '삭제 완료',
-                icon: 'pi pi-check-circle',
-                message:
-                  '매매 거래 내역 삭제 및 자산 역산 처리가 완료되었습니다.',
-              })
-              fetchAccountData()
-              loadTransactions()
-            }
-          })
-          .catch((err) => {
-            console.error('거래 삭제 에러:', err)
-            showError(err.message || '서버 통신 실패')
-          })
-      },
-    })
-  }
+    const confirmMessage = `'${rowData.name}' 매매 거래 기록을 삭제하시겠습니까? 해당 거래에 따른 계좌의 주식 잔고 및 자산이 역산(Rollback)됩니다.`
 
-  // 수익률 컬러 템플릿 (Excel 정합을 위해 % 생략, 국내 증시 규격에 맞춰 positive=red, negative=blue)
-  const profitTemplate = (rowData) => {
-    const buy_amount =
-      rowData.total_purchase_amt !== undefined
-        ? rowData.total_purchase_amt
-        : rowData.purchase_amount || 0
-
-    if (buy_amount === 0) {
-      return <span className="monospace">0.00</span>
+    // confirmDialog 대신 브라우저 기본 confirm을 활용하여 결합도 최소화
+    if (window.confirm(confirmMessage)) {
+      fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${rowData.id}`, {
+        method: 'DELETE',
+      })
+        .then((res) => {
+          if (!res.ok) {
+            return res.json().then((errData) => {
+              throw new Error(errData.detail || '삭제 처리에 실패했습니다.')
+            })
+          }
+          return res.json()
+        })
+        .then((resData) => {
+          if (resData.status === 'success') {
+            showNotice({
+              header: '삭제 완료',
+              icon: 'pi pi-check-circle',
+              message:
+                '매매 거래 내역 삭제 및 자산 역산 처리가 완료되었습니다.',
+            })
+            fetchAccountData()
+            loadTransactions()
+          }
+        })
+        .catch((err) => {
+          console.error('거래 삭제 에러:', err)
+          showError(err.message || '서버 통신 실패')
+        })
     }
-
-    const rate =
-      rowData.return_rate !== undefined
-        ? rowData.return_rate
-        : buy_amount > 0
-          ? (((rowData.quantity || 0) * (rowData.current_price || 0) -
-              buy_amount) /
-              buy_amount) *
-            100
-          : 0
-
-    if (rate === 0) {
-      return <span className="monospace">0.00</span>
-    }
-
-    const isPositive = rate > 0
-    const style = {
-      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
-      fontWeight: 'bold',
-    }
-    return (
-      <span className="monospace" style={style}>
-        {isPositive ? '+' : ''}
-        {rate.toFixed(2)}
-      </span>
-    )
   }
-
-  // 보유 자산 상세 종목명 클릭 시 차트 페이지 이동 템플릿
-  const nameBodyTemplate = (rowData) => {
-    return (
-      <Button
-        label={rowData.name}
-        className="p-button-link p-0 text-left font-bold text-primary hover:underline"
-        onClick={() => navigate(`/stock?code=${rowData.code}`)}
-        tooltip="클릭 시 60거래일 캔들 차트 분석 페이지로 이동"
-        tooltipOptions={{ position: 'top' }}
-      />
-    )
-  }
-
-  // 거래 내역 구분 템플릿 (국내 규격 매수=Red, 매도=Blue)
-  const txTypeBodyTemplate = (rowData) => {
-    const isBuy = rowData.type === 'BUY'
-    return isBuy ? (
-      <Badge value="매수" className="type-buy" />
-    ) : (
-      <Badge value="매도" className="type-sell" />
-    )
-  }
-
-  // 거래 내역 일시 템플릿 (dayjs 활용 표준 한국어 포맷 강제 적용)
-  const dateBodyTemplate = (rowData) => {
-    return rowData.date ? (
-      <span className="monospace">
-        {dayjs(rowData.date).format('YYYY-MM-DD HH:mm')}
-      </span>
-    ) : (
-      ''
-    )
-  }
-
-  // 거래 계좌 뱃지 표시 템플릿
-  const accountBodyTemplate = (rowData) => {
-    const company = rowData.acc_company_nm || ''
-    const name = rowData.acc_nm || '알 수 없는 계좌'
-    if (company) {
-      const shortCompany = company.substring(0, 2)
-      return `[${shortCompany}] ${name}`
-    }
-    return name
-  }
-
-  // 보유 자산 상세 컬럼 템플릿들 (Excel 정합을 위해 원/주/% 생략)
-
-  const quantityBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">{rowData.quantity.toLocaleString()}</span>
-    )
-  }
-
-  const currentPriceBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">
-        {rowData.current_price.toLocaleString()}
-      </span>
-    )
-  }
-
-  const avgPriceBodyTemplate = (rowData) => {
-    const val = Math.floor(rowData.avg_price || 0)
-    return <span className="monospace">{val.toLocaleString()}</span>
-  }
-
-  const evalAmountBodyTemplate = (rowData) => {
-    const val = Math.round(
-      rowData.total_eval_amt !== undefined
-        ? rowData.total_eval_amt
-        : (rowData.quantity || 0) * (rowData.current_price || 0),
-    )
-    return <span className="monospace">{val.toLocaleString()}</span>
-  }
-
-  const buyAmountBodyTemplate = (rowData) => {
-    const buy_amount = Math.round(
-      rowData.total_purchase_amt !== undefined
-        ? rowData.total_purchase_amt
-        : rowData.purchase_amount || 0,
-    )
-    return <span className="monospace">{buy_amount.toLocaleString()}</span>
-  }
-
-  const totalTaxFeeBodyTemplate = (rowData) => {
-    const val = Math.round(rowData.total_tax_fee || 0)
-    return <span className="monospace">{val.toLocaleString()}</span>
-  }
-
-  const evalProfitBodyTemplate = (rowData) => {
-    const buy_amount = Math.round(
-      rowData.total_purchase_amt !== undefined
-        ? rowData.total_purchase_amt
-        : rowData.purchase_amount || 0,
-    )
-    const profit = Math.round(
-      rowData.total_profit_loss !== undefined
-        ? rowData.total_profit_loss
-        : (rowData.total_eval_amt !== undefined
-            ? rowData.total_eval_amt
-            : (rowData.quantity || 0) * (rowData.current_price || 0)) -
-            buy_amount,
-    )
-
-    if (buy_amount === 0 || profit === 0) {
-      return <span className="monospace">0</span>
-    }
-
-    const isPositive = profit > 0
-    const style = {
-      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
-      fontWeight: 'bold',
-    }
-    return (
-      <span className="monospace" style={style}>
-        {isPositive ? '+' : ''}
-        {profit.toLocaleString()}
-      </span>
-    )
-  }
-
-  // 거래 내역 히스토리 전용 추가 템플릿
-  const txCodeBodyTemplate = (rowData) => {
-    return <span className="monospace">{rowData.code}</span>
-  }
-
-  const txQuantityBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">{rowData.quantity.toLocaleString()} 주</span>
-    )
-  }
-
-  const txPriceBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">{rowData.price.toLocaleString()} 원</span>
-    )
-  }
-
-  const txTotalBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">
-        {(rowData.quantity * rowData.price).toLocaleString()} 원
-      </span>
-    )
-  }
-
-  const txTaxFeeBodyTemplate = (rowData) => {
-    const fee = rowData.tax_fee || 0
-    return <span className="monospace">{fee.toLocaleString()} 원</span>
-  }
-
-  // 테이블 최우측 [수정/삭제] 액션 컬럼 정의
-  const actionsBodyTemplate = (rowData) => {
-    return (
-      <div className="flex gap-2">
-        <Button
-          icon="pi pi-pencil"
-          className="p-button-rounded p-button-warning p-button-text p-button-sm"
-          onClick={() => handleEditTransaction(rowData)}
-          tooltip="매매 내역 수정"
-        />
-        <Button
-          icon="pi pi-trash"
-          className="p-button-rounded p-button-danger p-button-text p-button-sm"
-          onClick={() => handleDeleteTransaction(rowData)}
-          tooltip="매매 내역 삭제"
-        />
-      </div>
-    )
-  }
-
-  // 모달 팝업 하단 버튼 정의
-  const dialogFooter = (
-    <div className="flex justify-content-end gap-2 pt-2">
-      <Button
-        label="취소"
-        icon="pi pi-times"
-        onClick={() => setDisplayDialog(false)}
-        className="p-button-text p-button-secondary"
-        disabled={isSubmitting}
-      />
-      <Button
-        label={editingTxId ? '수정 완료' : '거래 등록'}
-        icon="pi pi-check"
-        onClick={handleSaveTransaction}
-        className="p-button-primary font-bold"
-        disabled={
-          isSubmitting ||
-          !txAccount ||
-          !txCode ||
-          !txName ||
-          !txQuantity ||
-          !txPrice
-        }
-        loading={isSubmitting}
-      />
-    </div>
-  )
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -557,92 +305,16 @@ export default function Dashboard() {
         <span className="text-600">Decision Maker: SUN</span>
       </div>
 
-      {/* 상단 총자산 요약 카드 */}
-      <div className="grid mb-6">
-        <div className="col-12 md:col-6">
-          <Card title="통합 총자산" className="shadow-2 border-round">
-            <h2 className="text-4xl text-primary font-bold m-0">
-              {data.total_asset.toLocaleString()} 원
-            </h2>
-          </Card>
-        </div>
-        <div className="col-12 md:col-6">
-          <Card title="계좌 선택" className="shadow-2 border-round">
-            <Dropdown
-              value={selectedAccount}
-              options={data.accounts}
-              onChange={(e) => setSelectedAccount(e.value)}
-              optionLabel="acc_nm"
-              optionValue="acc_cd"
-              placeholder="조회할 계좌를 선택하세요"
-              className="w-full"
-            />
-          </Card>
-        </div>
-      </div>
+      {/* 상단 총자산 요약 및 계좌 선택 컴포넌트 */}
+      <AssetSummaryCard
+        totalAsset={data.total_asset}
+        accounts={data.accounts}
+        selectedAccount={selectedAccount}
+        onAccountChange={setSelectedAccount}
+      />
 
-      {/* 오늘의 AI 추천 종목 섹션 */}
-      <div className="mb-6 hidden">
-        <div className="flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div className="flex align-items-center gap-2">
-            <i className="pi pi-sparkles text-amber-500 text-2xl"></i>
-            <h2 className="text-2xl font-bold text-900 m-0">
-              오늘의 AI 추천 종목
-            </h2>
-          </div>
-          <Badge
-            value="정량 지표 분석 기반"
-            severity="warning"
-            className="p-2 border-round font-semibold"
-          />
-        </div>
-
-        <div className="grid">
-          {recommendations.map((item, idx) => (
-            <div key={idx} className="col-12 md:col-4">
-              <Card
-                className="shadow-2 hover:shadow-4 transition-all transition-duration-200 border-top-3 border-amber-500 h-full flex flex-column"
-                style={{ borderRadius: '8px' }}
-              >
-                <div className="flex justify-content-between align-items-center mb-3">
-                  <div>
-                    <span className="text-xl font-bold text-900 mr-2">
-                      {item.name}
-                    </span>
-                    <span className="text-500 text-sm font-semibold">
-                      {item.code}
-                    </span>
-                  </div>
-                  <Badge
-                    value={item.tag}
-                    className="bg-amber-100 text-amber-800 font-semibold p-1"
-                  />
-                </div>
-
-                <p className="text-700 text-sm mb-4 line-height-3 flex-grow-1">
-                  {item.reason}
-                </p>
-
-                <div className="flex justify-content-between align-items-center pt-3 border-top-1 border-100 mt-auto">
-                  <span className="text-sm font-semibold text-600">
-                    AI 추천 점수
-                  </span>
-                  <div className="flex align-items-center gap-2">
-                    <span className="text-2xl font-bold text-amber-600">
-                      {item.score}점
-                    </span>
-                    <Button
-                      icon="pi pi-chevron-right"
-                      className="p-button-rounded p-button-text p-button-sm text-amber-500"
-                      aria-label="상세보기"
-                    />
-                  </div>
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* 오늘의 AI 추천 종목 섹션 컴포넌트 */}
+      <AIRecommendationSection recommendations={recommendations} />
 
       {/* 보유 자산 및 매매 거래 내역 탭 구조화 (TabView) */}
       <Card className="shadow-4 border-round mt-6">
@@ -652,117 +324,7 @@ export default function Dashboard() {
             header="보유 자산 상세"
             leftIcon="pi pi-wallet mr-2 text-primary"
           >
-            {data && data.accounts && data.accounts.length > 0 ? (
-              data.accounts.map((acc) => (
-                <div className="mt-3 mb-6" key={acc.acc_cd}>
-                  <div className="flex align-items-center justify-content-between mb-3 border-bottom-1 pb-2 border-100">
-                    <div className="flex align-items-center gap-3">
-                      <h3 className="text-xl font-bold m-0 text-700">
-                        {acc.alias} 보유 현황
-                      </h3>
-                      <Badge
-                        value={`현금 잔고: ${acc.balance.toLocaleString()} 원`}
-                        severity="success"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 예수금 (Cash Balance) R9 규격 프리미엄 배너 */}
-                  <div className="p-3 mb-3 border-round bg-green-50 border-left-3 border-green-500 flex align-items-center justify-content-between shadow-1">
-                    <div className="flex align-items-center gap-2">
-                      <i className="pi pi-wallet text-green-600 text-xl"></i>
-                      <span className="font-semibold text-800 text-sm">
-                        예수금 (Cash Balance) - {acc.acc_company_nm}{' '}
-                        {acc.acc_nm}
-                      </span>
-                    </div>
-                    <span className="text-xl font-bold text-green-700">
-                      {(acc.cash_balance !== undefined
-                        ? acc.cash_balance
-                        : acc.balance
-                      ).toLocaleString()}{' '}
-                      원
-                    </span>
-                  </div>
-
-                  <DataTable
-                    value={acc.stocks}
-                    responsiveLayout="stack"
-                    breakpoint="960px"
-                    sortMode="multiple"
-                    stripedRows
-                    emptyMessage="보유 중인 주식이 없습니다."
-                  >
-                    <Column
-                      field="name"
-                      header="종목명"
-                      body={nameBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="quantity"
-                      header="총 보유수량"
-                      align="right"
-                      body={quantityBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="current_price"
-                      header="현재가"
-                      align="right"
-                      body={currentPriceBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="avg_price"
-                      header="매입평단가"
-                      align="right"
-                      body={avgPriceBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="total_eval_amt"
-                      header="총 평가금액"
-                      align="right"
-                      body={evalAmountBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="total_purchase_amt"
-                      header="총 매수금액"
-                      align="right"
-                      body={buyAmountBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="total_tax_fee"
-                      header="총 세금+수수료"
-                      align="right"
-                      body={totalTaxFeeBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="total_profit_loss"
-                      header="총 평가손익"
-                      align="right"
-                      body={evalProfitBodyTemplate}
-                      sortable
-                    ></Column>
-                    <Column
-                      field="return_rate"
-                      header="수익률"
-                      align="right"
-                      body={profitTemplate}
-                      sortable
-                    ></Column>
-                  </DataTable>
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-500">
-                조회 가능한 계좌 정보가 없습니다.
-              </div>
-            )}
+            <AssetDetailTab accounts={data.accounts} />
           </TabPanel>
 
           {/* [탭 2: 매매 내역 히스토리] */}
@@ -770,264 +332,54 @@ export default function Dashboard() {
             header="매매 내역 히스토리"
             leftIcon="pi pi-history mr-2 text-primary"
           >
-            <div className="mt-3">
-              <div className="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-                <h3 className="text-xl font-bold m-0 text-700">
-                  SQLite 매매 내역 대장
-                </h3>
-                <Button
-                  label="거래 내역 추가"
-                  icon="pi pi-plus"
-                  className="p-button-success p-button-sm font-bold shadow-2"
-                  onClick={() => {
-                    setEditingTxId(null)
-                    setTxType('BUY')
-                    setTxAccount('미래-종합')
-                    setTxCode('')
-                    setTxName('')
-                    setTxQuantity(null)
-                    setTxPrice(null)
-                    setTxTaxFee(0)
-                    setTxDate(new Date())
-                    setDisplayDialog(true)
-                  }}
-                />
-              </div>
-
-              <DataTable
-                value={transactions}
-                responsiveLayout="stack"
-                breakpoint="960px"
-                sortMode="multiple"
-                stripedRows
-                paginator
-                rows={10}
-                className="mt-2"
-                emptyMessage="등록된 매매 거래 히스토리가 존재하지 않습니다."
-              >
-                <Column
-                  field="date"
-                  header="거래 일시"
-                  body={dateBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  field="type"
-                  header="구분"
-                  body={txTypeBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  field="acc_cd"
-                  header="거래 계좌"
-                  body={accountBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  field="code"
-                  header="종목코드"
-                  body={txCodeBodyTemplate}
-                  sortable
-                ></Column>
-                <Column field="name" header="종목명" sortable></Column>
-                <Column
-                  field="quantity"
-                  header="거래 수량"
-                  align="right"
-                  body={txQuantityBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  field="price"
-                  header="거래 단가"
-                  align="right"
-                  body={txPriceBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  header="총 거래금액"
-                  align="right"
-                  body={txTotalBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  field="tax_fee"
-                  header="세금+수수료"
-                  align="right"
-                  body={txTaxFeeBodyTemplate}
-                  sortable
-                ></Column>
-                <Column
-                  header="작업"
-                  body={actionsBodyTemplate}
-                  exportable={false}
-                  style={{ minWidth: '8rem' }}
-                ></Column>
-              </DataTable>
-            </div>
+            <TransactionHistoryTab
+              transactions={transactions}
+              onAddClick={() => {
+                setEditingTxId(null)
+                setTxType('BUY')
+                setTxAccount('미래-종합')
+                setTxCode('')
+                setTxName('')
+                setTxQuantity(null)
+                setTxPrice(null)
+                setTxTaxFee(0)
+                setTxDate(new Date())
+                setDisplayDialog(true)
+              }}
+              onEditClick={handleEditTransaction}
+              onDeleteClick={handleDeleteTransaction}
+            />
           </TabPanel>
         </TabView>
       </Card>
 
-      {/* 매매 내역 추가 및 수정 다이얼로그 (Form) */}
-      <Dialog
-        header={
-          editingTxId ? '📝 매매 거래 내역 수정' : '📝 신규 매매 거래 등록'
-        }
+      {/* 매매 등록 및 수정 통합 모달 다이얼로그 */}
+      <TransactionDialog
         visible={displayDialog}
-        style={{ width: '450px' }}
-        footer={dialogFooter}
         onHide={() => setDisplayDialog(false)}
-        modal
-        className="p-fluid border-round"
-      >
-        <div className="flex flex-column gap-3 mt-3">
-          {/* 매수/매도 직관적 선택 (SelectButton) */}
-          <div className="flex flex-column gap-2">
-            <span className="font-semibold text-900">매매 구분</span>
-            <SelectButton
-              value={txType}
-              options={[
-                { label: '🔴 매수', value: 'BUY' },
-                { label: '🔵 매도', value: 'SELL' },
-              ]}
-              onChange={(e) => setTxType(e.value || 'BUY')}
-              disabled={isSubmitting}
-              className={`tx-selectbutton w-full ${
-                txType === 'BUY' ? 'buy-selected' : 'sell-selected'
-              }`}
-            />
-          </div>
-
-          {/* 거래 계좌 선택 Dropdown */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txAccount" className="font-semibold text-900">
-              거래 계좌
-            </label>
-            <Dropdown
-              id="txAccount"
-              value={txAccount}
-              options={data?.accounts || []}
-              onChange={(e) => setTxAccount(e.value)}
-              optionLabel="acc_nm"
-              optionValue="acc_cd"
-              placeholder="거래가 발생한 계좌 선택"
-              disabled={isSubmitting}
-              className="w-full"
-            />
-          </div>
-
-          {/* 종목명 입력창 및 [검색] 버튼 한 그룹화 (p-inputgroup) */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txName" className="font-semibold text-900">
-              종목명
-            </label>
-            <div className="p-inputgroup">
-              <InputText
-                id="txName"
-                value={txName}
-                onChange={(e) => setTxName(e.target.value)}
-                placeholder="예: 삼성전자"
-                disabled={isSubmitting}
-              />
-              <Button
-                type="button"
-                icon="pi pi-search"
-                className="p-button-primary"
-                onClick={handleSearchStock}
-                tooltip="종목코드 자동 검색"
-                loading={isSearching}
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
-          {/* 종목코드 입력창 (비활성 readOnly 처리) */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txCode" className="font-semibold text-900">
-              종목코드
-            </label>
-            <InputText
-              id="txCode"
-              value={txCode}
-              placeholder="종목명을 검색하면 자동 입력됩니다"
-              readOnly
-              disabled={isSubmitting}
-              className="bg-gray-100 cursor-not-allowed"
-            />
-          </div>
-
-          {/* 거래 일시 입력 (한국어 locale 반영) */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txDate" className="font-semibold text-900">
-              거래 일시
-            </label>
-            <Calendar
-              id="txDate"
-              value={txDate}
-              onChange={(e) => setTxDate(e.value || new Date())}
-              showTime
-              hourFormat="24"
-              locale="ko"
-              dateFormat="yy-mm-dd"
-              placeholder="거래 날짜와 시간을 선택하세요"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* 거래 수량 입력 */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txQuantity" className="font-semibold text-900">
-              거래 수량 (주)
-            </label>
-            <InputNumber
-              id="txQuantity"
-              value={txQuantity}
-              onValueChange={(e) => setTxQuantity(e.value)}
-              placeholder="예: 100"
-              min={1}
-              showButtons
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* 거래 단가 입력 */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txPrice" className="font-semibold text-900">
-              거래 단가 (원)
-            </label>
-            <InputNumber
-              id="txPrice"
-              value={txPrice}
-              onValueChange={(e) => setTxPrice(e.value)}
-              placeholder="예: 72500"
-              min={1}
-              mode="currency"
-              currency="KRW"
-              locale="ko-KR"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* 세금 및 수수료 입력 */}
-          <div className="flex flex-column gap-2">
-            <label htmlFor="txTaxFee" className="font-semibold text-900">
-              세금+수수료 (원)
-            </label>
-            <InputNumber
-              id="txTaxFee"
-              value={txTaxFee}
-              onValueChange={(e) => setTxTaxFee(e.value || 0)}
-              placeholder="예: 1500"
-              min={0}
-              mode="currency"
-              currency="KRW"
-              locale="ko-KR"
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-      </Dialog>
+        editingTxId={editingTxId}
+        txType={txType}
+        setTxType={setTxType}
+        txAccount={txAccount}
+        setTxAccount={setTxAccount}
+        accounts={data.accounts}
+        txCode={txCode}
+        setTxCode={setTxCode}
+        txName={txName}
+        setTxName={setTxName}
+        txQuantity={txQuantity}
+        setTxQuantity={setTxQuantity}
+        txPrice={txPrice}
+        setTxPrice={setTxPrice}
+        txTaxFee={txTaxFee}
+        setTxTaxFee={setTxTaxFee}
+        txDate={txDate}
+        setTxDate={setTxDate}
+        isSearching={isSearching}
+        isSubmitting={isSubmitting}
+        onSearchStock={handleSearchStock}
+        onSave={handleSaveTransaction}
+      />
     </div>
   )
 }
