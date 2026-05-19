@@ -24,19 +24,14 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { isSignedIn, isInitialized } = useAuth()
 
-  // 거래 등록 및 수정 모달 상태 관리
+  // 거래 등록 및 수정 다이얼로그 상태 및 타겟 거래 객체
   const [displayDialog, setDisplayDialog] = useState(false)
-  const [editingTxId, setEditingTxId] = useState(null) // 수정 모드 시 거래 ID 추적
-  const [txType, setTxType] = useState('BUY') // BUY 또는 SELL
-  const [txAccount, setTxAccount] = useState('미래-종합') // 대상 귀속 계좌
-  const [txCode, setTxCode] = useState('')
-  const [txName, setTxName] = useState('')
-  const [txQuantity, setTxQuantity] = useState(null)
-  const [txPrice, setTxPrice] = useState(null)
-  const [txTaxFee, setTxTaxFee] = useState(0)
-  const [txDate, setTxDate] = useState(new Date())
+  const [editingTx, setEditingTx] = useState(null) // 수정 모드 시 거래 객체 전체 추적 (신규는 null)
+  const [lastSearchedStock, setLastSearchedStock] = useState({
+    code: '',
+    name: '',
+  }) // 신규 연속 등록 시 종목 보존 캐시
 
-  const [isSearching, setIsSearching] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -126,75 +121,35 @@ export default function Dashboard() {
     )
   }
 
-  // 종목명 기반 종목코드 자동 검색 API 연동
-  const handleSearchStock = () => {
-    const keyword = txName.trim()
-    if (!keyword) {
-      showError('검색할 종목명을 먼저 입력해주세요.')
-      return
-    }
-
-    setIsSearching(true)
-    fetch(
+  // 종목명 기반 종목코드 검색 연동 API 헬퍼 및 보존 캐시 업데이트
+  const handleSearchStock = (keyword) => {
+    return fetch(
       `${import.meta.env.VITE_API_URL}/api/stocks/search?keyword=${encodeURIComponent(keyword)}`,
     )
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('서버 통신 실패')
+        return res.json()
+      })
       .then((resData) => {
         if (resData.status === 'success' && resData.results.length > 0) {
           const match = resData.results[0]
-          setTxCode(match.code)
-          setTxName(match.name)
-          showNotice({
-            header: '검색 완료',
-            icon: 'pi pi-check-circle',
-            message: `종목 '${match.name}' (${match.code})의 정보가 성공적으로 조회되었습니다.`,
-            acceptClassName: 'p-button-success',
-          })
+          // 신규 거래 연속 등록 편의를 위해 마지막 성공 검색 종목 캐싱
+          setLastSearchedStock({ code: match.code, name: match.name })
+          return match
         } else {
-          showError(`'${keyword}'에 매칭되는 종목을 찾지 못했습니다.`)
+          throw new Error(`'${keyword}'에 매칭되는 종목을 찾지 못했습니다.`)
         }
-      })
-      .catch((err) => {
-        console.error('종목 검색 중 오류 발생:', err)
-        showError('서버 통신 실패')
-      })
-      .finally(() => {
-        setIsSearching(false)
       })
   }
 
   // 매수/매도 등록 및 수정 통합 처리 (PUT/POST 분기)
-  const handleSaveTransaction = () => {
-    if (!txAccount || !txCode || !txName || !txQuantity || !txPrice) {
-      showError('모든 거래 정보를 올바르게 입력해주세요.')
-      return
-    }
-
+  const handleSaveTransaction = (payload) => {
     setIsSubmitting(true)
 
-    // 날짜 포맷 함수 캡슐화
-    const targetDateStr = txDate
-      ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000)
-          .toISOString()
-          .replace('T', ' ')
-          .substring(0, 19)
-      : ''
-
-    const payload = {
-      type: txType,
-      code: txCode,
-      name: txName,
-      quantity: txQuantity,
-      price: txPrice,
-      tax_fee: txTaxFee || 0,
-      acc_cd: txAccount, // DB 스키마 표준 규격에 맞추어 acc_cd로 전면 통일
-      date: targetDateStr,
-    }
-
-    const url = editingTxId
-      ? `${import.meta.env.VITE_API_URL}/api/transactions/${editingTxId}`
+    const url = editingTx
+      ? `${import.meta.env.VITE_API_URL}/api/transactions/${editingTx.id}`
       : `${import.meta.env.VITE_API_URL}/api/transactions/add`
-    const method = editingTxId ? 'PUT' : 'POST'
+    const method = editingTx ? 'PUT' : 'POST'
 
     fetch(url, {
       method: method,
@@ -214,20 +169,11 @@ export default function Dashboard() {
       .then((resData) => {
         if (resData.status === 'success') {
           setDisplayDialog(false)
-          // 입력 폼 전면 초기화
-          setEditingTxId(null)
-          setTxType('BUY')
-          setTxAccount('미래-종합')
-          setTxCode('')
-          setTxName('')
-          setTxQuantity(null)
-          setTxPrice(null)
-          setTxTaxFee(0)
-          setTxDate(new Date())
+          setEditingTx(null) // 편집 상태 클리어
 
           // 성공 알림 및 리액티브 자산 실시간 동기화
           showNotice({
-            header: editingTxId ? '수정 완료' : '등록 완료',
+            header: editingTx ? '수정 완료' : '등록 완료',
             icon: 'pi pi-check-circle',
             message:
               resData.message || '매매 내역이 정상적으로 처리되었습니다.',
@@ -248,15 +194,7 @@ export default function Dashboard() {
 
   // 거래 내역 편집 활성화 핸들러
   const handleEditTransaction = (rowData) => {
-    setEditingTxId(rowData.id)
-    setTxType(rowData.type)
-    setTxAccount(rowData.acc_cd)
-    setTxCode(rowData.code)
-    setTxName(rowData.name)
-    setTxQuantity(rowData.quantity)
-    setTxPrice(rowData.price)
-    setTxTaxFee(rowData.tax_fee || 0)
-    setTxDate(new Date(rowData.date))
+    setEditingTx(rowData)
     setDisplayDialog(true)
   }
 
@@ -335,15 +273,7 @@ export default function Dashboard() {
             <TransactionHistoryTab
               transactions={transactions}
               onAddClick={() => {
-                setEditingTxId(null)
-                setTxType('BUY')
-                setTxAccount('미래-종합')
-                setTxCode('')
-                setTxName('')
-                setTxQuantity(null)
-                setTxPrice(null)
-                setTxTaxFee(0)
-                setTxDate(new Date())
+                setEditingTx(null) // 신규 모드
                 setDisplayDialog(true)
               }}
               onEditClick={handleEditTransaction}
@@ -355,27 +285,15 @@ export default function Dashboard() {
 
       {/* 매매 등록 및 수정 통합 모달 다이얼로그 */}
       <TransactionDialog
+        key={editingTx ? `edit-${editingTx.id}` : 'new'}
         visible={displayDialog}
-        onHide={() => setDisplayDialog(false)}
-        editingTxId={editingTxId}
-        txType={txType}
-        setTxType={setTxType}
-        txAccount={txAccount}
-        setTxAccount={setTxAccount}
+        onHide={() => {
+          setDisplayDialog(false)
+          setEditingTx(null)
+        }}
+        editingTx={editingTx}
+        cachedStock={lastSearchedStock}
         accounts={data.accounts}
-        txCode={txCode}
-        setTxCode={setTxCode}
-        txName={txName}
-        setTxName={setTxName}
-        txQuantity={txQuantity}
-        setTxQuantity={setTxQuantity}
-        txPrice={txPrice}
-        setTxPrice={setTxPrice}
-        txTaxFee={txTaxFee}
-        setTxTaxFee={setTxTaxFee}
-        txDate={txDate}
-        setTxDate={setTxDate}
-        isSearching={isSearching}
         isSubmitting={isSubmitting}
         onSearchStock={handleSearchStock}
         onSave={handleSaveTransaction}

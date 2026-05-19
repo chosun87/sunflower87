@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Dialog,
   Button,
@@ -7,33 +8,39 @@ import {
   InputNumber,
   Calendar,
 } from '@/assets/js/PrimeReact'
+import { showNotice, showError } from '@/assets/js/dialogUtils'
 
 export default function TransactionDialog({
   visible,
   onHide,
-  editingTxId,
-  txType,
-  setTxType,
-  txAccount,
-  setTxAccount,
+  editingTx, // 수정 시 대상 거래 원본 객체 (신규 시 null)
+  cachedStock, // 신규 등록 시 마지막 검색 보존 종목 (검색 데이터 뷰 보존)
   accounts,
-  txCode,
-  setTxCode,
-  txName,
-  setTxName,
-  txQuantity,
-  setTxQuantity,
-  txPrice,
-  setTxPrice,
-  txTaxFee,
-  setTxTaxFee,
-  txDate,
-  setTxDate,
-  isSearching,
   isSubmitting,
-  onSearchStock,
-  onSave,
+  onSearchStock, // (keyword) => Promise<{code, name}>
+  onSave, // (payload) => Promise<void>
 }) {
+  // 내부 폼 상태 관리 레이어 (Resetting state with a key 패턴 적용으로 초기값 바로 바인딩)
+  const [txType, setTxType] = useState(editingTx?.type || 'BUY')
+  const [txAccount, setTxAccount] = useState(
+    editingTx?.acc_cd ||
+      (accounts && accounts.length > 0 ? accounts[0].acc_cd : ''),
+  )
+  const [txCode, setTxCode] = useState(
+    editingTx?.code || cachedStock?.code || '',
+  )
+  const [txName, setTxName] = useState(
+    editingTx?.name || cachedStock?.name || '',
+  )
+  const [txQuantity, setTxQuantity] = useState(editingTx?.quantity || null)
+  const [txPrice, setTxPrice] = useState(editingTx?.price || null)
+  const [txTaxFee, setTxTaxFee] = useState(editingTx?.tax_fee || 0)
+  const [txDate, setTxDate] = useState(
+    editingTx?.date ? new Date(editingTx.date) : new Date(),
+  )
+
+  const [isSearching, setIsSearching] = useState(false)
+
   const typeOptions = [
     { label: '매수 (BUY)', value: 'BUY' },
     { label: '매도 (SELL)', value: 'SELL' },
@@ -43,6 +50,63 @@ export default function TransactionDialog({
     label: `[${acc.acc_company_nm.substring(0, 2)}] ${acc.acc_nm}`,
     value: acc.acc_cd,
   }))
+
+  // 내부 종목 검색 처리 핸들러
+  const handleSearch = () => {
+    const keyword = txName.trim()
+    if (!keyword) {
+      showError('검색할 종목명을 먼저 입력해주세요.')
+      return
+    }
+
+    setIsSearching(true)
+    onSearchStock(keyword)
+      .then((match) => {
+        setTxCode(match.code)
+        setTxName(match.name)
+        showNotice({
+          header: '검색 완료',
+          icon: 'pi pi-check-circle',
+          message: `종목 '${match.name}' (${match.code})의 정보가 성공적으로 조회되었습니다.`,
+          acceptClassName: 'p-button-success',
+        })
+      })
+      .catch((err) => {
+        showError(err.message || '매칭되는 종목을 찾지 못했습니다.')
+      })
+      .finally(() => {
+        setIsSearching(false)
+      })
+  }
+
+  // 내부 저장 핸들러 호출 및 페이로드 빌드
+  const handleSave = () => {
+    if (!txAccount || !txCode || !txName || !txQuantity || !txPrice) {
+      showError('모든 거래 정보를 올바르게 입력해주세요.')
+      return
+    }
+
+    // 날짜 표준 ISO 포맷 변환 필터링 가동
+    const targetDateStr = txDate
+      ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000)
+          .toISOString()
+          .replace('T', ' ')
+          .substring(0, 19)
+      : ''
+
+    const payload = {
+      type: txType,
+      code: txCode,
+      name: txName,
+      quantity: Math.abs(Number(txQuantity) || 0), // 부호 정합성 검증 추가
+      price: Math.abs(Number(txPrice) || 0),
+      tax_fee: Math.abs(Number(txTaxFee) || 0), // 부호 정합성 검증 추가
+      acc_cd: txAccount,
+      date: targetDateStr,
+    }
+
+    onSave(payload)
+  }
 
   const dialogFooter = (
     <div className="flex justify-content-end gap-2 pt-2">
@@ -54,9 +118,9 @@ export default function TransactionDialog({
         disabled={isSubmitting}
       />
       <Button
-        label={editingTxId ? '수정 완료' : '거래 등록'}
+        label={editingTx ? '수정 완료' : '거래 등록'}
         icon="pi pi-check"
-        onClick={onSave}
+        onClick={handleSave}
         className="p-button-primary font-bold"
         disabled={
           isSubmitting ||
@@ -77,7 +141,7 @@ export default function TransactionDialog({
         <div className="flex align-items-center gap-2">
           <i className="pi pi-file-edit text-primary text-xl"></i>
           <span className="font-bold text-xl">
-            {editingTxId ? '📝 매매 거래 기록 수정' : '➕ 신규 매매 거래 등록'}
+            {editingTx ? '📝 매매 거래 기록 수정' : '➕ 신규 매매 거래 등록'}
           </span>
         </div>
       }
@@ -117,12 +181,18 @@ export default function TransactionDialog({
             onChange={(e) => setTxName(e.target.value)}
             placeholder="예: 삼성전자 (입력 후 검색 클릭)"
             disabled={isSubmitting}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleSearch()
+              }
+            }}
           />
           <Button
             icon="pi pi-search"
             className="p-button-primary font-bold"
             label="검색"
-            onClick={onSearchStock}
+            onClick={handleSearch}
             loading={isSearching}
             disabled={isSubmitting}
           />
