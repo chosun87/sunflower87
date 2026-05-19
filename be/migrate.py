@@ -44,6 +44,22 @@ def run_migrations():
             )
             print("✅ Migration: Added purchase_amount column to stocks.")
 
+        # 4. cache_stocks 테이블 market 컬럼 추가 검증
+        cursor.execute("PRAGMA table_info(cache_stocks)")
+        cache_stocks_cols = [row[1] for row in cursor.fetchall()]
+        if cache_stocks_cols and "market" not in cache_stocks_cols:
+            cursor.execute(
+                "ALTER TABLE cache_stocks ADD COLUMN market VARCHAR"
+            )
+            print("✅ Migration: Added market column to cache_stocks.")
+            
+        # 5. cache_stocks 테이블 is_active 컬럼 추가 검증
+        if cache_stocks_cols and "is_active" not in cache_stocks_cols:
+            cursor.execute(
+                "ALTER TABLE cache_stocks ADD COLUMN is_active INTEGER DEFAULT 1 NOT NULL"
+            )
+            print("✅ Migration: Added is_active column to cache_stocks.")
+
         conn.commit()
         print("🎉 Database migration completed successfully.")
     except Exception as e:
