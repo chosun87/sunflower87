@@ -219,12 +219,15 @@ export default function StockDetail() {
                   return { ...prev, visible: false }
                 }
                 const item = chartData.rawList[idx]
+                // 줌/패닝 등 차트 도구 클릭 시 유효하지 않은 인덱스 차단
+                if (!item) return prev
+
                 const prevItem = idx > 0 ? chartData.rawList[idx - 1] : null
                 const prevClose = prevItem
                   ? prevItem.close_price
                   : item.open_price
-                const ma5Val = chartData.series[1].data[idx].y
-                const ma20Val = chartData.series[2].data[idx].y
+                const ma5Val = chartData.series[1].data[idx]?.y
+                const ma20Val = chartData.series[2].data[idx]?.y
                 return {
                   visible: true,
                   item,
@@ -521,7 +524,7 @@ export default function StockDetail() {
                   </span>
                 </div>
               </div>
-              <div className="price-row border-dashed">
+              <div className="price-row stock-divider">
                 종가:{' '}
                 <div className="price-group">
                   <span

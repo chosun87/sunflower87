@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import '@/assets/css/earchfe.css'
 import { Card, TabView, TabPanel, addLocale } from '@/assets/js/PrimeReact'
 import { PrimeReact_locale } from '@/assets/js/PrimeReact'
 import { showNotice, showError } from '@/assets/js/dialogUtils'

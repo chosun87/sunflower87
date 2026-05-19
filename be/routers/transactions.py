@@ -118,15 +118,6 @@ def add_transaction(
         tx_fee = tx_input.tax_fee or 0
         if tx_type == "BUY":
             total_outflow = cost + tx_fee
-            if account.cash_balance < total_outflow:
-                err_msg = (
-                    f"Insufficient cash balance. Required: {total_outflow:,.0f} KRW, "
-                    f"Available: {account.cash_balance:,.0f} KRW."
-                )
-                raise HTTPException(
-                    status_code=400,
-                    detail=err_msg,
-                )
             account.cash_balance -= total_outflow
 
             # 2. stocks 테이블에서 WHERE acc_cd = :acc_cd AND code = :code

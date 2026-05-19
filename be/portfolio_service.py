@@ -238,6 +238,10 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
     total_purchase_amt = 0.0  # 현재 잔고를 구성하는 진짜 총 매수 금액
     total_tax_fee = 0.0  # 현재 잔고를 구성하는 진짜 총 세금+수수료
 
+    all_time_buy_amt = 0.0
+    all_time_sell_amt = 0.0
+    all_time_tax_fee = 0.0
+
     # 거래 내역을 과거부터 최신순으로 정렬하여 순회
     sorted_tx = sorted(
         [t for t in transactions if t.code == target_stock_code and t.acc_cd == acc_cd],
@@ -247,14 +251,19 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
     for tx in sorted_tx:
         cost = tx.quantity * tx.price
         t_fee = float(tx.tax_fee or 0.0)
+        
+        all_time_tax_fee += t_fee
+
         if tx.type == "BUY":
             # 매수 시: 수량과 금액(세금/수수료 포함)을 그대로 누적
             tx_amt = cost + t_fee
             holding_quantity += tx.quantity
             total_purchase_amt += tx_amt
             total_tax_fee += t_fee
+            all_time_buy_amt += tx_amt
 
         elif tx.type == "SELL":
+            all_time_sell_amt += (cost - t_fee)
             # 매도 시: 전량 매도 혹은 분할 매도 처리
             if holding_quantity <= 0:
                 continue
@@ -275,7 +284,7 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
                 total_purchase_amt = holding_quantity * current_avg_price
                 total_tax_fee = holding_quantity * current_avg_tax_fee
 
-    return holding_quantity, total_purchase_amt, total_tax_fee
+    return holding_quantity, total_purchase_amt, total_tax_fee, all_time_buy_amt, all_time_sell_amt, all_time_tax_fee
 
 
 def get_enriched_accounts_data(db: Session) -> dict:
@@ -307,7 +316,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
         name = stock.name
 
         # 1. 거래 기록 기반 이동평균법 정밀 정산 (어띠베 BE_CRITICAL 긴급 지시서 반영)
-        qty, purchase_amt, total_tax_fee = calculate_stock_balance(
+        qty, purchase_amt, total_tax_fee, all_time_buy_amt, all_time_sell_amt, all_time_tax_fee = calculate_stock_balance(
             all_transactions, stock.code, acct_cd
         )
 
@@ -341,7 +350,15 @@ def get_enriched_accounts_data(db: Session) -> dict:
         total_eval_amt = qty * current_price
         total_profit_loss = total_eval_amt - total_purchase_amt_pure
 
-        if qty <= 0 or total_purchase_amt_pure <= 0:
+        if qty <= 0:
+            # 보유수량이 0일 때는 역대 누적 데이터를 사용하여 실현손익 표기
+            total_tax_fee_val = all_time_tax_fee
+            total_purchase_amt_pure = all_time_buy_amt - all_time_tax_fee  # 순수 매수 원금
+            total_eval_amt = all_time_sell_amt
+            total_profit_loss = all_time_sell_amt - all_time_buy_amt
+            avg_price_val = 0.0
+            return_rate = round((total_profit_loss / all_time_buy_amt) * 100, 2) if all_time_buy_amt > 0 else 0.0
+        elif total_purchase_amt_pure <= 0:
             avg_price_val = 0.0
             return_rate = 0.0
         else:
@@ -455,14 +472,7 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
 
         if tx.type == "BUY":
             total_outflow = cost + t_fee
-            # 매수 시 현금 차감 (예수금 부족 시 에러 유발)
-            if cash_balance < total_outflow:
-                detail_err = (
-                    f"Insufficient cash balance for BUY transaction. "
-                    f"Required: {total_outflow:,.0f} KRW (Cost: {cost:,.0f}, "
-                    f"Fee: {t_fee:,.0f}), Available: {cash_balance:,.0f} KRW."
-                )
-                raise HTTPException(status_code=400, detail=detail_err)
+            # 매수 시 현금 차감 (예수금이 마이너스가 되어도 등록 허용)
             cash_balance -= total_outflow
 
             # 기획 표준 연산 공식:
@@ -498,7 +508,9 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
             realized_cost = qty * existing["avg_price"]
             remaining = existing["quantity"] - qty
             if remaining == 0:
-                del holdings[code]
+                existing["quantity"] = 0
+                existing["purchase_amount"] = 0.0
+                existing["avg_price"] = 0.0
             else:
                 existing["quantity"] = remaining
                 existing["purchase_amount"] -= realized_cost
