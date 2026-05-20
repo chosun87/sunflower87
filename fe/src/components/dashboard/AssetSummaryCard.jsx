@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Card, Dropdown } from '@/assets/js/PrimeReact'
+import { useMemo } from 'react';
+import { Card, Dropdown } from '@/assets/js/PrimeReact';
 
 export default function AssetSummaryCard({
   totalAsset,
@@ -8,36 +8,34 @@ export default function AssetSummaryCard({
   onAccountChange,
 }) {
   const { totalProfit, returnRate, isPositive } = useMemo(() => {
-    let sumEval = 0
-    let sumPurchase = 0
+    let sumEval = 0;
+    let sumPurchase = 0;
 
-    ;(accounts || []).forEach((acc) => {
-      ;(acc.stocks || []).forEach((s) => {
+    (accounts || []).forEach((acc) => {
+      (acc.stocks || []).forEach((s) => {
         const buy_amount =
-          s.total_purchase_amt !== undefined
-            ? s.total_purchase_amt
-            : s.purchase_amount || 0
+          s.total_purchase_amt !== undefined ? s.total_purchase_amt : s.purchase_amount || 0;
         const eval_amount =
           s.total_eval_amt !== undefined
             ? s.total_eval_amt
-            : (s.quantity || 0) * (s.current_price || 0)
-        sumEval += eval_amount
-        sumPurchase += buy_amount
-      })
-    })
+            : (s.quantity || 0) * (s.current_price || 0);
+        sumEval += eval_amount;
+        sumPurchase += buy_amount;
+      });
+    });
 
-    const profit = sumEval - sumPurchase
-    const rate = sumPurchase > 0 ? (profit / sumPurchase) * 100 : 0
-    const positive = profit > 0
+    const profit = sumEval - sumPurchase;
+    const rate = sumPurchase > 0 ? (profit / sumPurchase) * 100 : 0;
+    const positive = profit > 0;
 
-    return { totalProfit: profit, returnRate: rate, isPositive: positive }
-  }, [accounts])
+    return { totalProfit: profit, returnRate: rate, isPositive: positive };
+  }, [accounts]);
 
-  const profitClass = `font-bold ${isPositive ? 'text-buy' : totalProfit < 0 ? 'text-sell' : ''}`
+  const profitClass = `font-bold ${isPositive ? 'text-buy' : totalProfit < 0 ? 'text-sell' : ''}`;
   const profitStyle = {
     fontSize: '1.2rem',
     marginLeft: '1rem',
-  }
+  };
 
   return (
     <div className="grid mb-6">
@@ -71,5 +69,5 @@ export default function AssetSummaryCard({
         </Card>
       </div>
     </div>
-  )
+  );
 }

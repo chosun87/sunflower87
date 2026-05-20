@@ -1,16 +1,17 @@
 import os
 from datetime import datetime
+
+from dotenv import load_dotenv
 from sqlalchemy import (
-    create_engine,
     Column,
-    Integer,
-    Float,
-    String,
     DateTime,
+    Float,
     ForeignKey,
+    Integer,
+    String,
+    create_engine,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
-from dotenv import load_dotenv
 
 # 보안 지침: 환경변수 로드
 load_dotenv()
@@ -122,10 +123,10 @@ def init_db():
         # 1. [Lazy Initialization] 동적 주식 마스터 테이블 (cache_stocks) 초고속 시딩 처리
         try:
             print("[sunflower87] Launching super-fast KRX Stock Master seeding...")
-            from pykrx import stock as krx_stock
-
             # 최근 영업일 기준 1회 호출로 KOSPI, KOSDAQ 전 종목의 [코드, 이름] 뼈대를 초고속으로 획득
             from datetime import datetime, timedelta
+
+            from pykrx import stock as krx_stock
 
             now = datetime.today()
             masters_seeded = False

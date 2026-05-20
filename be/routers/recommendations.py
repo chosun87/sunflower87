@@ -1,7 +1,9 @@
 from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_db, Recommendation
+
+from database import Recommendation, get_db
 
 router = APIRouter(prefix="/api/recommendations", tags=["Market Stock"])
 

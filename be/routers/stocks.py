@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from database import get_db, CacheStock, StockOHLCVCache
-from sqlalchemy import func
 from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from database import CacheStock, StockOHLCVCache, get_db
 from portfolio_service import sync_ohlcv_cache
 
 router = APIRouter(prefix="/api/stocks", tags=["Market Stock"])
@@ -183,6 +185,7 @@ def get_offline_stocks() -> dict:
         "310970": "TIGER 미국필라델피아반도체나스닥",
         "396580": "TIGER 미국빅테크10",
         "409820": "KODEX 미국S&P500인버스(H)",
+        "396500": "TIGER 반도체TOP10",
         "139230": "TIGER 200 IT",
         "157030": "TIGER 반도체",
         "091160": "KODEX 반도체",
@@ -288,6 +291,19 @@ def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
     )
 
     return {"status": "success", "results": results[:10]}
+
+
+@router.get(
+    "/lookup",
+    summary="종목 코드로 종목명 조회",
+    description="종목 코드에 대응하는 종목명을 반환합니다.",
+)
+def lookup_stock_name(code: str, db: Session = Depends(get_db)):
+    if not code:
+        return {"status": "error", "message": "종목 코드가 필요합니다."}
+
+    stock_name = get_stock_name_by_code(db, code)
+    return {"status": "success", "code": code, "name": stock_name}
 
 
 def get_stock_name_by_code(db: Session, code: str) -> str:

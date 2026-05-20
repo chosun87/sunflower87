@@ -3,12 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "format:isort": "venv\\Scripts\\python -m isort .",
     "format:black": "venv\\Scripts\\python -m black .",
-    "format:prettier": "npx prettier --write \"**/*.{json,md,yml,yaml}\"",
-    "format": "npm run format:black && npm run format:prettier",
-    "lint": "venv\\Scripts\\python -m flake8 ."
-  },
-  "devDependencies": {
-    "prettier": "^3.8.3"
+    "format": "npm run format:isort && npm run format:black",
+    "lint:ruff": "venv\\Scripts\\python -m ruff check .",
+    "lint": "npm run lint:ruff"
   }
 }

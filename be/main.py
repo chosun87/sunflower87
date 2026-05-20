@@ -1,9 +1,10 @@
 import sys
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
 # 보안 지침: 프로젝트 환경변수 로드
 load_dotenv()
@@ -11,14 +12,14 @@ load_dotenv()
 # 모듈 경로 추가로 패키지 임포트 보장
 sys.path.append(str(Path(__file__).parent.resolve()))
 
-from migrate import run_migrations  # noqa: E402
 from database import init_db  # noqa: E402
+from migrate import run_migrations  # noqa: E402
 from routers import (  # noqa: E402
-    stocks,
     accounts,
-    transactions,
     recommendations,
+    stocks,
     tasks,
+    transactions,
 )
 
 

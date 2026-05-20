@@ -1,17 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import Chart from 'react-apexcharts'
-import { Card, Button, ProgressSpinner } from '@/assets/js/PrimeReact'
-import { showError } from '@/assets/js/dialogUtils'
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import Chart from 'react-apexcharts';
+import { Card, Button, ProgressSpinner } from '@/assets/js/PrimeReact';
+import { showError } from '@/assets/js/dialogUtils';
+import { get } from '@/api';
 
 export default function StockDetail() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const stockCode = searchParams.get('code') || ''
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const stockCode = searchParams.get('code') || '';
 
-  const [ohlcvData, setOhlcvData] = useState([])
-  const [stockName, setStockName] = useState('')
-  const [isChartLoading, setIsChartLoading] = useState(true)
+  const [ohlcvData, setOhlcvData] = useState([]);
+  const [stockName, setStockName] = useState('');
+  const [isChartLoading, setIsChartLoading] = useState(true);
 
   // 클릭 기반 커스텀 툴팁을 관리하는 상태 (Label 1)
   const [customClickTooltip, setCustomClickTooltip] = useState({
@@ -23,86 +24,79 @@ export default function StockDetail() {
     x: 0,
     y: 0,
     dataPointIndex: -1,
-  })
+  });
 
   // 주가 API 비동기 조회 및 상태 매핑 (20ms 마운트 가드 레이어 탑재)
   useEffect(() => {
     if (!stockCode) {
-      showError('종목 코드가 지정되지 않았습니다.')
-      navigate('/dashboard')
-      return
+      showError('종목 코드가 지정되지 않았습니다.');
+      navigate('/dashboard');
+      return;
     }
 
-    Promise.resolve().then(() => {
-      setIsChartLoading(true)
-    })
-    fetch(`${import.meta.env.VITE_API_URL}/api/stocks/ohlcv?code=${stockCode}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('주가 데이터를 가져오는데 실패했습니다.')
+    const loadOhlcvData = async () => {
+      setIsChartLoading(true);
+      try {
+        const resData = await get('/api/stocks/ohlcv', { code: stockCode });
+        if (resData.status !== 'success') {
+          throw new Error(resData.message || '주가 데이터를 가져오는데 실패했습니다.');
         }
-        return res.json()
-      })
-      .then((resData) => {
-        if (resData.status === 'success') {
-          setOhlcvData(resData.data || [])
-          setStockName(resData.stock_name || '')
-          setIsChartLoading(false)
-        } else {
-          showError(resData.message || '데이터 로드 실패')
-          setIsChartLoading(false)
-        }
-      })
-      .catch((err) => {
-        console.error('OHLCV 데이터 로드 에러:', err)
-        showError(err.message || '서버 통신 실패')
-        setIsChartLoading(false)
-      })
-  }, [stockCode, navigate])
+        setOhlcvData(resData.data || []);
+        setStockName(resData.stock_name || '');
+      } catch (err) {
+        console.error('OHLCV 데이터 로드 에러:', err);
+        showError(err.message || '서버 통신 실패');
+      } finally {
+        setIsChartLoading(false);
+      }
+    };
+
+    loadOhlcvData();
+  }, [stockCode, navigate]);
 
   // 60거래일 데이터를 기반으로 주말/휴장일 공백이 100% 제거된 카테고리 눈금 및 시리즈의 메모이제이션
   const chartData = useMemo(() => {
     if (!ohlcvData || ohlcvData.length === 0) {
-      return { categories: [], series: [], rawList: [] }
+      return { categories: [], series: [], rawList: [] };
     }
 
-    const categories = []
-    let lastMonth = null
-    let lastYear = null
+    const categories = [];
+    let lastMonth = null;
+    let lastYear = null;
 
     // 1단계 [A]: 각 영업일의 날짜 변환 및 변곡점(Transition) 여부 1차 판독 (for 루프 활용으로 렌더 사이클 재할당 린트 경고 회피)
-    const tempTransitions = []
+    const tempTransitions = [];
     for (let index = 0; index < ohlcvData.length; index++) {
-      const item = ohlcvData[index]
-      const year = item.trade_date.substring(0, 4)
-      const monthStr = item.trade_date.substring(4, 6)
-      const dayStr = item.trade_date.substring(6, 8)
+      const item = ohlcvData[index];
+      const year = item.trade_date.substring(0, 4);
+      const monthStr = item.trade_date.substring(4, 6);
+      const dayStr = item.trade_date.substring(6, 8);
 
-      const currentYear = parseInt(year, 10)
-      const currentMonth = parseInt(monthStr, 10)
+      const currentYear = parseInt(year, 10);
+      const currentMonth = parseInt(monthStr, 10);
 
-      let label = dayStr // 기본값: '일(DD)'
-      let isTransition = false
+      let label = dayStr; // 기본값: '일(DD)'
+      let isTransition = false;
 
       // 첫 번째 영업일(시작점): YYYY-MM-DD 풀 포맷 및 변곡점 처리
       if (index === 0) {
-        label = `${year}-${monthStr}-${dayStr}`
-        lastMonth = currentMonth
-        lastYear = currentYear
-        isTransition = true
+        label = `${year}-${monthStr}-${dayStr}`;
+        lastMonth = currentMonth;
+        lastYear = currentYear;
+        isTransition = true;
       } else {
         // 연 변곡점 검출
         if (currentYear !== lastYear) {
-          label = `${year}-${monthStr}-${dayStr}`
-          lastYear = currentYear
-          lastMonth = currentMonth
-          isTransition = true
+          label = `${year}-${monthStr}-${dayStr}`;
+          lastYear = currentYear;
+          lastMonth = currentMonth;
+          isTransition = true;
         }
         // 월 변곡점 검출
         else if (currentMonth !== lastMonth) {
-          label = `${monthStr}-${dayStr}`
-          lastMonth = currentMonth
-          isTransition = true
+          label = `${monthStr}-${dayStr}`;
+          lastMonth = currentMonth;
+          isTransition = true;
         }
       }
 
@@ -112,17 +106,17 @@ export default function StockDetail() {
         year,
         monthStr,
         dayStr,
-      })
+      });
     }
 
     // 1단계 [B]: 2차 루프를 돌며 각 영업일의 포맷팅된 날짜 라벨을 100% 매핑 (ApexCharts가 tickAmount 조건에 맞춰 최적으로 자동 솎아냄)
     const rawList = ohlcvData.map((item, index) => {
-      const { year, monthStr, dayStr } = tempTransitions[index]
+      const { year, monthStr, dayStr } = tempTransitions[index];
 
       // 수동 솎아내기(빈 문자열 주입)를 제거하여, tickAmount 솎아내기 기능과 충돌을 파쇄하고 모든 눈금 영역에 올바른 날짜를 노출
       // 중요: ApexCharts의 category 축에서 중복된 문자열(예: '11')이 들어가면
       // 틱 생성 알고리즘이 망가지므로, 무조건 고유값인 trade_date를 카테고리로 씁니다.
-      categories.push(item.trade_date)
+      categories.push(item.trade_date);
 
       return {
         trade_date: item.trade_date,
@@ -131,34 +125,34 @@ export default function StockDetail() {
         low_price: Number(item.low_price || 0),
         close_price: Number(item.close_price || 0),
         rawDate: `${year}-${monthStr}-${dayStr}`,
-      }
-    })
+      };
+    });
 
     // 2단계: 5일 및 20일 이동평균선(MA) 계산 (주말 공백 없는 영업일 밀착형 연산)
-    const ma5Data = []
-    const ma20Data = []
+    const ma5Data = [];
+    const ma20Data = [];
 
     for (let i = 0; i < rawList.length; i++) {
       // 5일선
       if (i < 4) {
-        ma5Data.push(null)
+        ma5Data.push(null);
       } else {
-        let sum = 0
+        let sum = 0;
         for (let j = 0; j < 5; j++) {
-          sum += rawList[i - j].close_price
+          sum += rawList[i - j].close_price;
         }
-        ma5Data.push(Math.round(sum / 5))
+        ma5Data.push(Math.round(sum / 5));
       }
 
       // 20일선
       if (i < 19) {
-        ma20Data.push(null)
+        ma20Data.push(null);
       } else {
-        let sum = 0
+        let sum = 0;
         for (let j = 0; j < 20; j++) {
-          sum += rawList[i - j].close_price
+          sum += rawList[i - j].close_price;
         }
-        ma20Data.push(Math.round(sum / 20))
+        ma20Data.push(Math.round(sum / 20));
       }
     }
 
@@ -169,12 +163,7 @@ export default function StockDetail() {
         type: 'candlestick',
         data: rawList.map((item) => ({
           x: item.trade_date, // 숫자 인덱스가 아닌 고유 날짜 문자열로 완벽 결합
-          y: [
-            item.open_price,
-            item.high_price,
-            item.low_price,
-            item.close_price,
-          ],
+          y: [item.open_price, item.high_price, item.low_price, item.close_price],
         })),
       },
       {
@@ -193,10 +182,10 @@ export default function StockDetail() {
           y: val,
         })),
       },
-    ]
+    ];
 
-    return { categories, series, rawList, tempTransitions }
-  }, [ohlcvData])
+    return { categories, series, rawList, tempTransitions };
+  }, [ohlcvData]);
 
   // React 성능 최적화: 차트 옵션 메모이제이션 (카테고리 축 기반의 정밀 레이아웃 정립)
   const chartOptions = useMemo(() => {
@@ -210,24 +199,22 @@ export default function StockDetail() {
         background: 'transparent',
         events: {
           click: function (event, chartContext, config) {
-            const idx = config.dataPointIndex
+            const idx = config.dataPointIndex;
             // 캔들/데이터 포인트를 클릭했을 때만 툴팁 토글 동작
             if (idx !== undefined && idx !== -1) {
               setCustomClickTooltip((prev) => {
                 // 동일한 캔들을 다시 클릭하면 숨김
                 if (prev.visible && prev.dataPointIndex === idx) {
-                  return { ...prev, visible: false }
+                  return { ...prev, visible: false };
                 }
-                const item = chartData.rawList[idx]
+                const item = chartData.rawList[idx];
                 // 줌/패닝 등 차트 도구 클릭 시 유효하지 않은 인덱스 차단
-                if (!item) return prev
+                if (!item) return prev;
 
-                const prevItem = idx > 0 ? chartData.rawList[idx - 1] : null
-                const prevClose = prevItem
-                  ? prevItem.close_price
-                  : item.open_price
-                const ma5Val = chartData.series[1].data[idx]?.y
-                const ma20Val = chartData.series[2].data[idx]?.y
+                const prevItem = idx > 0 ? chartData.rawList[idx - 1] : null;
+                const prevClose = prevItem ? prevItem.close_price : item.open_price;
+                const ma5Val = chartData.series[1].data[idx]?.y;
+                const ma20Val = chartData.series[2].data[idx]?.y;
                 return {
                   visible: true,
                   item,
@@ -237,11 +224,11 @@ export default function StockDetail() {
                   x: event.clientX,
                   y: event.clientY,
                   dataPointIndex: idx,
-                }
-              })
+                };
+              });
             } else {
               // 차트의 빈 공간 클릭 시 툴팁 숨김
-              setCustomClickTooltip((prev) => ({ ...prev, visible: false }))
+              setCustomClickTooltip((prev) => ({ ...prev, visible: false }));
             }
           },
         },
@@ -293,17 +280,13 @@ export default function StockDetail() {
           rotateAlways: false,
           hideOverlappingLabels: true, // 겹치는 라벨 자동 숨김 (수동 솎아내기 제거)
           formatter: (val) => {
-            if (!val || typeof val !== 'string') return val
-            const idx = chartData.rawList.findIndex((r) => r.trade_date === val)
-            if (
-              idx !== -1 &&
-              chartData.tempTransitions &&
-              chartData.tempTransitions[idx]
-            ) {
+            if (!val || typeof val !== 'string') return val;
+            const idx = chartData.rawList.findIndex((r) => r.trade_date === val);
+            if (idx !== -1 && chartData.tempTransitions && chartData.tempTransitions[idx]) {
               // 솎아내지 않고 무조건 정확한 라벨을 반환하여 어긋남(Shift) 착시 방지
-              return chartData.tempTransitions[idx].label
+              return chartData.tempTransitions[idx].label;
             }
-            return val
+            return val;
           },
           style: {
             colors: 'var(--text-color-secondary)',
@@ -359,8 +342,8 @@ export default function StockDetail() {
         // 빈 문자열을 반환하면 십자선(Crosshair)은 유지되면서 내용은 비워집니다.
         custom: () => '<div style="display: none;"></div>',
       },
-    }
-  }, [stockName, stockCode, chartData])
+    };
+  }, [stockName, stockCode, chartData]);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 animate-fadein">
@@ -372,9 +355,7 @@ export default function StockDetail() {
           className="p-button-outlined p-button-secondary font-bold"
           onClick={() => navigate('/dashboard')}
         />
-        <span className="text-500 font-semibold monospace">
-          CODE: {stockCode}
-        </span>
+        <span className="text-500 font-semibold monospace">CODE: {stockCode}</span>
       </div>
 
       <Card className="shadow-4 border-round p-3">
@@ -424,19 +405,19 @@ export default function StockDetail() {
       {customClickTooltip.visible &&
         customClickTooltip.item &&
         (() => {
-          const { item, prevClose, ma5Val, ma20Val } = customClickTooltip
+          const { item, prevClose, ma5Val, ma20Val } = customClickTooltip;
 
           // 이전 거래일 종가(또는 당일 시가) 대비 등락 색상 계산 (다크 배경용 밝은 컬러)
           const getPriceColor = (price) => {
-            if (!prevClose || price === prevClose) return '#f8f9fa'
-            return price > prevClose ? '#ff6666' : '#64a0ff'
-          }
+            if (!prevClose || price === prevClose) return '#f8f9fa';
+            return price > prevClose ? '#ff6666' : '#64a0ff';
+          };
 
           // 등락률 문자열 계산 (Prime Icon 적용)
           const getDiffNode = (price) => {
-            if (!prevClose || price === prevClose) return <span>0.00%</span>
-            const diff = ((price - prevClose) / prevClose) * 100
-            const isUp = diff > 0
+            if (!prevClose || price === prevClose) return <span>0.00%</span>;
+            const diff = ((price - prevClose) / prevClose) * 100;
+            const isUp = diff > 0;
             return (
               <span
                 style={{
@@ -452,21 +433,15 @@ export default function StockDetail() {
                 ></i>
                 {Math.abs(diff).toFixed(2)}%
               </span>
-            )
-          }
+            );
+          };
 
           return (
             <div
               className="monospace custom-stock-tooltip"
               style={{
-                top:
-                  Math.min(
-                    customClickTooltip.y + 15,
-                    window.innerHeight - 250,
-                  ) + 'px',
-                left:
-                  Math.min(customClickTooltip.x + 15, window.innerWidth - 250) +
-                  'px',
+                top: Math.min(customClickTooltip.y + 15, window.innerHeight - 250) + 'px',
+                left: Math.min(customClickTooltip.x + 15, window.innerWidth - 250) + 'px',
               }}
             >
               <div className="tooltip-header">
@@ -476,16 +451,10 @@ export default function StockDetail() {
               <div className="price-row">
                 시가:{' '}
                 <div className="price-group">
-                  <span
-                    className="price-val"
-                    style={{ color: getPriceColor(item.open_price) }}
-                  >
+                  <span className="price-val" style={{ color: getPriceColor(item.open_price) }}>
                     {item.open_price.toLocaleString()}
                   </span>
-                  <span
-                    className="price-diff"
-                    style={{ color: getPriceColor(item.open_price) }}
-                  >
+                  <span className="price-diff" style={{ color: getPriceColor(item.open_price) }}>
                     {getDiffNode(item.open_price)}
                   </span>
                 </div>
@@ -493,16 +462,10 @@ export default function StockDetail() {
               <div className="price-row">
                 고가:{' '}
                 <div className="price-group">
-                  <span
-                    className="price-val"
-                    style={{ color: getPriceColor(item.high_price) }}
-                  >
+                  <span className="price-val" style={{ color: getPriceColor(item.high_price) }}>
                     {item.high_price.toLocaleString()}
                   </span>
-                  <span
-                    className="price-diff"
-                    style={{ color: getPriceColor(item.high_price) }}
-                  >
+                  <span className="price-diff" style={{ color: getPriceColor(item.high_price) }}>
                     {getDiffNode(item.high_price)}
                   </span>
                 </div>
@@ -510,16 +473,10 @@ export default function StockDetail() {
               <div className="price-row">
                 저가:{' '}
                 <div className="price-group">
-                  <span
-                    className="price-val"
-                    style={{ color: getPriceColor(item.low_price) }}
-                  >
+                  <span className="price-val" style={{ color: getPriceColor(item.low_price) }}>
                     {item.low_price.toLocaleString()}
                   </span>
-                  <span
-                    className="price-diff"
-                    style={{ color: getPriceColor(item.low_price) }}
-                  >
+                  <span className="price-diff" style={{ color: getPriceColor(item.low_price) }}>
                     {getDiffNode(item.low_price)}
                   </span>
                 </div>
@@ -527,16 +484,10 @@ export default function StockDetail() {
               <div className="price-row stock-divider">
                 종가:{' '}
                 <div className="price-group">
-                  <span
-                    className="price-val"
-                    style={{ color: getPriceColor(item.close_price) }}
-                  >
+                  <span className="price-val" style={{ color: getPriceColor(item.close_price) }}>
                     {item.close_price.toLocaleString()}
                   </span>
-                  <span
-                    className="price-diff"
-                    style={{ color: getPriceColor(item.close_price) }}
-                  >
+                  <span className="price-diff" style={{ color: getPriceColor(item.close_price) }}>
                     {getDiffNode(item.close_price)}
                   </span>
                 </div>
@@ -546,9 +497,7 @@ export default function StockDetail() {
                   5일선:
                 </span>
                 <span className="ma-val">
-                  {ma5Val !== null && ma5Val !== undefined
-                    ? `${ma5Val.toLocaleString()} 원`
-                    : '-'}
+                  {ma5Val !== null && ma5Val !== undefined ? `${ma5Val.toLocaleString()} 원` : '-'}
                 </span>
               </div>
               <div className="ma-row mt-2">
@@ -562,8 +511,8 @@ export default function StockDetail() {
                 </span>
               </div>
             </div>
-          )
+          );
         })()}
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import dayjs from 'dayjs'
+import { useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   DataTable,
   Column,
@@ -8,7 +8,7 @@ import {
   Dropdown,
   InputText,
   Calendar,
-} from '@/assets/js/PrimeReact'
+} from '@/assets/js/PrimeReact';
 
 export default function TransactionHistoryTab({
   transactions,
@@ -18,67 +18,65 @@ export default function TransactionHistoryTab({
   onEditClick,
   onDeleteClick,
 }) {
-  const [dates, setDates] = useState(null)
-  const [selectedAcc, setSelectedAcc] = useState(null)
-  const [searchCode, setSearchCode] = useState(null)
+  const [dates, setDates] = useState(null);
+  const [selectedAcc, setSelectedAcc] = useState(null);
+  const [searchCode, setSearchCode] = useState(null);
 
   const stockOptions = useMemo(() => {
-    const stockMap = new Map()
+    const stockMap = new Map();
     const addStock = (stock) => {
-      if (!stock || !stock.code) return
-      const quantity = Number(stock.quantity || 0)
-      const existing = stockMap.get(stock.code)
+      if (!stock || !stock.code) return;
+      const quantity = Number(stock.quantity || 0);
+      const existing = stockMap.get(stock.code);
       if (existing) {
-        existing.quantity = Math.max(existing.quantity, quantity)
+        existing.quantity = Math.max(existing.quantity, quantity);
       } else {
         stockMap.set(stock.code, {
           value: stock.code,
           label: stock.name,
           quantity,
-        })
+        });
       }
-    }
+    };
 
     const relevantAccounts = selectedAcc
       ? accounts?.filter((acc) => acc.acc_cd === selectedAcc)
-      : accounts
+      : accounts;
 
-    ;(relevantAccounts || []).forEach((account) => {
-      ;(account.stocks || []).forEach(addStock)
-    })
+    (relevantAccounts || []).forEach((account) => {
+      (account.stocks || []).forEach(addStock);
+    });
 
     return Array.from(stockMap.values()).sort((a, b) => {
       if (b.quantity !== a.quantity) {
-        return b.quantity - a.quantity
+        return b.quantity - a.quantity;
       }
-      return a.label.localeCompare(b.label, 'ko')
-    })
-  }, [accounts, selectedAcc])
+      return a.label.localeCompare(b.label, 'ko');
+    });
+  }, [accounts, selectedAcc]);
 
   const stockItemTemplate = (option) => {
-    if (!option) return null
+    if (!option) return null;
     return (
       <div className="flex align-items-center gap-2">
         <span className="text-500 monospace">{option.value})</span>
         <span>{option.label}</span>
         {option.quantity > 0 && (
-          <span className="ml-auto text-500">
-            (보유: {option.quantity.toLocaleString()}주)
-          </span>
+          <span className="ml-auto text-500">(보유: {option.quantity.toLocaleString()}주)</span>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   const buildSearchFilters = () => {
-    let start_date = null
-    let end_date = null
+    let start_date = null;
+    let end_date = null;
 
     if (dates && dates[0]) {
-      start_date = dayjs(dates[0]).format('YYYY-MM-DD')
+      start_date = dayjs(dates[0]).format('YYYY-MM-DD');
     }
     if (dates && dates[1]) {
-      end_date = dayjs(dates[1]).format('YYYY-MM-DD')
+      end_date = dayjs(dates[1]).format('YYYY-MM-DD');
     }
 
     return {
@@ -86,74 +84,66 @@ export default function TransactionHistoryTab({
       stock_code: searchCode,
       start_date,
       end_date,
-    }
-  }
+    };
+  };
 
   const handleSearch = () => {
     if (onLoadTransactions) {
-      onLoadTransactions(buildSearchFilters())
+      onLoadTransactions(buildSearchFilters());
     }
-  }
+  };
 
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
   const txTypeBodyTemplate = (rowData) => {
-    const isBuy = rowData.type === 'BUY'
+    const isBuy = rowData.type === 'BUY';
     return isBuy ? (
       <Badge value="매수" className="type-buy" />
     ) : (
       <Badge value="매도" className="type-sell" />
-    )
-  }
+    );
+  };
 
   const dateBodyTemplate = (rowData) => {
     return rowData.date ? (
-      <span className="monospace">
-        {dayjs(rowData.date).format('YYYY-MM-DD HH:mm')}
-      </span>
+      <span className="monospace">{dayjs(rowData.date).format('YYYY-MM-DD HH:mm')}</span>
     ) : (
       ''
-    )
-  }
+    );
+  };
 
   const accountBodyTemplate = (rowData) => {
-    const company = rowData.acc_company_nm || ''
-    const name = rowData.acc_nm || '알 수 없는 계좌'
+    const company = rowData.acc_company_nm || '';
+    const name = rowData.acc_nm || '알 수 없는 계좌';
     if (company) {
-      const shortCompany = company.substring(0, 2)
-      return `[${shortCompany}] ${name}`
+      const shortCompany = company.substring(0, 2);
+      return `[${shortCompany}] ${name}`;
     }
-    return name
-  }
+    return name;
+  };
 
   const txCodeBodyTemplate = (rowData) => {
-    return <span className="monospace">{rowData.code}</span>
-  }
+    return <span className="monospace">{rowData.code}</span>;
+  };
 
   const txQuantityBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">{rowData.quantity.toLocaleString()} 주</span>
-    )
-  }
+    return <span className="monospace">{rowData.quantity.toLocaleString()} 주</span>;
+  };
 
   const txPriceBodyTemplate = (rowData) => {
-    return (
-      <span className="monospace">{rowData.price.toLocaleString()} 원</span>
-    )
-  }
+    return <span className="monospace">{rowData.price.toLocaleString()} 원</span>;
+  };
 
   const txTotalBodyTemplate = (rowData) => {
     return (
-      <span className="monospace">
-        {(rowData.quantity * rowData.price).toLocaleString()} 원
-      </span>
-    )
-  }
+      <span className="monospace">{(rowData.quantity * rowData.price).toLocaleString()} 원</span>
+    );
+  };
 
   const txTaxFeeBodyTemplate = (rowData) => {
-    const fee = rowData.tax_fee || 0
-    return <span className="monospace">{fee.toLocaleString()} 원</span>
-  }
+    const fee = rowData.tax_fee || 0;
+    return <span className="monospace">{fee.toLocaleString()} 원</span>;
+  };
 
   const actionsBodyTemplate = (rowData) => {
     return (
@@ -171,44 +161,40 @@ export default function TransactionHistoryTab({
           tooltip="매매 내역 삭제"
         />
       </div>
-    )
-  }
+    );
+  };
 
-  const { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum } =
-    useMemo(() => {
-      let totalBuyAmount = 0
-      let totalSellAmount = 0
+  const { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum } = useMemo(() => {
+    let totalBuyAmount = 0;
+    let totalSellAmount = 0;
 
-      ;(transactions || []).forEach((tx) => {
-        const amount = (tx.quantity || 0) * (tx.price || 0)
-        if (tx.type === 'SELL' || tx.type === 'sell') {
-          totalSellAmount += amount
-        } else {
-          totalBuyAmount += amount
-        }
-      })
+    (transactions || []).forEach((tx) => {
+      const amount = (tx.quantity || 0) * (tx.price || 0);
+      if (tx.type === 'SELL' || tx.type === 'sell') {
+        totalSellAmount += amount;
+      } else {
+        totalBuyAmount += amount;
+      }
+    });
 
-      const totalTxAmountSum = totalSellAmount - totalBuyAmount
-      const totalQuantitySum = (transactions || []).reduce((sum, tx) => {
-        const quantity = tx.quantity || 0
-        if (tx.type === 'SELL' || tx.type === 'sell') {
-          return sum - quantity
-        }
-        return sum + quantity
-      }, 0)
-      const totalTxTaxFeeSum = (transactions || []).reduce(
-        (sum, tx) => sum + (tx.tax_fee || 0),
-        0,
-      )
-      return { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum }
-    }, [transactions])
+    const totalTxAmountSum = totalSellAmount - totalBuyAmount;
+    const totalQuantitySum = (transactions || []).reduce((sum, tx) => {
+      const quantity = tx.quantity || 0;
+      if (tx.type === 'SELL' || tx.type === 'sell') {
+        return sum - quantity;
+      }
+      return sum + quantity;
+    }, 0);
+    const totalTxTaxFeeSum = (transactions || []).reduce((sum, tx) => sum + (tx.tax_fee || 0), 0);
+    return { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum };
+  }, [transactions]);
 
   const totalTxAmountClass =
-    totalTxAmountSum < 0 ? 'text-sell' : totalTxAmountSum > 0 ? 'text-buy' : ''
+    totalTxAmountSum < 0 ? 'text-sell' : totalTxAmountSum > 0 ? 'text-buy' : '';
   const totalTxAmountText =
     totalTxAmountSum === 0
       ? '0 원'
-      : `${totalTxAmountSum > 0 ? '+' : '-'}${Math.abs(totalTxAmountSum).toLocaleString()} 원`
+      : `${totalTxAmountSum > 0 ? '+' : '-'}${Math.abs(totalTxAmountSum).toLocaleString()} 원`;
 
   return (
     <div className="mt-3">
@@ -248,8 +234,8 @@ export default function TransactionHistoryTab({
               value={selectedAcc}
               options={accounts}
               onChange={(e) => {
-                setSelectedAcc(e.value)
-                setSearchCode(null)
+                setSelectedAcc(e.value);
+                setSearchCode(null);
               }}
               optionLabel="acc_nm"
               optionValue="acc_cd"
@@ -301,24 +287,9 @@ export default function TransactionHistoryTab({
           sortable
           footer={<span className="font-bold">합계</span>}
         ></Column>
-        <Column
-          field="type"
-          header="구분"
-          body={txTypeBodyTemplate}
-          sortable
-        ></Column>
-        <Column
-          field="acc_cd"
-          header="거래 계좌"
-          body={accountBodyTemplate}
-          sortable
-        ></Column>
-        <Column
-          field="code"
-          header="종목코드"
-          body={txCodeBodyTemplate}
-          sortable
-        ></Column>
+        <Column field="type" header="구분" body={txTypeBodyTemplate} sortable></Column>
+        <Column field="acc_cd" header="거래 계좌" body={accountBodyTemplate} sortable></Column>
+        <Column field="code" header="종목코드" body={txCodeBodyTemplate} sortable></Column>
         <Column field="name" header="종목명" sortable></Column>
         <Column
           field="quantity"
@@ -327,9 +298,7 @@ export default function TransactionHistoryTab({
           body={txQuantityBodyTemplate}
           sortable
           footer={
-            <span className="monospace font-bold">
-              {totalQuantitySum.toLocaleString()} 주
-            </span>
+            <span className="monospace font-bold">{totalQuantitySum.toLocaleString()} 주</span>
           }
         ></Column>
         <Column
@@ -345,9 +314,7 @@ export default function TransactionHistoryTab({
           body={txTotalBodyTemplate}
           sortable
           footer={
-            <span className={`monospace font-bold ${totalTxAmountClass}`}>
-              {totalTxAmountText}
-            </span>
+            <span className={`monospace font-bold ${totalTxAmountClass}`}>{totalTxAmountText}</span>
           }
         ></Column>
         <Column
@@ -357,9 +324,7 @@ export default function TransactionHistoryTab({
           body={txTaxFeeBodyTemplate}
           sortable
           footer={
-            <span className="monospace font-bold">
-              {totalTxTaxFeeSum.toLocaleString()} 원
-            </span>
+            <span className="monospace font-bold">{totalTxTaxFeeSum.toLocaleString()} 원</span>
           }
         ></Column>
         <Column
@@ -370,5 +335,5 @@ export default function TransactionHistoryTab({
         ></Column>
       </DataTable>
     </div>
-  )
+  );
 }

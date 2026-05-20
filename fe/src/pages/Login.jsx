@@ -1,17 +1,17 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, Button } from '@/assets/js/PrimeReact'
-import { useAuth } from '@/context/AuthContext'
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button } from '@/assets/js/PrimeReact';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { login, isSignedIn, isInitialized } = useAuth()
+  const navigate = useNavigate();
+  const { login, isSignedIn, isInitialized } = useAuth();
 
   useEffect(() => {
     if (isInitialized && isSignedIn) {
-      navigate('/dashboard')
+      navigate('/dashboard');
     }
-  }, [isInitialized, isSignedIn, navigate])
+  }, [isInitialized, isSignedIn, navigate]);
 
   return (
     <div className="flex align-items-center justify-content-center min-h-screen bg-gray-100">
@@ -36,5 +36,5 @@ export default function Login() {
         </div>
       </Card>
     </div>
-  )
+  );
 }

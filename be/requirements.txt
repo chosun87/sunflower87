@@ -2,6 +2,8 @@ fastapi
 uvicorn
 python-dotenv
 black
+ruff
+isort
 flake8
 sqlalchemy
 pykrx

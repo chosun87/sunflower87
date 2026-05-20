@@ -1,8 +1,10 @@
 import re
 from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
-from schemas import TaskCreate
+
 from git_service import commit_and_push_task
+from schemas import TaskCreate
 
 router = APIRouter(prefix="/api/tasks", tags=["Task"])
 

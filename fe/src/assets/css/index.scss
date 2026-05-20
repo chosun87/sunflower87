@@ -72,3 +72,8 @@ h1 {
 .p-dropdown-item-label {
   width: 100%;
 }
+
+.stock-nm .p-inputgroup .p-autocomplete .p-button {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}

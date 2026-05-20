@@ -1,17 +1,17 @@
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/assets/js/PrimeReact'
-import { useAuth, useAuthTimer } from '@/context/AuthContext'
-import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams'
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/assets/js/PrimeReact';
+import { useAuth, useAuthTimer } from '@/context/AuthContext';
+import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams';
 
 export default function Header() {
-  const navigate = useNavigate()
-  const { isSignedIn, logout, extendLogin } = useAuth()
-  const { authRemainingTime } = useAuthTimer()
+  const navigate = useNavigate();
+  const { isSignedIn, logout, extendLogin } = useAuth();
+  const { authRemainingTime } = useAuthTimer();
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="app-header">
@@ -46,5 +46,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }

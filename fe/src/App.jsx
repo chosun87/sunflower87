@@ -1,21 +1,16 @@
-import { lazy, Suspense } from 'react'
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from 'react-router-dom'
-import { AuthProvider } from '@/context/AuthContext'
-import { ConfirmDialog } from '@/assets/js/PrimeReact'
+import { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
+import { ConfirmDialog } from '@/assets/js/PrimeReact';
 
 // 시맨틱 레이아웃을 위한 컴포넌트 로드
-import Header from '@components/common/Header'
-import Footer from '@components/common/Footer'
+import Header from '@components/common/Header';
+import Footer from '@components/common/Footer';
 
 // 주요 페이지 컴포넌트 다이나믹 로딩 (Lazy Loading) 적용
-const Login = lazy(() => import('@/pages/Login'))
-const Dashboard = lazy(() => import('@/pages/Dashboard'))
-const StockDetail = lazy(() => import('@/pages/StockDetail'))
+const Login = lazy(() => import('@/pages/Login'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const StockDetail = lazy(() => import('@/pages/StockDetail'));
 
 function App() {
   return (
@@ -28,11 +23,7 @@ function App() {
 
           {/* SUN님 지시사항: HTML Semantics <main> 및 다이나믹 로딩 래퍼 적용 */}
           <main className="app-content flex-grow-1">
-            <Suspense
-              fallback={
-                <div className="p-4 text-center">🌻 sunflower87 로딩 중...</div>
-              }
-            >
+            <Suspense fallback={<div className="p-4 text-center">🌻 sunflower87 로딩 중...</div>}>
               <Routes>
                 {/* 메뉴 라우팅 설정 */}
                 <Route path="/login" element={<Login />} />
@@ -50,7 +41,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

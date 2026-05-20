@@ -1,5 +1,6 @@
 # be/services/stock_service.py - 온디맨드 주가 동기화 개정안
 from sqlalchemy.orm import Session
+
 from database import SessionLocal, StockOHLCVCache
 from portfolio_service import sync_ohlcv_cache
 
