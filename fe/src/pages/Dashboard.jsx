@@ -79,9 +79,20 @@ export default function Dashboard() {
       .catch((err) => console.error('데이터 로드 실패:', err))
   }
 
-  // SQLite 거래 히스토리 내역 불러오기
-  const loadTransactions = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/transactions`)
+  // SQLite 거래 히스토리 내역 불러오기 (검색 필터 지원)
+  const loadTransactions = (filters = {}) => {
+    let url = `${import.meta.env.VITE_API_URL}/api/transactions`
+    const params = new URLSearchParams()
+    
+    if (filters.acc_cd) params.append('acc_cd', filters.acc_cd)
+    if (filters.stock_code) params.append('stock_code', filters.stock_code)
+    if (filters.start_date) params.append('start_date', filters.start_date)
+    if (filters.end_date) params.append('end_date', filters.end_date)
+    
+    const qs = params.toString()
+    if (qs) url += `?${qs}`
+
+    fetch(url)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.status === 'success') {
@@ -271,6 +282,8 @@ export default function Dashboard() {
           >
             <TransactionHistoryTab
               transactions={transactions}
+              accounts={data.accounts}
+              onLoadTransactions={loadTransactions}
               onAddClick={() => {
                 setEditingTx(null) // 신규 모드
                 setDisplayDialog(true)

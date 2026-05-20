@@ -1,5 +1,6 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from database import get_db, Transaction, Stock
 from schemas import TransactionCreate, ErrorResponse
@@ -13,18 +14,37 @@ router = APIRouter(prefix="/api/transactions", tags=["Transaction"])
     summary="전체 매매 거래 내역 조회 API",
     description="데이터베이스에 기록된 모든 매수/매도 거래 이력을 거래일시 역순(date DESC)으로 조회하여 반환합니다.",
 )
-def get_transaction_history(db: Session = Depends(get_db)):
+def get_transaction_history(
+    acc_cd: Optional[str] = Query(None, description="계좌 식별자 (예: A001)"),
+    stock_code: Optional[str] = Query(None, description="종목 코드 (예: 005930)"),
+    start_date: Optional[str] = Query(None, description="조회 시작일 (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="조회 종료일 (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
     """최근 거래일시 순(date DESC)으로 전체 매매 거래 내역을 반환합니다."""
     try:
         from database import Account
 
-        # Outer join transaction with account to get account names
-        results = (
-            db.query(Transaction, Account)
-            .outerjoin(Account, Transaction.acc_cd == Account.acc_cd)
-            .order_by(Transaction.date.desc())
-            .all()
-        )
+        query = db.query(Transaction, Account).outerjoin(Account, Transaction.acc_cd == Account.acc_cd)
+
+        if acc_cd:
+            query = query.filter(Transaction.acc_cd == acc_cd)
+        if stock_code:
+            query = query.filter(Transaction.code.like(f"%{stock_code}%"))
+        if start_date:
+            try:
+                dt_start = datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(Transaction.date >= dt_start)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                query = query.filter(Transaction.date <= dt_end)
+            except ValueError:
+                pass
+
+        results = query.order_by(Transaction.date.desc()).all()
         data = []
         for t, acc in results:
             acc_name = acc.acc_nm if acc else "알 수 없는 계좌"

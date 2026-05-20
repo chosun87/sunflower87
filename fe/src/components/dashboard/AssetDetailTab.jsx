@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DataTable, Column, Badge, Button } from '@/assets/js/PrimeReact'
+import { DataTable, Column, Badge, Button, Checkbox } from '@/assets/js/PrimeReact'
 
 export default function AssetDetailTab({ accounts }) {
   const navigate = useNavigate()
+  const [showZeroQty, setShowZeroQty] = useState(false)
 
   // --- [보유 자산 전용 내부 템플릿 렌더러 정의] ---
 
@@ -218,7 +219,16 @@ export default function AssetDetailTab({ accounts }) {
 
   return (
     <>
+      <div className="flex align-items-center mb-4 gap-2">
+        <Checkbox inputId="cb-show-zero" checked={showZeroQty} onChange={e => setShowZeroQty(e.checked)} />
+        <label htmlFor="cb-show-zero" className="font-bold text-700 cursor-pointer">
+          보유수 0주 포함
+        </label>
+      </div>
+
       {enrichedAccounts.map((acc) => {
+        const displayStocks = showZeroQty ? acc.stocks : (acc.stocks || []).filter(s => s.quantity > 0)
+        
         return (
           <div className="mt-3 mb-6" key={acc.acc_cd}>
             <div className="flex align-items-center justify-content-between mb-3 border-bottom-1 pb-2 border-100">
@@ -251,11 +261,12 @@ export default function AssetDetailTab({ accounts }) {
             </div>
 
             <DataTable
-              value={acc.stocks}
+              value={displayStocks}
               responsiveLayout="stack"
               breakpoint="960px"
               sortMode="multiple"
               stripedRows
+              rowClassName={(rowData) => rowData.quantity === 0 ? 'opacity-70' : ''}
               emptyMessage="보유 중인 주식이 없습니다."
             >
               <Column
