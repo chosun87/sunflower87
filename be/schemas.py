@@ -42,11 +42,13 @@ class TransactionCreate(BaseModel):
     )
     quantity: int = Field(
         ...,
+        gt=0,
         description="매매 수량 (양의 정수)",
         examples=[10],
     )
     price: int = Field(
         ...,
+        gt=0,
         description="매매 단가 (양의 정수)",
         examples=[77000],
     )
@@ -57,6 +59,7 @@ class TransactionCreate(BaseModel):
     )
     tax_fee: Optional[int] = Field(
         0,
+        ge=0,
         description="거래 세금 및 수수료 (기본값: 0)",
         examples=[1500],
     )
