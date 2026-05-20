@@ -10,28 +10,38 @@ export default function AssetSummaryCard({
   const { totalProfit, returnRate, isPositive } = useMemo(() => {
     let sumEval = 0
     let sumPurchase = 0
-    
-    ;(accounts || []).forEach(acc => {
-      ;(acc.stocks || []).forEach(s => {
-        const buy_amount = s.total_purchase_amt !== undefined ? s.total_purchase_amt : (s.purchase_amount || 0)
-        const eval_amount = s.total_eval_amt !== undefined ? s.total_eval_amt : ((s.quantity || 0) * (s.current_price || 0))
+
+    ;(accounts || []).forEach((acc) => {
+      ;(acc.stocks || []).forEach((s) => {
+        const buy_amount =
+          s.total_purchase_amt !== undefined
+            ? s.total_purchase_amt
+            : s.purchase_amount || 0
+        const eval_amount =
+          s.total_eval_amt !== undefined
+            ? s.total_eval_amt
+            : (s.quantity || 0) * (s.current_price || 0)
         sumEval += eval_amount
         sumPurchase += buy_amount
       })
     })
-    
+
     const profit = sumEval - sumPurchase
     const rate = sumPurchase > 0 ? (profit / sumPurchase) * 100 : 0
     const positive = profit > 0
-    
+
     return { totalProfit: profit, returnRate: rate, isPositive: positive }
   }, [accounts])
 
   const profitStyle = {
-    color: isPositive ? 'var(--red-600)' : (totalProfit < 0 ? 'var(--blue-600)' : 'inherit'),
+    color: isPositive
+      ? 'var(--red-600)'
+      : totalProfit < 0
+        ? 'var(--blue-600)'
+        : 'inherit',
     fontSize: '1.2rem',
     fontWeight: 'bold',
-    marginLeft: '1rem'
+    marginLeft: '1rem',
   }
 
   return (
@@ -44,7 +54,9 @@ export default function AssetSummaryCard({
             </h2>
             {(totalProfit !== 0 || returnRate !== 0) && (
               <span style={profitStyle}>
-                {isPositive ? '+' : ''}{totalProfit.toLocaleString()} 원 ({isPositive ? '+' : ''}{returnRate.toFixed(2)}%)
+                {isPositive ? '+' : ''}
+                {totalProfit.toLocaleString()} 원 ({isPositive ? '+' : ''}
+                {returnRate.toFixed(2)}%)
               </span>
             )}
           </div>

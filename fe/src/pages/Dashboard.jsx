@@ -83,12 +83,12 @@ export default function Dashboard() {
   const loadTransactions = (filters = {}) => {
     let url = `${import.meta.env.VITE_API_URL}/api/transactions`
     const params = new URLSearchParams()
-    
+
     if (filters.acc_cd) params.append('acc_cd', filters.acc_cd)
     if (filters.stock_code) params.append('stock_code', filters.stock_code)
     if (filters.start_date) params.append('start_date', filters.start_date)
     if (filters.end_date) params.append('end_date', filters.end_date)
-    
+
     const qs = params.toString()
     if (qs) url += `?${qs}`
 

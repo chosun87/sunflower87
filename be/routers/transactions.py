@@ -19,13 +19,15 @@ def get_transaction_history(
     stock_code: Optional[str] = Query(None, description="종목 코드 (예: 005930)"),
     start_date: Optional[str] = Query(None, description="조회 시작일 (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="조회 종료일 (YYYY-MM-DD)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """최근 거래일시 순(date DESC)으로 전체 매매 거래 내역을 반환합니다."""
     try:
         from database import Account
 
-        query = db.query(Transaction, Account).outerjoin(Account, Transaction.acc_cd == Account.acc_cd)
+        query = db.query(Transaction, Account).outerjoin(
+            Account, Transaction.acc_cd == Account.acc_cd
+        )
 
         if acc_cd:
             query = query.filter(Transaction.acc_cd == acc_cd)
@@ -39,7 +41,9 @@ def get_transaction_history(
                 pass
         if end_date:
             try:
-                dt_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                dt_end = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59
+                )
                 query = query.filter(Transaction.date <= dt_end)
             except ValueError:
                 pass

@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DataTable, Column, Badge, Button, Checkbox } from '@/assets/js/PrimeReact'
+import {
+  DataTable,
+  Column,
+  Badge,
+  Button,
+  Checkbox,
+} from '@/assets/js/PrimeReact'
 
 export default function AssetDetailTab({ accounts }) {
   const navigate = useNavigate()
@@ -220,44 +226,43 @@ export default function AssetDetailTab({ accounts }) {
   return (
     <>
       <div className="flex align-items-center mb-4 gap-2">
-        <Checkbox inputId="cb-show-zero" checked={showZeroQty} onChange={e => setShowZeroQty(e.checked)} />
-        <label htmlFor="cb-show-zero" className="font-bold text-700 cursor-pointer">
+        <Checkbox
+          inputId="cb-show-zero"
+          checked={showZeroQty}
+          onChange={(e) => setShowZeroQty(e.checked)}
+        />
+        <label
+          htmlFor="cb-show-zero"
+          className="font-bold text-700 cursor-pointer"
+        >
           보유수 0주 포함
         </label>
       </div>
 
       {enrichedAccounts.map((acc) => {
-        const displayStocks = showZeroQty ? acc.stocks : (acc.stocks || []).filter(s => s.quantity > 0)
-        
+        const displayStocks = showZeroQty
+          ? acc.stocks
+          : (acc.stocks || []).filter((s) => s.quantity > 0)
+
         return (
           <div className="mt-3 mb-6" key={acc.acc_cd}>
             <div className="flex align-items-center justify-content-between mb-3 border-bottom-1 pb-2 border-100">
-              <div className="flex align-items-center gap-3">
+              <div className="flex align-items-center gap-3 w-full">
                 <h3 className="text-xl font-bold m-0 text-700">
                   {acc.alias} 보유 현황
                 </h3>
-                <Badge
-                  value={`현금 잔고: ${acc.balance.toLocaleString()} 원`}
-                  severity="success"
-                />
-              </div>
-            </div>
 
-            {/* 예수금 (Cash Balance) R9 규격 프리미엄 배너 */}
-            <div className="p-3 mb-3 border-round bg-green-50 border-left-3 border-green-500 flex align-items-center justify-content-between shadow-1">
-              <div className="flex align-items-center gap-2">
-                <i className="pi pi-wallet text-green-600 text-xl"></i>
-                <span className="font-semibold text-800 text-sm">
-                  예수금 (Cash Balance) - {acc.acc_company_nm} {acc.acc_nm}
-                </span>
+                <div className="ml-auto flex align-items-center gap-2">
+                  <span className="font-semibold text-800">예수금</span>
+                  <span className="font-bold text-green-700">
+                    {(acc.cash_balance !== undefined
+                      ? acc.cash_balance
+                      : acc.balance
+                    ).toLocaleString()}{' '}
+                    원
+                  </span>
+                </div>
               </div>
-              <span className="text-xl font-bold text-green-700">
-                {(acc.cash_balance !== undefined
-                  ? acc.cash_balance
-                  : acc.balance
-                ).toLocaleString()}{' '}
-                원
-              </span>
             </div>
 
             <DataTable
@@ -266,7 +271,9 @@ export default function AssetDetailTab({ accounts }) {
               breakpoint="960px"
               sortMode="multiple"
               stripedRows
-              rowClassName={(rowData) => rowData.quantity === 0 ? 'opacity-70' : ''}
+              rowClassName={(rowData) =>
+                rowData.quantity === 0 ? 'opacity-70' : ''
+              }
               emptyMessage="보유 중인 주식이 없습니다."
             >
               <Column

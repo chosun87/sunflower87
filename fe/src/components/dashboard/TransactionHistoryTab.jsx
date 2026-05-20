@@ -1,6 +1,14 @@
 import { useMemo, useState, useEffect } from 'react'
 import dayjs from 'dayjs'
-import { DataTable, Column, Badge, Button, Dropdown, InputText, Calendar } from '@/assets/js/PrimeReact'
+import {
+  DataTable,
+  Column,
+  Badge,
+  Button,
+  Dropdown,
+  InputText,
+  Calendar,
+} from '@/assets/js/PrimeReact'
 
 export default function TransactionHistoryTab({
   transactions,
@@ -28,10 +36,10 @@ export default function TransactionHistoryTab({
         acc_cd: selectedAcc,
         stock_code: searchCode,
         start_date,
-        end_date
+        end_date,
       })
     }
-  }, [dates, selectedAcc, searchCode])
+  }, [dates, selectedAcc, searchCode, onLoadTransactions])
 
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
@@ -141,13 +149,13 @@ export default function TransactionHistoryTab({
       <div className="flex flex-wrap gap-3 mb-4 p-3 bg-gray-50 border-round">
         <span className="p-input-icon-left" style={{ flex: '1 1 200px' }}>
           <i className="pi pi-calendar" />
-          <Calendar 
-            value={dates} 
-            onChange={(e) => setDates(e.value)} 
-            selectionMode="range" 
-            readOnlyInput 
-            placeholder="기간 선택" 
-            className="w-full" 
+          <Calendar
+            value={dates}
+            onChange={(e) => setDates(e.value)}
+            selectionMode="range"
+            readOnlyInput
+            placeholder="기간 선택"
+            className="w-full"
             showButtonBar
           />
         </span>
@@ -163,10 +171,10 @@ export default function TransactionHistoryTab({
         />
         <span className="p-input-icon-left" style={{ flex: '1 1 200px' }}>
           <i className="pi pi-search" />
-          <InputText 
-            value={searchCode} 
-            onChange={(e) => setSearchCode(e.target.value)} 
-            placeholder="종목코드 입력" 
+          <InputText
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value)}
+            placeholder="종목코드 입력"
             className="w-full"
           />
         </span>

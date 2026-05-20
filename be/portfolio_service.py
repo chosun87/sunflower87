@@ -251,7 +251,7 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
     for tx in sorted_tx:
         cost = tx.quantity * tx.price
         t_fee = float(tx.tax_fee or 0.0)
-        
+
         all_time_tax_fee += t_fee
 
         if tx.type == "BUY":
@@ -263,7 +263,7 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
             all_time_buy_amt += tx_amt
 
         elif tx.type == "SELL":
-            all_time_sell_amt += (cost - t_fee)
+            all_time_sell_amt += cost - t_fee
             # 매도 시: 전량 매도 혹은 분할 매도 처리
             if holding_quantity <= 0:
                 continue
@@ -284,7 +284,14 @@ def calculate_stock_balance(transactions, target_stock_code, acc_cd):
                 total_purchase_amt = holding_quantity * current_avg_price
                 total_tax_fee = holding_quantity * current_avg_tax_fee
 
-    return holding_quantity, total_purchase_amt, total_tax_fee, all_time_buy_amt, all_time_sell_amt, all_time_tax_fee
+    return (
+        holding_quantity,
+        total_purchase_amt,
+        total_tax_fee,
+        all_time_buy_amt,
+        all_time_sell_amt,
+        all_time_tax_fee,
+    )
 
 
 def get_enriched_accounts_data(db: Session) -> dict:
@@ -316,9 +323,14 @@ def get_enriched_accounts_data(db: Session) -> dict:
         name = stock.name
 
         # 1. 거래 기록 기반 이동평균법 정밀 정산 (어띠베 BE_CRITICAL 긴급 지시서 반영)
-        qty, purchase_amt, total_tax_fee, all_time_buy_amt, all_time_sell_amt, all_time_tax_fee = calculate_stock_balance(
-            all_transactions, stock.code, acct_cd
-        )
+        (
+            qty,
+            purchase_amt,
+            total_tax_fee,
+            all_time_buy_amt,
+            all_time_sell_amt,
+            all_time_tax_fee,
+        ) = calculate_stock_balance(all_transactions, stock.code, acct_cd)
 
         # 2. 거래 기록이 전혀 없는 레거시 보유 주식에 대한 하이브리드 안전 가드 (Heal/Fallback)
         if qty <= 0 and stock.quantity > 0:
@@ -353,11 +365,17 @@ def get_enriched_accounts_data(db: Session) -> dict:
         if qty <= 0:
             # 보유수량이 0일 때는 역대 누적 데이터를 사용하여 실현손익 표기
             total_tax_fee_val = all_time_tax_fee
-            total_purchase_amt_pure = all_time_buy_amt - all_time_tax_fee  # 순수 매수 원금
+            total_purchase_amt_pure = (
+                all_time_buy_amt - all_time_tax_fee
+            )  # 순수 매수 원금
             total_eval_amt = all_time_sell_amt
             total_profit_loss = all_time_sell_amt - all_time_buy_amt
             avg_price_val = 0.0
-            return_rate = round((total_profit_loss / all_time_buy_amt) * 100, 2) if all_time_buy_amt > 0 else 0.0
+            return_rate = (
+                round((total_profit_loss / all_time_buy_amt) * 100, 2)
+                if all_time_buy_amt > 0
+                else 0.0
+            )
         elif total_purchase_amt_pure <= 0:
             avg_price_val = 0.0
             return_rate = 0.0
