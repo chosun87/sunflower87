@@ -24,6 +24,14 @@
   color: #ffffff !important;
 }
 
+.text-buy {
+  color: var(--red-600);
+}
+
+.text-sell {
+  color: var(--blue-600);
+}
+
 /* 커스텀 주식 차트 툴팁 스타일 */
 .custom-stock-tooltip {
   position: fixed;

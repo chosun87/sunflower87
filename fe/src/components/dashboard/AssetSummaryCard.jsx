@@ -33,14 +33,9 @@ export default function AssetSummaryCard({
     return { totalProfit: profit, returnRate: rate, isPositive: positive }
   }, [accounts])
 
+  const profitClass = `font-bold ${isPositive ? 'text-buy' : totalProfit < 0 ? 'text-sell' : ''}`
   const profitStyle = {
-    color: isPositive
-      ? 'var(--red-600)'
-      : totalProfit < 0
-        ? 'var(--blue-600)'
-        : 'inherit',
     fontSize: '1.2rem',
-    fontWeight: 'bold',
     marginLeft: '1rem',
   }
 
@@ -53,7 +48,7 @@ export default function AssetSummaryCard({
               {totalAsset.toLocaleString()} 원
             </h2>
             {(totalProfit !== 0 || returnRate !== 0) && (
-              <span style={profitStyle}>
+              <span className={profitClass} style={profitStyle}>
                 {isPositive ? '+' : ''}
                 {totalProfit.toLocaleString()} 원 ({isPositive ? '+' : ''}
                 {returnRate.toFixed(2)}%)

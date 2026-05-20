@@ -88,12 +88,9 @@ export default function AssetDetailTab({ accounts }) {
     }
 
     const isPositive = profit > 0
-    const style = {
-      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
-      fontWeight: 'bold',
-    }
+    const className = `monospace font-bold ${isPositive ? 'text-buy' : 'text-sell'}`
     return (
-      <span className="monospace" style={style}>
+      <span className={className}>
         {isPositive ? '+' : ''}
         {profit.toLocaleString()}
       </span>
@@ -125,12 +122,9 @@ export default function AssetDetailTab({ accounts }) {
     }
 
     const isPositive = rate > 0
-    const style = {
-      color: isPositive ? 'var(--red-600)' : 'var(--blue-600)',
-      fontWeight: 'bold',
-    }
+    const className = `monospace font-bold ${isPositive ? 'text-buy' : 'text-sell'}`
     return (
-      <span className="monospace" style={style}>
+      <span className={className}>
         {isPositive ? '+' : ''}
         {rate.toFixed(2)}
       </span>
@@ -181,24 +175,10 @@ export default function AssetDetailTab({ accounts }) {
         totalPurchaseAmount > 0 ? (totalProfit / totalPurchaseAmount) * 100 : 0
 
       const isProfitPositive = totalProfit > 0
-      const profitStyle = {
-        color: isProfitPositive
-          ? 'var(--red-600)'
-          : totalProfit < 0
-            ? 'var(--blue-600)'
-            : 'inherit',
-        fontWeight: 'bold',
-      }
+      const profitClass = `monospace font-bold ${isProfitPositive ? 'text-buy' : totalProfit < 0 ? 'text-sell' : ''}`
 
       const isRatePositive = totalReturnRate > 0
-      const rateStyle = {
-        color: isRatePositive
-          ? 'var(--red-600)'
-          : totalReturnRate < 0
-            ? 'var(--blue-600)'
-            : 'inherit',
-        fontWeight: 'bold',
-      }
+      const rateClass = `monospace font-bold ${isRatePositive ? 'text-buy' : totalReturnRate < 0 ? 'text-sell' : ''}`
 
       return {
         ...acc,
@@ -208,9 +188,9 @@ export default function AssetDetailTab({ accounts }) {
         totalProfit,
         totalReturnRate,
         isProfitPositive,
-        profitStyle,
+        profitClass,
         isRatePositive,
-        rateStyle,
+        rateClass,
       }
     })
   }, [accounts])
@@ -347,7 +327,7 @@ export default function AssetDetailTab({ accounts }) {
                 body={evalProfitBodyTemplate}
                 sortable
                 footer={
-                  <span className="monospace font-bold" style={acc.profitStyle}>
+                  <span className={acc.profitClass}>
                     {acc.isProfitPositive ? '+' : ''}
                     {acc.totalProfit.toLocaleString()}
                   </span>
@@ -360,7 +340,7 @@ export default function AssetDetailTab({ accounts }) {
                 body={profitTemplate}
                 sortable
                 footer={
-                  <span className="monospace font-bold" style={acc.rateStyle}>
+                  <span className={acc.rateClass}>
                     {acc.isRatePositive ? '+' : ''}
                     {acc.totalReturnRate.toFixed(2)}
                   </span>

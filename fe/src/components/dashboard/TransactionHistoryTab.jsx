@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import {
   DataTable,
@@ -20,26 +20,80 @@ export default function TransactionHistoryTab({
 }) {
   const [dates, setDates] = useState(null)
   const [selectedAcc, setSelectedAcc] = useState(null)
-  const [searchCode, setSearchCode] = useState('')
+  const [searchCode, setSearchCode] = useState(null)
 
-  useEffect(() => {
+  const stockOptions = useMemo(() => {
+    const stockMap = new Map()
+    const addStock = (stock) => {
+      if (!stock || !stock.code) return
+      const quantity = Number(stock.quantity || 0)
+      const existing = stockMap.get(stock.code)
+      if (existing) {
+        existing.quantity = Math.max(existing.quantity, quantity)
+      } else {
+        stockMap.set(stock.code, {
+          value: stock.code,
+          label: stock.name,
+          quantity,
+        })
+      }
+    }
+
+    const relevantAccounts = selectedAcc
+      ? accounts?.filter((acc) => acc.acc_cd === selectedAcc)
+      : accounts
+
+    ;(relevantAccounts || []).forEach((account) => {
+      ;(account.stocks || []).forEach(addStock)
+    })
+
+    return Array.from(stockMap.values()).sort((a, b) => {
+      if (b.quantity !== a.quantity) {
+        return b.quantity - a.quantity
+      }
+      return a.label.localeCompare(b.label, 'ko')
+    })
+  }, [accounts, selectedAcc])
+
+  const stockItemTemplate = (option) => {
+    if (!option) return null
+    return (
+      <div className="flex align-items-center gap-2">
+        <span className="text-500 monospace">{option.value})</span>
+        <span>{option.label}</span>
+        {option.quantity > 0 && (
+          <span className="ml-auto text-500">
+            (보유: {option.quantity.toLocaleString()}주)
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const buildSearchFilters = () => {
     let start_date = null
     let end_date = null
+
     if (dates && dates[0]) {
       start_date = dayjs(dates[0]).format('YYYY-MM-DD')
     }
     if (dates && dates[1]) {
       end_date = dayjs(dates[1]).format('YYYY-MM-DD')
     }
-    if (onLoadTransactions) {
-      onLoadTransactions({
-        acc_cd: selectedAcc,
-        stock_code: searchCode,
-        start_date,
-        end_date,
-      })
+
+    return {
+      acc_cd: selectedAcc,
+      stock_code: searchCode,
+      start_date,
+      end_date,
     }
-  }, [dates, selectedAcc, searchCode, onLoadTransactions])
+  }
+
+  const handleSearch = () => {
+    if (onLoadTransactions) {
+      onLoadTransactions(buildSearchFilters())
+    }
+  }
 
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
@@ -120,24 +174,46 @@ export default function TransactionHistoryTab({
     )
   }
 
-  const { totalTxAmountSum, totalTxTaxFeeSum } = useMemo(() => {
-    const totalTxAmountSum = (transactions || []).reduce(
-      (sum, tx) => sum + (tx.quantity || 0) * (tx.price || 0),
-      0,
-    )
-    const totalTxTaxFeeSum = (transactions || []).reduce(
-      (sum, tx) => sum + (tx.tax_fee || 0),
-      0,
-    )
-    return { totalTxAmountSum, totalTxTaxFeeSum }
-  }, [transactions])
+  const { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum } =
+    useMemo(() => {
+      let totalBuyAmount = 0
+      let totalSellAmount = 0
+
+      ;(transactions || []).forEach((tx) => {
+        const amount = (tx.quantity || 0) * (tx.price || 0)
+        if (tx.type === 'SELL' || tx.type === 'sell') {
+          totalSellAmount += amount
+        } else {
+          totalBuyAmount += amount
+        }
+      })
+
+      const totalTxAmountSum = totalSellAmount - totalBuyAmount
+      const totalQuantitySum = (transactions || []).reduce((sum, tx) => {
+        const quantity = tx.quantity || 0
+        if (tx.type === 'SELL' || tx.type === 'sell') {
+          return sum - quantity
+        }
+        return sum + quantity
+      }, 0)
+      const totalTxTaxFeeSum = (transactions || []).reduce(
+        (sum, tx) => sum + (tx.tax_fee || 0),
+        0,
+      )
+      return { totalTxAmountSum, totalTxTaxFeeSum, totalQuantitySum }
+    }, [transactions])
+
+  const totalTxAmountClass =
+    totalTxAmountSum < 0 ? 'text-sell' : totalTxAmountSum > 0 ? 'text-buy' : ''
+  const totalTxAmountText =
+    totalTxAmountSum === 0
+      ? '0 원'
+      : `${totalTxAmountSum > 0 ? '+' : '-'}${Math.abs(totalTxAmountSum).toLocaleString()} 원`
 
   return (
     <div className="mt-3">
       <div className="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-        <h3 className="text-xl font-bold m-0 text-700">
-          SQLite 매매 내역 대장
-        </h3>
+        <h3 className="text-xl font-bold m-0 text-700">매매 내역 대장</h3>
         <Button
           label="거래 내역 추가"
           icon="pi pi-plus"
@@ -146,38 +222,64 @@ export default function TransactionHistoryTab({
         />
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4 p-3 bg-gray-50 border-round">
-        <span className="p-input-icon-left" style={{ flex: '1 1 200px' }}>
-          <i className="pi pi-calendar" />
-          <Calendar
-            value={dates}
-            onChange={(e) => setDates(e.value)}
-            selectionMode="range"
-            readOnlyInput
-            placeholder="기간 선택"
-            className="w-full"
-            showButtonBar
-          />
-        </span>
-        <Dropdown
-          value={selectedAcc}
-          options={accounts}
-          onChange={(e) => setSelectedAcc(e.value)}
-          optionLabel="acc_nm"
-          optionValue="acc_cd"
-          placeholder="전체 계좌"
-          showClear
-          style={{ flex: '1 1 200px' }}
+      <div className="flex align-items-center w-full mb-4 bg-gray-50 border-round">
+        <div className="flex flex-wrap flex-1">
+          <div className="p-inputgroup col-12 md:col-6 lg:col-4">
+            <span className="p-inputgroup-addon">
+              <i className="pi pi-calendar"></i>
+            </span>
+            <Calendar
+              value={dates}
+              onChange={(e) => setDates(e.value)}
+              selectionMode="range"
+              locale="ko"
+              dateFormat="yy-mm-dd"
+              readOnlyInput
+              placeholder="기간 선택"
+              className="w-full"
+              showButtonBar
+            />
+          </div>
+          <div className="p-inputgroup col-12 md:col-6 lg:col-4">
+            <span className="p-inputgroup-addon">
+              <i className="pi pi-calendar"></i>
+            </span>
+            <Dropdown
+              value={selectedAcc}
+              options={accounts}
+              onChange={(e) => {
+                setSelectedAcc(e.value)
+                setSearchCode(null)
+              }}
+              optionLabel="acc_nm"
+              optionValue="acc_cd"
+              placeholder="전체 계좌"
+              showClear
+            />
+          </div>
+          <div className="p-inputgroup col-12 md:col-6 lg:col-4">
+            <span className="p-inputgroup-addon">
+              <i className="pi pi-calendar"></i>
+            </span>
+            <Dropdown
+              value={searchCode}
+              options={stockOptions}
+              onChange={(e) => setSearchCode(e.value)}
+              optionLabel="label"
+              optionValue="value"
+              itemTemplate={stockItemTemplate}
+              placeholder="종목 선택"
+              showClear
+            />
+          </div>
+        </div>
+
+        <Button
+          label="검색"
+          icon="pi pi-search"
+          onClick={handleSearch}
+          style={{ flex: '0 0 auto', height: '43px', xminWidth: '110px' }}
         />
-        <span className="p-input-icon-left" style={{ flex: '1 1 200px' }}>
-          <i className="pi pi-search" />
-          <InputText
-            value={searchCode}
-            onChange={(e) => setSearchCode(e.target.value)}
-            placeholder="종목코드 입력"
-            className="w-full"
-          />
-        </span>
       </div>
 
       <DataTable
@@ -188,6 +290,7 @@ export default function TransactionHistoryTab({
         stripedRows
         paginator
         rows={10}
+        scrollable
         className="mt-2"
         emptyMessage="조건에 맞는 매매 거래 히스토리가 존재하지 않습니다."
       >
@@ -223,6 +326,11 @@ export default function TransactionHistoryTab({
           align="right"
           body={txQuantityBodyTemplate}
           sortable
+          footer={
+            <span className="monospace font-bold">
+              {totalQuantitySum.toLocaleString()} 주
+            </span>
+          }
         ></Column>
         <Column
           field="price"
@@ -237,8 +345,8 @@ export default function TransactionHistoryTab({
           body={txTotalBodyTemplate}
           sortable
           footer={
-            <span className="monospace font-bold">
-              {totalTxAmountSum.toLocaleString()} 원
+            <span className={`monospace font-bold ${totalTxAmountClass}`}>
+              {totalTxAmountText}
             </span>
           }
         ></Column>
