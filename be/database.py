@@ -196,6 +196,31 @@ def init_db():
                             elif existing.market is None:
                                 existing.market = market_type
 
+                        # 순수 ETF 목록 추가 수집적재 (Self-Healing)
+                        # df_kospi/kosdaq에 포함되지 않아 누락된 ETF들에 한하여 이름을 개별 획득 및 적재
+                        for ticker in etf_tickers:
+                            existing = (
+                                db.query(CacheStock)
+                                .filter(CacheStock.stock_code == ticker)
+                                .first()
+                            )
+                            if not existing:
+                                try:
+                                    name = krx_stock.get_etf_ticker_name(ticker)
+                                    if name:
+                                        db.add(
+                                            CacheStock(
+                                                stock_code=ticker,
+                                                stock_name=name,
+                                                market="ETF",
+                                                is_active=1,
+                                            )
+                                        )
+                                except Exception as name_err:
+                                    print(f"Failed to fetch ETF name for {ticker}: {name_err}")
+                            elif existing.market is None:
+                                existing.market = "ETF"
+
                         # ETF 및 기타 오프라인 사전 주요 종목 결합 보충 (브랜드 키워드 및 동적 리스트 결합 검출)
                         from routers.stocks import get_offline_stocks
 
