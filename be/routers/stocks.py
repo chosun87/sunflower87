@@ -350,27 +350,41 @@ def get_stock_name_by_code(db: Session, code: str) -> str:
     summary="종목별 80거래일 OHLCV 시계열 API",
     description="특정 종목의 6자 코드에 대한 80거래일간의 시고저종(OHLCV) 데이터를 반환합니다.",
 )
-def get_stock_ohlcv(code: str, db: Session = Depends(get_db)):
+def get_stock_ohlcv(
+    code: str,
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
+):
     if not code:
         return {"status": "error", "message": "종목 코드가 필요합니다."}
 
     # [On-Demand Trigger] 사용자가 차트를 켠 시점에만 해당 종목 단 하나를 선택적 동기화
     try:
-        sync_ohlcv_cache(db, code)
+        sync_ohlcv_cache(db, code, start_date, end_date)
     except Exception as e:
         print(f"Failed to sync ohlcv cache during API call for {code}: {e}")
 
     # DB 마스터 초고속 이름 매핑 호출
     stock_name = get_stock_name_by_code(db, code)
 
-    # 최근 80거래일의 데이터를 desc()로 내림차순 조회하여 limit(80) 가져옴
-    records = (
-        db.query(StockOHLCVCache)
-        .filter(StockOHLCVCache.stock_code == code)
-        .order_by(StockOHLCVCache.trade_date.desc())
-        .limit(80)
-        .all()
-    )
+    query = db.query(StockOHLCVCache).filter(StockOHLCVCache.stock_code == code)
+
+    # 80-Day Buffer 요구사항 반영
+    if start_date:
+        req_start_obj = datetime.strptime(start_date.replace("-", ""), "%Y%m%d")
+        safe_start_str = (req_start_obj - timedelta(days=120)).strftime("%Y%m%d")
+        query = query.filter(StockOHLCVCache.trade_date >= safe_start_str)
+
+    if end_date:
+        query = query.filter(StockOHLCVCache.trade_date <= end_date.replace("-", ""))
+
+    query = query.order_by(StockOHLCVCache.trade_date.desc())
+
+    if not start_date and not end_date:
+        records = query.limit(80).all()
+    else:
+        records = query.all()
 
     # 캔들차트 표현 및 시간 순서 정렬을 위해 날짜 오름차순으로 뒤집기
     records_sorted = sorted(records, key=lambda x: x.trade_date)

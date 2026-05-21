@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 import { Card, Button, ProgressSpinner } from '@/assets/js/PrimeReact';
@@ -26,6 +26,30 @@ export default function StockDetail() {
     dataPointIndex: -1,
   });
 
+  const chartContainerRef = useRef(null);
+  const debounceTimer = useRef(null);
+
+  // 백엔드 API 호출 공통 함수 (Debounce에서 재사용)
+  const fetchOhlcvData = async (start_date = null, end_date = null) => {
+    try {
+      const params = { code: stockCode };
+      if (start_date) params.start_date = start_date;
+      if (end_date) params.end_date = end_date;
+      
+      const resData = await get('/api/stocks/ohlcv', params);
+      if (resData.status !== 'success') {
+        throw new Error(resData.message || '주가 데이터를 가져오는데 실패했습니다.');
+      }
+      setOhlcvData(resData.data || []);
+      setStockName(resData.stock_name || '');
+    } catch (err) {
+      console.error('OHLCV 데이터 로드 에러:', err);
+      showError(err.message || '서버 통신 실패');
+    } finally {
+      setIsChartLoading(false);
+    }
+  };
+
   // 주가 API 비동기 조회 및 상태 매핑 (20ms 마운트 가드 레이어 탑재)
   useEffect(() => {
     if (!stockCode) {
@@ -33,26 +57,47 @@ export default function StockDetail() {
       navigate('/dashboard');
       return;
     }
-
-    const loadOhlcvData = async () => {
-      setIsChartLoading(true);
-      try {
-        const resData = await get('/api/stocks/ohlcv', { code: stockCode });
-        if (resData.status !== 'success') {
-          throw new Error(resData.message || '주가 데이터를 가져오는데 실패했습니다.');
-        }
-        setOhlcvData(resData.data || []);
-        setStockName(resData.stock_name || '');
-      } catch (err) {
-        console.error('OHLCV 데이터 로드 에러:', err);
-        showError(err.message || '서버 통신 실패');
-      } finally {
-        setIsChartLoading(false);
-      }
-    };
-
-    loadOhlcvData();
+    setIsChartLoading(true);
+    fetchOhlcvData();
   }, [stockCode, navigate]);
+
+  // 전체 화면 토글 버튼 핸들러
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (chartContainerRef.current) {
+        chartContainerRef.current.requestFullscreen().catch(err => {
+          console.error("Fullscreen error:", err);
+        });
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  // 차트 Pan / Zoom 이벤트 핸들러 (300ms Debounce 결계)
+  const handleChartPanZoom = (chartContext, { xaxis }) => {
+    if (!xaxis || !xaxis.min || !xaxis.max) return;
+    
+    // category 방식의 X축에서 min, max는 1 기반의 인덱스로 넘어올 가능성이 높습니다.
+    const labels = chartContext?.w?.globals?.labels || [];
+    if (labels.length === 0) return;
+
+    // 인덱스 범위 보정
+    const minIdx = Math.max(0, Math.floor(xaxis.min) - 1);
+    const maxIdx = Math.min(labels.length - 1, Math.ceil(xaxis.max) - 1);
+
+    const start_date = labels[minIdx];
+    const end_date = labels[maxIdx];
+
+    if (!start_date || !end_date) return;
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      fetchOhlcvData(start_date, end_date);
+    }, 300);
+  };
 
   // 60거래일 데이터를 기반으로 주말/휴장일 공백이 100% 제거된 카테고리 눈금 및 시리즈의 메모이제이션
   const chartData = useMemo(() => {
@@ -196,8 +241,10 @@ export default function StockDetail() {
         toolbar: {
           show: true,
         },
-        background: 'transparent',
+        background: 'var(--surface-card)',
         events: {
+          zoomed: handleChartPanZoom,
+          scrolled: handleChartPanZoom,
           click: function (event, chartContext, config) {
             const idx = config.dataPointIndex;
             // 캔들/데이터 포인트를 클릭했을 때만 툴팁 토글 동작
@@ -358,8 +405,18 @@ export default function StockDetail() {
         <span className="text-500 font-semibold monospace">CODE: {stockCode}</span>
       </div>
 
-      <Card className="shadow-4 border-round p-3">
-        {isChartLoading ? (
+      <Card className="shadow-4 border-round p-3 relative">
+        {/* 전체 화면 토글 버튼 */}
+        <div className="absolute top-0 right-0 p-3 z-5">
+            <Button
+              icon="pi pi-expand"
+              className="p-button-rounded p-button-text p-button-secondary"
+              tooltip="전체 화면 토글"
+              onClick={toggleFullscreen}
+            />
+        </div>
+
+        {isChartLoading && ohlcvData.length === 0 ? (
           <div
             className="flex flex-column align-items-center justify-content-center"
             style={{ height: '400px' }}
@@ -381,7 +438,7 @@ export default function StockDetail() {
             해당 종목의 주가 데이터를 찾을 수 없습니다.
           </div>
         ) : (
-          <div style={{ minHeight: '400px' }}>
+          <div ref={chartContainerRef} style={{ minHeight: '400px', backgroundColor: 'var(--surface-card)' }}>
             <Chart
               options={chartOptions}
               series={chartData.series}
@@ -398,6 +455,10 @@ export default function StockDetail() {
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
+        }
+        /* 전체 화면 모드일 때 차트 높이 자동 조절 */
+        :fullscreen .apexcharts-canvas {
+            height: 100% !important;
         }
       `}</style>
 

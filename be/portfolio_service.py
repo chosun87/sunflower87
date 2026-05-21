@@ -76,98 +76,100 @@ def get_market_trade_dates(start_date_str: str, end_date_str: str) -> list:
     return []
 
 
-def sync_ohlcv_cache(db: Session, stock_code: str):
+def sync_ohlcv_cache(db: Session, stock_code: str, start_date: str = None, end_date: str = None):
     """지정된 종목코드에 대해 pykrx 연동 주가 시계열을 동적 캐싱 및
     KOSPI 캘린더 기반 Gap 정제 알고리즘에 맞춰 동기화합니다.
     """
     today = datetime.now()
     current_hour = today.hour
 
-    # 16시(오후 4시) 이후 여부에 따라 기준 종료일(Target End Date) 동적 정의
-    if current_hour >= 16:
-        target_end_str = today.strftime("%Y%m%d")
+    if not end_date:
+        if current_hour >= 16:
+            target_end_str = today.strftime("%Y%m%d")
+        else:
+            target_end_str = (today - timedelta(days=1)).strftime("%Y%m%d")
     else:
-        target_end_str = (today - timedelta(days=1)).strftime("%Y%m%d")
+        target_end_str = end_date.replace("-", "")
 
     try:
-        # [Step 1] 기존 캐시 데이터 최종일 조회
+        # [Step 1] 기존 캐시 데이터 최종일 및 최초일 조회
         last_cache = (
             db.query(StockOHLCVCache)
             .filter(StockOHLCVCache.stock_code == stock_code)
             .order_by(StockOHLCVCache.trade_date.desc())
             .first()
         )
+        first_cache = (
+            db.query(StockOHLCVCache)
+            .filter(StockOHLCVCache.stock_code == stock_code)
+            .order_by(StockOHLCVCache.trade_date.asc())
+            .first()
+        )
 
-        # 기록이 없다면 -> [케이스 A]로 바로 전이
-        if not last_cache:
-            print(
-                f"No existing cache found for {stock_code}. Running [Case A] "
-                f"(Initial {TRADE_DATE_PERIOD}-day setup)..."
-            )
-            _fetch_and_save_initial_ohlcv(db, stock_code)
-        else:
-            last_date_str = last_cache.trade_date
+        if not last_cache or not first_cache:
+            # 기록이 없다면 -> 전체 구간 초기 셋업
+            if start_date:
+                req_start_obj = datetime.strptime(start_date.replace("-", ""), "%Y%m%d")
+                safe_start_str = (req_start_obj - timedelta(days=120)).strftime("%Y%m%d")
+                from pykrx import stock as krx_stock
+                df_init = krx_stock.get_market_ohlcv_by_date(safe_start_str, target_end_str, stock_code)
+                if df_init is not None and not df_init.empty:
+                    _save_ohlcv_to_db(db, stock_code, df_init)
+            else:
+                _fetch_and_save_initial_ohlcv(db, stock_code)
+            return
 
-            # 조기 탈출(Early Exit): 이미 최종 캐시 날짜가 기준 종료일 이상이면 pykrx 네트워크 호출 차단
-            if last_date_str >= target_end_str:
-                print(
-                    f"Cache is already up to-date ({last_date_str}) "
-                    f"for {stock_code}. Skipping pykrx API sync."
-                )
-                return
+        last_date_str = last_cache.trade_date
+        first_date_str = first_cache.trade_date
 
-            # [Step 2] 120거래일 임계치 기반 데이터 공백 계산
-            # KOSPI 표준 영업일 캘린더 리스트 획득
+        # [Step 2] 과거 방향 백필 (Historical Backfill)
+        if start_date:
+            req_start_str = start_date.replace("-", "")
+            req_start_obj = datetime.strptime(req_start_str, "%Y%m%d")
+            # 프런트엔드 80-Day 버퍼 요구를 맞추기 위한 여유일 차감(약 120달력일)
+            safe_start_str = (req_start_obj - timedelta(days=120)).strftime("%Y%m%d")
+            
+            if safe_start_str < first_date_str:
+                print(f"[Historical Backfill] Fetching older data from {safe_start_str} to {first_date_str} for {stock_code}...")
+                from pykrx import stock as krx_stock
+                # first_date_str 겹침 방지를 위해 하루 전으로
+                h_end_obj = datetime.strptime(first_date_str, "%Y%m%d") - timedelta(days=1)
+                h_end_str = h_end_obj.strftime("%Y%m%d")
+                
+                if safe_start_str <= h_end_str:
+                    df_hist = krx_stock.get_market_ohlcv_by_date(safe_start_str, h_end_str, stock_code)
+                    if df_hist is not None and not df_hist.empty:
+                        _save_ohlcv_to_db(db, stock_code, df_hist)
+
+        # [Step 3] 미래 방향 백필 (최신 동기화)
+        if last_date_str < target_end_str:
             trade_dates = get_market_trade_dates(last_date_str, target_end_str)
-
-            # LAST_DATE보다 크고 YESTERDAY 이하인 진짜 영업일 개수 카운트
             gap_trade_days = len([d for d in trade_dates if d > last_date_str])
-            print(
-                f"Calculated trade dates gap between {last_date_str} and "
-                f"{target_end_str} for {stock_code}: {gap_trade_days} trade days."
-            )
-
-            # [케이스 B] 공백 거래일 ≤ 120일 (거래일 기준 6개월 이하)
-            if gap_trade_days <= DATA_GAP_THRESHOLD:
-                print(
-                    f"[Case B] Backfilling ohlcv gap for {stock_code} "
-                    f"({gap_trade_days} trade days gap)..."
-                )
+            
+            if gap_trade_days > 0 and gap_trade_days <= DATA_GAP_THRESHOLD:
+                print(f"[Case B] Backfilling ohlcv gap for {stock_code} ({gap_trade_days} trade days gap)...")
                 last_date_obj = datetime.strptime(last_date_str, "%Y%m%d")
-                start_date_obj = last_date_obj + timedelta(days=1)
-                start_date_str = start_date_obj.strftime("%Y%m%d")
-
-                if start_date_str <= target_end_str:
+                m_start_str = (last_date_obj + timedelta(days=1)).strftime("%Y%m%d")
+                
+                if m_start_str <= target_end_str:
                     from pykrx import stock as krx_stock
-
-                    df_gap = krx_stock.get_market_ohlcv_by_date(
-                        start_date_str, target_end_str, stock_code
-                    )
+                    df_gap = krx_stock.get_market_ohlcv_by_date(m_start_str, target_end_str, stock_code)
                     if df_gap is not None and not df_gap.empty:
                         _save_ohlcv_to_db(db, stock_code, df_gap)
-                        print(f"Successfully backfilled {len(df_gap)} trade dates.")
-                    else:
-                        print("No market trade data during backfill period.")
-
-            # [케이스 C] 공백 거래일 > 120일 (거래일 기준 6개월 초과)
-            else:
-                print(
-                    f"[Case C] Trade dates gap ({gap_trade_days} days) "
-                    f"exceeded threshold ({DATA_GAP_THRESHOLD} days) "
-                    f"for {stock_code}. Purging cache..."
-                )
-                # 데이터 유효 기한 만료로 판단, 기존 과거 캐시 일괄 DELETE
-                db.query(StockOHLCVCache).filter(
-                    StockOHLCVCache.stock_code == stock_code
-                ).delete()
+            elif gap_trade_days > DATA_GAP_THRESHOLD:
+                print(f"[Case C] Gap ({gap_trade_days}) exceeded threshold for {stock_code}. Purging cache...")
+                db.query(StockOHLCVCache).filter(StockOHLCVCache.stock_code == stock_code).delete()
                 db.commit()
-
-                # 지운 후 즉시 [케이스 A] 기동
-                print(
-                    f"Old cache purged. Running [Case A] (Initial "
-                    f"{TRADE_DATE_PERIOD}-day setup)..."
-                )
-                _fetch_and_save_initial_ohlcv(db, stock_code)
+                # 과거 데이터까지 한 번에 살리기 위해 safe_start_str를 적용해 다시 가져온다.
+                if start_date:
+                    req_start_obj = datetime.strptime(start_date.replace("-", ""), "%Y%m%d")
+                    safe_start_str = (req_start_obj - timedelta(days=120)).strftime("%Y%m%d")
+                    from pykrx import stock as krx_stock
+                    df_init = krx_stock.get_market_ohlcv_by_date(safe_start_str, target_end_str, stock_code)
+                    if df_init is not None and not df_init.empty:
+                        _save_ohlcv_to_db(db, stock_code, df_init)
+                else:
+                    _fetch_and_save_initial_ohlcv(db, stock_code)
 
     except Exception as e:
         # 외부 API 장애 혹은 크롤러 에러 시
