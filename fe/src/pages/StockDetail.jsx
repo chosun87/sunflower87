@@ -13,6 +13,7 @@ export default function StockDetail() {
   const [ohlcvData, setOhlcvData] = useState([]);
   const [stockName, setStockName] = useState('');
   const [isChartLoading, setIsChartLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 클릭 기반 커스텀 툴팁을 관리하는 상태 (Label 1)
   const [customClickTooltip, setCustomClickTooltip] = useState({
@@ -66,7 +67,7 @@ export default function StockDetail() {
     if (!document.fullscreenElement) {
       if (chartContainerRef.current) {
         chartContainerRef.current.requestFullscreen().catch(err => {
-          console.error("Fullscreen error:", err);
+          console.error('Fullscreen error:', err);
         });
       }
     } else {
@@ -75,6 +76,17 @@ export default function StockDetail() {
       }
     }
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === chartContainerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // 차트 Pan / Zoom 이벤트 핸들러 (300ms Debounce 결계)
   const handleChartPanZoom = (chartContext, { xaxis }) => {
@@ -438,7 +450,15 @@ export default function StockDetail() {
             해당 종목의 주가 데이터를 찾을 수 없습니다.
           </div>
         ) : (
-          <div ref={chartContainerRef} className="relative" style={{ minHeight: '400px', backgroundColor: 'var(--surface-card)' }}>
+          <div
+            ref={chartContainerRef}
+            className="relative"
+            style={{
+              minHeight: '400px',
+              height: isFullscreen ? '100vh' : 'auto',
+              backgroundColor: 'var(--surface-card)',
+            }}
+          >
             {isChartLoading && (
               <div 
                 className="absolute top-0 left-0 w-full h-full flex flex-column align-items-center justify-content-center z-5 border-round"
@@ -452,7 +472,8 @@ export default function StockDetail() {
               options={chartOptions}
               series={chartData.series}
               type="line" // 복합(Mixed) 차트 렌더링 활성화를 위해 메인 타입을 line으로 정의
-              height={400}
+              height={isFullscreen ? '100%' : 400}
+              width="100%"
             />
           </div>
         )}
