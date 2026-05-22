@@ -33,55 +33,27 @@ def sync_cache_stocks(db: Session):
                 and df_kosdaq is not None
                 and not df_kosdaq.empty
             ):
-                active_tickers = set()
+                new_stocks = {}
 
                 # KOSPI 수집적재
                 for ticker, row in df_kospi.iterrows():
-                    active_tickers.add(ticker)
-                    name = row["종목명"]
-                    existing = (
-                        db.query(CacheStock)
-                        .filter(CacheStock.stock_code == ticker)
-                        .first()
-                    )
                     market_type = "ETF" if ticker in etf_tickers else "KOSPI"
-                    if not existing:
-                        db.add(CacheStock(stock_code=ticker, stock_name=name, market=market_type, is_active=1))
-                    elif existing.market is None:
-                        existing.market = market_type
+                    new_stocks[ticker] = CacheStock(stock_code=ticker, stock_name=row["종목명"], market=market_type, is_active=1)
 
                 # KOSDAQ 수집적재
                 for ticker, row in df_kosdaq.iterrows():
-                    active_tickers.add(ticker)
-                    name = row["종목명"]
-                    existing = (
-                        db.query(CacheStock)
-                        .filter(CacheStock.stock_code == ticker)
-                        .first()
-                    )
                     market_type = "ETF" if ticker in etf_tickers else "KOSDAQ"
-                    if not existing:
-                        db.add(CacheStock(stock_code=ticker, stock_name=name, market=market_type, is_active=1))
-                    elif existing.market is None:
-                        existing.market = market_type
+                    new_stocks[ticker] = CacheStock(stock_code=ticker, stock_name=row["종목명"], market=market_type, is_active=1)
 
                 # 순수 ETF 목록 추가 수집적재
                 for ticker in etf_tickers:
-                    active_tickers.add(ticker)
-                    existing = (
-                        db.query(CacheStock)
-                        .filter(CacheStock.stock_code == ticker)
-                        .first()
-                    )
-                    if not existing:
+                    if ticker not in new_stocks:
                         try:
                             name = krx_stock.get_etf_ticker_name(ticker)
                             if name:
-                                db.add(CacheStock(stock_code=ticker, stock_name=name, market="ETF", is_active=1))
+                                new_stocks[ticker] = CacheStock(stock_code=ticker, stock_name=name, market="ETF", is_active=1)
                         except Exception as name_err:
                             print(f"Failed to fetch ETF name for {ticker}: {name_err}")
-                    elif existing.market is None:
-                        existing.market = "ETF"
 
                 # ETF 및 기타 오프라인 사전 주요 종목 결합 보충
                 from routers.stocks import get_offline_stocks
@@ -90,28 +62,18 @@ def sync_cache_stocks(db: Session):
                 etf_keywords = ["KODEX", "TIGER", "ACE", "SOL", "RISE", "KOSEF", "HANARO", "KBSTAR", "ARIRANG"]
 
                 for code, name in offline_master.items():
-                    active_tickers.add(code)
-                    existing = (
-                        db.query(CacheStock)
-                        .filter(CacheStock.stock_code == code)
-                        .first()
-                    )
-                    market_type = "KOSPI"
-                    if code in etf_tickers or any(kw in name.upper() for kw in etf_keywords):
-                        market_type = "ETF"
-                    if not existing:
-                        db.add(CacheStock(stock_code=code, stock_name=name, market=market_type, is_active=1))
-                    elif existing.market is None:
-                        existing.market = market_type
+                    if code not in new_stocks:
+                        market_type = "KOSPI"
+                        if code in etf_tickers or any(kw in name.upper() for kw in etf_keywords):
+                            market_type = "ETF"
+                        new_stocks[code] = CacheStock(stock_code=code, stock_name=name, market=market_type, is_active=1)
 
-                # [Diff & Soft Delete 로직]
-                db_active_stocks = db.query(CacheStock).filter(CacheStock.is_active == 1).all()
-                for s in db_active_stocks:
-                    if s.stock_code not in active_tickers:
-                        s.is_active = 0
-                        print(f"[sunflower87] Soft-deleted inactive stock: {s.stock_code} ({s.stock_name})")
-
+                # [오염 데이터 클리어 및 Bulk Insert]
+                # 기존 데이터의 무결성 오염을 방지하기 위해 전체 삭제 후 메모리에 취합된 최신본을 일괄 Insert 합니다.
+                db.query(CacheStock).delete()
+                db.bulk_save_objects(list(new_stocks.values()))
                 db.commit()
+
                 print(f"[sunflower87] Successfully seeded complete KRX stock masters based on trade date {date_str}!")
                 masters_seeded = True
                 break
@@ -128,6 +90,7 @@ def sync_cache_stocks(db: Session):
 
         etf_keywords = ["KODEX", "TIGER", "ACE", "SOL", "RISE", "KOSEF", "HANARO", "KBSTAR", "ARIRANG"]
 
+        new_offline_stocks = []
         for code, name in offline_master.items():
             market_type = "KOSPI"
             if any(kw in name.upper() for kw in etf_keywords):
@@ -135,11 +98,10 @@ def sync_cache_stocks(db: Session):
             elif code.startswith("2") or code.startswith("3") or code.startswith("4"):
                 market_type = "KOSDAQ"
 
-            existing_stock = db.query(CacheStock).filter(CacheStock.stock_code == code).first()
-            if not existing_stock:
-                db.add(CacheStock(stock_code=code, stock_name=name, market=market_type, is_active=1))
-            elif existing_stock.market is None:
-                existing_stock.market = market_type
+            new_offline_stocks.append(CacheStock(stock_code=code, stock_name=name, market=market_type, is_active=1))
+            
+        db.query(CacheStock).delete()
+        db.bulk_save_objects(new_offline_stocks)
         db.commit()
         print("[sunflower87] Offline fallback stock masters successfully seeded.")
         
