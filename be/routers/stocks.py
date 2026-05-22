@@ -251,9 +251,25 @@ def get_stocks_master():
     return integrated
 
 
+# --- (기존 Search/Info API들 이전 위치에 On-Demand Sync API 추가) ---
+
+@router.post(
+    "/sync-master",
+    summary="수동 종목 마스터 동기화 API",
+    description="KRX에서 최신 종목 데이터를 강제로 재수집하여 로컬 데이터베이스의 종목 마스터를 최신화합니다. 상장폐지 종목은 Soft Delete(is_active=0) 처리됩니다.",
+)
+def trigger_master_sync(db: Session = Depends(get_db)):
+    from services.cache_stocks import sync_cache_stocks
+    try:
+        result = sync_cache_stocks(db)
+        return result
+    except Exception as e:
+        print(f"[ERROR] Manual sync failed: {e}")
+        return {"status": "error", "message": f"동기화 실패: {str(e)}"}
+
 @router.get(
     "/search",
-    summary="종목 검색 자동완성 API",
+    summary="주식/ETF 종목 실시간 검색 API (초고속 인메모리급 응답)",
     description=(
         "로컬 DB 동적 주식 마스터 테이블을 기반으로 매칭되는 주식/ETF 목록을 반환합니다. "
         "서버 구동 시점에 시딩된 마스터 데이터를 활용하므로 10ms 이내의 극도로 신속한 초고속 응답을 보장합니다."
@@ -269,6 +285,7 @@ def search_stocks(keyword: str = "", db: Session = Depends(get_db)):
     # 뼈대 마스터 테이블(cache_stocks)에서 이름 또는 코드 부분 일치 조건으로 초고속 조회
     db_results = (
         db.query(CacheStock)
+        .filter(CacheStock.is_active == 1)
         .filter(
             (func.lower(CacheStock.stock_name).like(f"%{keyword_lower}%"))
             | (CacheStock.stock_code.like(f"%{keyword_lower}%"))

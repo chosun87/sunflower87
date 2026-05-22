@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Card, TabView, TabPanel, addLocale } from '@/assets/js/PrimeReact';
+import { Card, TabView, TabPanel, addLocale, Button } from '@/assets/js/PrimeReact';
 import { PrimeReact_locale } from '@/assets/js/PrimeReact';
 import { showNotice, showError } from '@/assets/js/dialogUtils';
 import { get, post, put, del, getRecommendations, searchStock, getStockNameByCode } from '@/api';
@@ -45,6 +45,7 @@ export default function Dashboard() {
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     transactionFiltersRef.current = transactionFilters;
@@ -266,6 +267,27 @@ export default function Dashboard() {
     }
   };
 
+  // 온디맨드 수동 동기화(On-Demand Sync) 핸들러
+  const handleSyncMaster = async () => {
+    setIsSyncing(true);
+    try {
+      const resData = await post('/api/stocks/sync-master');
+      if (resData.status !== 'success') {
+        throw new Error(resData.message || '동기화 처리에 실패했습니다.');
+      }
+      showNotice({
+        header: '동기화 완료',
+        icon: 'pi pi-check-circle',
+        message: '종목 마스터 데이터가 최신 상태로 동기화되었습니다.',
+      });
+    } catch (err) {
+      console.error('동기화 중 오류:', err);
+      showError(err.message || '마스터 동기화 중 오류가 발생했습니다.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <Suspense
       fallback={
@@ -278,7 +300,16 @@ export default function Dashboard() {
       <div className="p-4 md:p-6 lg:p-8">
         <div className="flex align-items-center justify-content-between mb-6">
           <h1 className="text-4xl font-bold text-900 m-0">🌻 sunflower87 Dashboard</h1>
-          <span className="text-600">Decision Maker: SUN</span>
+          <div className="flex align-items-center gap-3">
+            <Button
+              label="종목 최신화"
+              icon="pi pi-refresh"
+              className="p-button-outlined p-button-secondary p-button-sm"
+              loading={isSyncing}
+              onClick={handleSyncMaster}
+            />
+            <span className="text-600 hidden md:inline">Decision Maker: SUN</span>
+          </div>
         </div>
 
         {/* 상단 총자산 요약 및 계좌 선택 컴포넌트 */}

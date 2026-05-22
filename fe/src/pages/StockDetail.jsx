@@ -438,7 +438,16 @@ export default function StockDetail() {
             해당 종목의 주가 데이터를 찾을 수 없습니다.
           </div>
         ) : (
-          <div ref={chartContainerRef} style={{ minHeight: '400px', backgroundColor: 'var(--surface-card)' }}>
+          <div ref={chartContainerRef} className="relative" style={{ minHeight: '400px', backgroundColor: 'var(--surface-card)' }}>
+            {isChartLoading && (
+              <div 
+                className="absolute top-0 left-0 w-full h-full flex flex-column align-items-center justify-content-center z-5 border-round"
+                style={{ backgroundColor: 'rgba(128, 128, 128, 0.15)', backdropFilter: 'blur(2px)' }}
+              >
+                <ProgressSpinner style={{ width: '40px', height: '40px' }} strokeWidth="4" animationDuration=".5s" />
+                <span className="text-600 font-bold mt-2 text-sm shadow-1">과거 주가 데이터 백필 중...</span>
+              </div>
+            )}
             <Chart
               options={chartOptions}
               series={chartData.series}
