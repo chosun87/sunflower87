@@ -1,0 +1,2 @@
+BE의 /api/stocks/refresh-prices가 호출되어도 FE에 바로 보이는 건 아니잖아.
+FE도 BE의 refresh-prices가 바로 보이도록 할 수 있는 방법을 적용해줘.
