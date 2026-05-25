@@ -1,6 +1,6 @@
-import { Column, DataTable } from '@/assets/ts/PrimeReact'
-import CustomPanel from '@components/CustomPanel'
-import { transactionsData, type Transaction } from '@/data/LatestTransactionsData'
+import { Column, DataTable } from '@/assets/ts/PrimeReact';
+import CustomPanel from '@components/CustomPanel';
+import { transactionsData, type Transaction } from '@/data/LatestTransactionsData';
 
 export default function LatestTransactions() {
   // DataTable Action Type 컬럼 렌더러
@@ -9,8 +9,8 @@ export default function LatestTransactions() {
       <span className={`action-type text-${rowData.type.toLowerCase()}`}>
         {rowData.type === 'Buy' ? '매수' : '매도'}
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <CustomPanel
@@ -36,5 +36,5 @@ export default function LatestTransactions() {
         <Column field="price" header="체결 단가" sortable></Column>
       </DataTable>
     </CustomPanel>
-  )
+  );
 }

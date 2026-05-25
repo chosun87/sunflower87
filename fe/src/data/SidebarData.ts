@@ -1,16 +1,16 @@
 export interface CustomMenuItem {
-  key: string
-  label: string
-  icon?: string | null
-  data?: string
-  badge?: number
-  expanded?: boolean
-  children?: CustomMenuItem[]
+  key: string;
+  label: string;
+  icon?: string | null;
+  data?: string;
+  badge?: number;
+  expanded?: boolean;
+  children?: CustomMenuItem[];
 }
 
 export interface MenuSection {
-  title: string
-  items: CustomMenuItem[]
+  title: string;
+  items: CustomMenuItem[];
 }
 
 export const menuData: MenuSection[] = [
@@ -84,4 +84,4 @@ export const menuData: MenuSection[] = [
       },
     ],
   },
-]
+];

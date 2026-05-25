@@ -1,8 +1,8 @@
-import KpiCards from '@components/Dashboard/KpiCards'
-import PortfolioPerformance from '@components/Dashboard/PortfolioPerformance'
-import DividendSummary from '@components/Dashboard/DividendSummary'
-import LatestTransactions from '@components/Dashboard/LatestTransactions'
-import MyWatchlist from '@components/Dashboard/MyWatchlist'
+import KpiCards from '@components/Dashboard/KpiCards';
+import PortfolioPerformance from '@components/Dashboard/PortfolioPerformance';
+import DividendSummary from '@components/Dashboard/DividendSummary';
+import LatestTransactions from '@components/Dashboard/LatestTransactions';
+import MyWatchlist from '@components/Dashboard/MyWatchlist';
 
 export default function Dashboard() {
   return (
@@ -42,5 +42,5 @@ export default function Dashboard() {
         </div>
       </div>
     </main>
-  )
+  );
 }

@@ -1,19 +1,16 @@
-import { BreadCrumb } from '@/assets/ts/PrimeReact'
-import { useEffect, useState } from 'react'
-import { get, post, put, del, searchStock, getStockNameByCode } from '@/api/index'
-import TransactionStockCmpt from '@/components/TransactionStock/TransactionStockCmpt'
-import TrStockDialog from '@/components/TransactionStock/TrStockDialog'
-import { showNotice, showError, showConfirm } from '@/assets/js/dialogUtils'
+import { BreadCrumb } from '@/assets/ts/PrimeReact';
+import { useEffect, useState } from 'react';
+import { get, post, put, del, searchStock, getStockNameByCode } from '@/api/index';
+import TransactionStockCmpt from '@/components/TransactionStock/TransactionStockCmpt';
+import TrStockDialog from '@/components/TransactionStock/TrStockDialog';
+import { showNotice, showError, showConfirm } from '@/assets/js/dialogUtils';
 
-const breadcrumbItems = [
-  { label: 'Home', url: '/' },
-  { label: '주식 매매 내역' },
-]
+const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: '주식 매매 내역' }];
 
 export default function TransactionStock() {
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  
+
   const [dialogVisible, setDialogVisible] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +30,7 @@ export default function TransactionStock() {
         setTransactions(mapped as never[]);
       }
     } catch (e) {
-      console.error("Failed to load transactions:", e);
+      console.error('Failed to load transactions:', e);
     }
   };
 
@@ -44,7 +41,7 @@ export default function TransactionStock() {
         setAccounts(res.data.accounts || []);
       }
     } catch (e) {
-      console.error("Failed to load accounts:", e);
+      console.error('Failed to load accounts:', e);
     }
   };
 
@@ -78,7 +75,7 @@ export default function TransactionStock() {
         } catch (e: any) {
           showError(e.message || '삭제에 실패했습니다.');
         }
-      }
+      },
     });
   };
 
@@ -92,7 +89,7 @@ export default function TransactionStock() {
         quantity: payload.quantity,
         price: payload.price,
         tax_fee: payload.tax_fee,
-        dt_trade: payload.date
+        dt_trade: payload.date,
       };
 
       if (editingTx) {
@@ -136,7 +133,7 @@ export default function TransactionStock() {
           <BreadCrumb className="breadcrumb" model={breadcrumbItems} />
         </div>
         <div className="page-content">
-          <TransactionStockCmpt 
+          <TransactionStockCmpt
             transactions={transactions}
             accounts={accounts}
             onLoadTransactions={fetchTransactions}
@@ -146,7 +143,7 @@ export default function TransactionStock() {
           />
         </div>
       </div>
-      
+
       <TrStockDialog
         visible={dialogVisible}
         onHide={() => setDialogVisible(false)}
@@ -159,5 +156,5 @@ export default function TransactionStock() {
         onSave={handleSave}
       />
     </main>
-  )
+  );
 }

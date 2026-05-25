@@ -1,5 +1,5 @@
-import { Panel } from '@/assets/ts/PrimeReact'
-import { kpiData } from '@/data/kpiData'
+import { Panel } from '@/assets/ts/PrimeReact';
+import { kpiData } from '@/data/kpiData';
 
 export default function KpiCards() {
   return (
@@ -35,5 +35,5 @@ export default function KpiCards() {
         </Panel>
       ))}
     </div>
-  )
+  );
 }

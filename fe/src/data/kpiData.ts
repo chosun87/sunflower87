@@ -1,14 +1,14 @@
 export interface KpiDataItem {
-  id: string
-  title: string
-  icon: string
-  iconColor: string
-  value: string
-  isValueUp: boolean
-  change: string
-  isChangeUp: boolean
-  bgColor: string
-  borderColor: string
+  id: string;
+  title: string;
+  icon: string;
+  iconColor: string;
+  value: string;
+  isValueUp: boolean;
+  change: string;
+  isChangeUp: boolean;
+  bgColor: string;
+  borderColor: string;
 }
 
 // KPI 요약 카드들에 사용되는 전용 고유 Mock 데이터
@@ -61,4 +61,4 @@ export const kpiData: KpiDataItem[] = [
     bgColor: 'var(--purple-50)',
     borderColor: 'var(--purple-500)',
   },
-]
+];

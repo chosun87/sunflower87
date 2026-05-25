@@ -1,12 +1,12 @@
 export interface Transaction {
-  id: string
-  asset: string
-  symbol: string
-  date: string
-  type: 'Buy' | 'Sell'
-  amount: number
-  price: string
-  status: 'Success' | 'Pending' | 'Failed'
+  id: string;
+  asset: string;
+  symbol: string;
+  date: string;
+  type: 'Buy' | 'Sell';
+  amount: number;
+  price: string;
+  status: 'Success' | 'Pending' | 'Failed';
 }
 
 // 거래 내역 자체 보유 Mock Data
@@ -51,4 +51,4 @@ export const transactionsData: Transaction[] = [
     price: '$151.80',
     status: 'Failed',
   },
-]
+];

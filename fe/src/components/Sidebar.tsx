@@ -1,20 +1,20 @@
-import { useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { PanelMenu } from '@/assets/ts/PrimeReact'
-import { menuData } from '@/data/SidebarData'
-import packageJson from '@/../package.json'
-import reactLogo from '@/assets/image/react.svg'
+import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { PanelMenu } from '@/assets/ts/PrimeReact';
+import { menuData } from '@/data/SidebarData';
+import packageJson from '@/../package.json';
+import reactLogo from '@/assets/image/react.svg';
 
 interface SidebarProps {
-  collapsed: boolean
+  collapsed: boolean;
 }
 
-import { generateMenuItems } from '@/assets/ts/SidebarUtils'
+import { generateMenuItems } from '@/assets/ts/SidebarUtils';
 
 export default function Sidebar({ collapsed }: SidebarProps) {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const currentPath = location.pathname
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = location.pathname;
 
   // menuData를 PrimeReact PanelMenu 규격인 MenuItem[]으로 변환 및 최적화 메모이제이션(useMemo) 캐싱
   const memoizedMenuGroups = useMemo(() => {
@@ -22,8 +22,8 @@ export default function Sidebar({ collapsed }: SidebarProps) {
     return menuData.map((group) => ({
       title: group.title,
       items: generateMenuItems(group.items, currentPath, navigate),
-    }))
-  }, [currentPath, navigate])
+    }));
+  }, [currentPath, navigate]);
 
   return (
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -48,5 +48,5 @@ export default function Sidebar({ collapsed }: SidebarProps) {
         ))}
       </div>
     </aside>
-  )
+  );
 }

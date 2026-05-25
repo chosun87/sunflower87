@@ -1,6 +1,6 @@
-import { DataView } from '@/assets/ts/PrimeReact'
-import CustomPanel from '@components/CustomPanel'
-import { watchlistData, type StockItem } from '@/data/MyWatchlistData'
+import { DataView } from '@/assets/ts/PrimeReact';
+import CustomPanel from '@components/CustomPanel';
+import { watchlistData, type StockItem } from '@/data/MyWatchlistData';
 
 export default function MyWatchlist() {
   // Watchlist DataView 렌더러
@@ -23,8 +23,8 @@ export default function MyWatchlist() {
           </span>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <CustomPanel
@@ -39,5 +39,5 @@ export default function MyWatchlist() {
     >
       <DataView value={watchlistData} itemTemplate={watchlistTemplate} layout="list" />
     </CustomPanel>
-  )
+  );
 }

@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import Optional, List, Generic, TypeVar
-from pydantic import BaseModel, Field, validator
-from constants import TradeType, CashType
+from typing import Generic, List, Optional, TypeVar
 
-T = TypeVar('T')
+from pydantic import BaseModel, Field, validator
+
+from constants import CashType, TradeType
+
+T = TypeVar("T")
+
 
 class ApiResponse(BaseModel, Generic[T]):
     status: str
@@ -11,9 +14,11 @@ class ApiResponse(BaseModel, Generic[T]):
     data: Optional[T] = None
     results: Optional[List[T]] = None
 
+
 class TaskCreate(BaseModel):
     filename: str = Field(..., description="마크다운 파일명")
     content: str = Field(..., description="내용")
+
 
 # --- Account ---
 class AccountBase(BaseModel):
@@ -22,13 +27,16 @@ class AccountBase(BaseModel):
     acc_order: Optional[int] = 1
     initial_cash: Optional[int] = 0
 
+
 class AccountCreate(AccountBase):
     acc_cd: str
+
 
 class AccountUpdate(BaseModel):
     acc_nm: Optional[str] = None
     initial_cash: Optional[int] = None
     acc_order: Optional[int] = None
+
 
 class AccountResponse(AccountBase):
     acc_cd: str
@@ -38,6 +46,7 @@ class AccountResponse(AccountBase):
 
     class Config:
         from_attributes = True
+
 
 # --- Transaction (Stock) ---
 class TransactionCreate(BaseModel):
@@ -73,6 +82,7 @@ class TransactionCreate(BaseModel):
             pass
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+
 class TransactionUpdate(BaseModel):
     dt_trade: Optional[str] = None
     trade_type: Optional[TradeType] = None
@@ -80,15 +90,16 @@ class TransactionUpdate(BaseModel):
     price: Optional[int] = None
     tax_fee: Optional[int] = None
 
+
 class TransactionResponse(BaseModel):
     id: int
     acc_cd: str
-    acc_nm: Optional[str] = None # 동적 조인용
-    acc_company_nm: Optional[str] = None # 동적 조인용
+    acc_nm: Optional[str] = None  # 동적 조인용
+    acc_company_nm: Optional[str] = None  # 동적 조인용
     dt_trade: datetime
     trade_type: str
     stock_code: str
-    stock_name: Optional[str] = None # 동적 조인용
+    stock_name: Optional[str] = None  # 동적 조인용
     quantity: int
     price: int
     tax_fee: int
@@ -96,6 +107,7 @@ class TransactionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 # --- TransactionCash ---
 class TransactionCashCreate(BaseModel):
@@ -107,8 +119,10 @@ class TransactionCashCreate(BaseModel):
 
     @validator("dt_cash", pre=True, always=True)
     def parse_cash_date(cls, v):
-        if not v: return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return v # 실제론 정밀 파싱 필요하나 간략화
+        if not v:
+            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return v  # 실제론 정밀 파싱 필요하나 간략화
+
 
 class TransactionCashResponse(BaseModel):
     id: int
@@ -122,6 +136,7 @@ class TransactionCashResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # --- AccountDailyBalance ---
 class AccountDailyBalanceResponse(BaseModel):
     acc_cd: str
@@ -133,6 +148,7 @@ class AccountDailyBalanceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 # --- Stock ---
 class StockResponse(BaseModel):
@@ -147,6 +163,7 @@ class StockResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class StockCreate(BaseModel):
     acc_cd: str
     stock_code: str
@@ -154,6 +171,7 @@ class StockCreate(BaseModel):
     avg_price: int
     current_price: int
     purchase_amount: int
+
 
 # --- StockCache ---
 class StockCacheResponse(BaseModel):
@@ -163,6 +181,7 @@ class StockCacheResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 # --- StockOHLCVCache ---
 class StockOHLCVResponse(BaseModel):
@@ -179,8 +198,10 @@ class StockOHLCVResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class StockOHLCVCreate(StockOHLCVResponse):
     pass
+
 
 # --- Recommendation ---
 class RecommendationResponse(BaseModel):
@@ -196,11 +217,13 @@ class RecommendationResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RecommendationCreate(BaseModel):
     stock_code: str
     tag: str
     reason: str
     score: int
+
 
 class RecommendationUpdate(BaseModel):
     tag: Optional[str] = None

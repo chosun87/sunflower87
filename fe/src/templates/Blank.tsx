@@ -1,6 +1,6 @@
-import { BreadCrumb } from '@/assets/ts/PrimeReact'
+import { BreadCrumb } from '@/assets/ts/PrimeReact';
 
-const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: 'Templates' }, { label: 'Blank' }]
+const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: 'Templates' }, { label: 'Blank' }];
 
 export default function TemplateBlank() {
   return (
@@ -18,5 +18,5 @@ export default function TemplateBlank() {
         </div>
       </div>
     </main>
-  )
+  );
 }

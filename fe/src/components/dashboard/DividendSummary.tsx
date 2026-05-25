@@ -1,4 +1,4 @@
-import CustomPanel from '@components/CustomPanel'
+import CustomPanel from '@components/CustomPanel';
 
 export default function DividendSummary() {
   return (
@@ -26,5 +26,5 @@ export default function DividendSummary() {
         </span>
       </div>
     </CustomPanel>
-  )
+  );
 }

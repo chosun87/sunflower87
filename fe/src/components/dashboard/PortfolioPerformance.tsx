@@ -1,4 +1,4 @@
-import CustomPanel from '@components/CustomPanel'
+import CustomPanel from '@components/CustomPanel';
 
 export default function PortfolioPerformance() {
   return (
@@ -27,5 +27,5 @@ export default function PortfolioPerformance() {
         </span>
       </div>
     </CustomPanel>
-  )
+  );
 }

@@ -151,13 +151,15 @@ export default function TransactionStockCmpt({
         <Button
           icon="fa-solid fa-pencil"
           className="p-button-rounded p-button-text p-button-success"
-          tooltip="매매 내역 수정" tooltipOptions={{ position: 'top' }}
+          tooltip="매매 내역 수정"
+          tooltipOptions={{ position: 'top' }}
           onClick={() => onEditClick(rowData)}
         />
         <Button
           icon="fa-solid fa-trash"
           className="p-button-rounded p-button-text p-button-danger"
-          tooltip="매매 내역 삭제" tooltipOptions={{ position: 'top' }}
+          tooltip="매매 내역 삭제"
+          tooltipOptions={{ position: 'top' }}
           onClick={() => onDeleteClick(rowData)}
         />
       </div>
@@ -250,13 +252,10 @@ export default function TransactionStockCmpt({
           </div>
         </div>
 
-        <Button
-          icon="fa-solid fa-search"
-          label="검색"
-          onClick={handleSearch}
-        />
+        <Button icon="fa-solid fa-search" label="검색" onClick={handleSearch} />
 
-        <Button raised
+        <Button
+          raised
           icon="fa-solid fa-plus"
           label="거래 내역 추가"
           className="ml-2"

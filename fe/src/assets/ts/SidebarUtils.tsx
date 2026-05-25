@@ -1,30 +1,30 @@
-import { type MenuItem, type MenuItemOptions } from '@/assets/ts/PrimeReact'
-import { type CustomMenuItem } from '@/data/SidebarData'
-import type { NavigateFunction } from 'react-router-dom'
+import { type MenuItem, type MenuItemOptions } from '@/assets/ts/PrimeReact';
+import { type CustomMenuItem } from '@/data/SidebarData';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface CustomMenuItemOptions extends MenuItemOptions {
-  active: boolean
+  active: boolean;
 }
 
 export const generateMenuItems = (
   items: CustomMenuItem[],
   currentPath: string,
   navigate: NavigateFunction,
-  level = 0,
+  level = 0
 ): MenuItem[] => {
   return items.map((item) => {
-    const hasChildren = item.children && item.children.length > 0
-    const isChild = level > 0 // 서브링크 계층 판정
+    const hasChildren = item.children && item.children.length > 0;
+    const isChild = level > 0; // 서브링크 계층 판정
 
     // 2단계 서브 메뉴 액티브 판정
-    const isSubActive = isChild && item.data === currentPath
+    const isSubActive = isChild && item.data === currentPath;
 
     // 1단계 부모 메뉴 액티브 판정 (자식 중 현재 경로와 일치하는 노드가 있는지 탐색)
     const isMainActive =
-      hasChildren && item.children?.some((child: CustomMenuItem) => child.data === currentPath)
+      hasChildren && item.children?.some((child: CustomMenuItem) => child.data === currentPath);
 
     // 1단계 단일 메뉴 액티브 판정
-    const isSingleActive = !isChild && !hasChildren && item.data === currentPath
+    const isSingleActive = !isChild && !hasChildren && item.data === currentPath;
 
     const menuItem: MenuItem = {
       id: item.key,
@@ -43,29 +43,29 @@ export const generateMenuItems = (
       command: (e) => {
         // PrimeReact 기본 템플릿(자식 메뉴)을 사용할 때 url 속성에 의해 발생하는 브라우저 기본 새로고침 방지
         if (e.originalEvent) {
-          e.originalEvent.preventDefault()
+          e.originalEvent.preventDefault();
         }
 
         if (hasChildren) {
           // 자식이 있는 부모 메뉴는 클릭 시 아코디언이 토글되도록 처리하므로 navigate 생략
-          return
+          return;
         }
         if (item.data && item.data !== '#') {
-          navigate(item.data)
+          navigate(item.data);
         }
       },
       template: isChild
         ? undefined
         : (modelItem: MenuItem, options: MenuItemOptions) => {
-            const opt = options as CustomMenuItemOptions
+            const opt = options as CustomMenuItemOptions;
             // 1단계 메뉴의 아코디언 전개 상태(opt.active) 또는 경로 매칭 기반 하이라이팅
-            const isExpanded = opt.active
+            const isExpanded = opt.active;
             const activeClass =
               isMainActive || isSingleActive || isExpanded
                 ? hasChildren
                   ? 'active-parent'
                   : 'active'
-                : ''
+                : '';
 
             return (
               <div
@@ -76,11 +76,11 @@ export const generateMenuItems = (
                   href={modelItem.url || '#'}
                   className={`sidebar-link w-full ${activeClass}`}
                   onClick={(e) => {
-                    e.preventDefault() // 기본 브라우저 새로고침 방지 (SPA 브라우징 보장)
+                    e.preventDefault(); // 기본 브라우저 새로고침 방지 (SPA 브라우징 보장)
                     if (hasChildren) {
-                      opt.onClick(e) // 아코디언 토글 동작 실행
+                      opt.onClick(e); // 아코디언 토글 동작 실행
                     } else if (item.data && item.data !== '#') {
-                      navigate(item.data) // SPA 이동
+                      navigate(item.data); // SPA 이동
                     }
                   }}
                 >
@@ -96,9 +96,9 @@ export const generateMenuItems = (
                   )}
                 </a>
               </div>
-            )
+            );
           },
-    }
-    return menuItem
-  })
-}
+    };
+    return menuItem;
+  });
+};

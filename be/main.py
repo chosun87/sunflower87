@@ -13,16 +13,17 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent.resolve()))
 
 from database import init_db  # noqa: E402
+from git import git_task  # noqa: E402
 from migrate import run_migrations  # noqa: E402
 from routers import (  # noqa: E402
     account,
-    transaction,
-    transaction_cash,
+    recommendation,
     stock,
     stock_ohlcv,
-    recommendation,
+    transaction,
+    transaction_cash,
 )
-from git import git_task  # noqa: E402
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
     # 데이터베이스 테이블 초기화 및 무결성 검증 (구동 시점에 구동)
     init_db()
     yield
+
 
 app = FastAPI(
     title="sunflower87 API 코어",

@@ -1,20 +1,20 @@
-import { BreadCrumb, Column, DataTable } from '@/assets/ts/PrimeReact'
+import { BreadCrumb, Column, DataTable } from '@/assets/ts/PrimeReact';
 
 const breadcrumbItems = [
   { label: 'Home', url: '/' },
   { label: 'Templates' },
   { label: 'DataTable' },
-]
+];
 
 export interface Transaction {
-  id: string
-  asset: string
-  symbol: string
-  date: string
-  type: 'Buy' | 'Sell'
-  amount: number
-  price: string
-  status: 'Success' | 'Pending' | 'Failed'
+  id: string;
+  asset: string;
+  symbol: string;
+  date: string;
+  type: 'Buy' | 'Sell';
+  amount: number;
+  price: string;
+  status: 'Success' | 'Pending' | 'Failed';
 }
 
 // 거래 내역 자체 보유 Mock Data
@@ -59,13 +59,13 @@ const transactionsData: Transaction[] = [
     price: '$151.80',
     status: 'Failed',
   },
-]
+];
 
 export default function TemplateDataTable() {
   // DataTable Status 컬럼 렌더러
   const statusBodyTemplate = (rowData: Transaction) => {
-    return <span className={`badge-status ${rowData.status.toLowerCase()}`}>{rowData.status}</span>
-  }
+    return <span className={`badge-status ${rowData.status.toLowerCase()}`}>{rowData.status}</span>;
+  };
 
   // DataTable Action Type 컬럼 렌더러
   const typeBodyTemplate = (rowData: Transaction) => {
@@ -73,8 +73,8 @@ export default function TemplateDataTable() {
       <span className={`action-type text-${rowData.type.toLowerCase()}`}>
         {rowData.type === 'Buy' ? '매수' : '매도'}
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <main className="page template template-datatable">
@@ -105,5 +105,5 @@ export default function TemplateDataTable() {
         </div>
       </div>
     </main>
-  )
+  );
 }

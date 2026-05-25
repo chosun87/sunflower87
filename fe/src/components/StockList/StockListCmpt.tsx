@@ -6,7 +6,7 @@ import { useDataTableColumns } from '@/components/StockList/DataTableColumns';
 export default function StockListCmpt({ accounts }: { accounts: any[] }) {
   // 계좌별 '0주 포함' 상태 관리
   const [showZeroQtyMap, setShowZeroQtyMap] = useState<Record<string, boolean>>({});
-  
+
   // 비즈니스 로직(총계 계산) 및 템플릿(UI 셀) 훅 호출
   const enrichedAccounts = useDataTableFoot(accounts);
   const columns = useDataTableColumns();
@@ -40,7 +40,10 @@ export default function StockListCmpt({ accounts }: { accounts: any[] }) {
                       setShowZeroQtyMap((prev) => ({ ...prev, [acc.acc_cd]: e.checked || false }))
                     }
                   />
-                  <label htmlFor={`cb-show-zero-${acc.acc_cd}`} className="font-bold text-600 cursor-pointer text-sm">
+                  <label
+                    htmlFor={`cb-show-zero-${acc.acc_cd}`}
+                    className="font-bold text-600 cursor-pointer text-sm"
+                  >
                     보유수 0주 포함
                   </label>
                 </div>

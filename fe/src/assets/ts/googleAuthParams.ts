@@ -1,6 +1,6 @@
-import packageJson from '@/../package.json'
+import packageJson from '@/../package.json';
 
-const APP_NAME = packageJson.name
+const APP_NAME = packageJson.name;
 
 export const GOOGLE_AUTH_PARAMS = {
   SRC: 'https://accounts.google.com/gsi/client',

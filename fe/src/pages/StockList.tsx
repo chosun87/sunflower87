@@ -1,12 +1,9 @@
-import { BreadCrumb } from '@/assets/ts/PrimeReact'
-import { useEffect, useState } from 'react'
-import { get } from '@/api/index'
-import StockListCmpt from '@/components/StockList/StockListCmpt'
+import { BreadCrumb } from '@/assets/ts/PrimeReact';
+import { useEffect, useState } from 'react';
+import { get } from '@/api/index';
+import StockListCmpt from '@/components/StockList/StockListCmpt';
 
-const breadcrumbItems = [
-  { label: 'Home', url: '/' },
-  { label: '보유자산' },
-]
+const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: '보유자산' }];
 
 export default function StockList() {
   const [accounts, setAccounts] = useState([]);
@@ -19,7 +16,7 @@ export default function StockList() {
           setAccounts(res.data.accounts || []);
         }
       } catch (e) {
-        console.error("Failed to load portfolio:", e);
+        console.error('Failed to load portfolio:', e);
       }
     };
     fetchPortfolio();
@@ -37,5 +34,5 @@ export default function StockList() {
         </div>
       </div>
     </main>
-  )
+  );
 }

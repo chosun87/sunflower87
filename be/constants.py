@@ -1,8 +1,10 @@
 from enum import Enum
 
+
 class TradeType(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
+
 
 class CashType(str, Enum):
     DEPOSIT = "DEPOSIT"
@@ -10,6 +12,7 @@ class CashType(str, Enum):
     INTEREST = "INTEREST"
     DIVIDEND = "DIVIDEND"
     FEE = "FEE"
+
 
 class MarketType(str, Enum):
     KOSPI = "KOSPI"

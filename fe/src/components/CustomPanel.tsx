@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   Button,
   Panel,
   type PanelProps,
   type PanelHeaderTemplateOptions,
-} from '@/assets/ts/PrimeReact'
+} from '@/assets/ts/PrimeReact';
 
 export interface CustomPanelProps extends PanelProps {
-  maximizable?: boolean
+  maximizable?: boolean;
 }
 
 export default function CustomPanel({
@@ -18,20 +18,20 @@ export default function CustomPanel({
   className = '',
   ...props
 }: CustomPanelProps) {
-  const [maximized, setMaximized] = useState(false)
+  const [maximized, setMaximized] = useState(false);
 
   // maximizable 속성이 true이거나 headerTemplate이 존재하는 경우에 동적 헤더 제어 적용
   const resolvedHeaderTemplate = (options: PanelHeaderTemplateOptions) => {
     if (headerTemplate) {
-      return typeof headerTemplate === 'function' ? headerTemplate(options) : headerTemplate
+      return typeof headerTemplate === 'function' ? headerTemplate(options) : headerTemplate;
     }
 
     if (maximizable) {
-      const combinedClassName = `${options.className} align-items-center w-full`
+      const combinedClassName = `${options.className} align-items-center w-full`;
 
       // header 속성이 문자열이거나 ReactNode인 경우 수평 정합 처리
       const headerContent =
-        typeof header === 'string' ? <span className="panel-header-title">{header}</span> : header
+        typeof header === 'string' ? <span className="panel-header-title">{header}</span> : header;
 
       return (
         <div className={combinedClassName}>
@@ -45,7 +45,7 @@ export default function CustomPanel({
               severity="secondary"
               onClick={() =>
                 alert(
-                  `[${typeof header === 'string' ? header : '패널'}] 더보기 옵션이 활성화되었습니다.`,
+                  `[${typeof header === 'string' ? header : '패널'}] 더보기 옵션이 활성화되었습니다.`
                 )
               }
               title="더보기"
@@ -60,15 +60,15 @@ export default function CustomPanel({
             />
           </div>
         </div>
-      )
+      );
     }
 
     // maximizable이나 headerTemplate이 없으면 PrimeReact가 기본으로 처리
-    return undefined
-  }
+    return undefined;
+  };
 
-  const hasTemplate = maximizable || headerTemplate
-  const panelClassName = `custom-panel ${className}`
+  const hasTemplate = maximizable || headerTemplate;
+  const panelClassName = `custom-panel ${className}`;
 
   return (
     <Panel
@@ -79,5 +79,5 @@ export default function CustomPanel({
     >
       {children}
     </Panel>
-  )
+  );
 }

@@ -19,7 +19,7 @@ export default function Login() {
         <ProgressSpinner />
         <p>인증 상태 확인 중...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -34,5 +34,5 @@ export default function Login() {
         onClick={login}
       />
     </div>
-  )
+  );
 }
