@@ -83,6 +83,8 @@ class TransactionUpdate(BaseModel):
 class TransactionResponse(BaseModel):
     id: int
     acc_cd: str
+    acc_nm: Optional[str] = None # 동적 조인용
+    acc_company_nm: Optional[str] = None # 동적 조인용
     dt_trade: datetime
     trade_type: str
     stock_code: str

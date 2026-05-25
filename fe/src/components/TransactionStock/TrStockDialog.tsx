@@ -11,7 +11,7 @@ import {
 } from '@/assets/js/PrimeReact';
 import { showNotice, showError } from '@/assets/js/dialogUtils';
 
-export default function TransactionDialog({
+export default function TrStockDialog({
   visible,
   onHide,
   editingTx, // 수정 시 대상 거래 원본 객체 (신규 시 null)
@@ -69,7 +69,7 @@ export default function TransactionDialog({
         setTxName(match.name);
         showNotice({
           header: '검색 완료',
-          icon: 'pi pi-check-circle',
+          icon: 'fa-solid fa-check-circle',
           message: `종목 '${match.name}' (${match.code})의 정보가 성공적으로 조회되었습니다.`,
           acceptClassName: 'p-button-success',
         });
@@ -95,7 +95,7 @@ export default function TransactionDialog({
         setTxName(match.name);
         showNotice({
           header: '코드 조회 성공',
-          icon: 'pi pi-check-circle',
+          icon: 'fa-solid fa-check-circle',
           message: `종목 코드 '${match.code}'에 대한 종목명 '${match.name}' 조회가 완료되었습니다.`,
           acceptClassName: 'p-button-success',
         });
@@ -141,14 +141,14 @@ export default function TransactionDialog({
     <div className="flex justify-content-end gap-2 pt-2">
       <Button
         label="취소"
-        icon="pi pi-times"
+        icon="fa-solid fa-times"
         onClick={onHide}
         className="p-button-text p-button-secondary"
         disabled={isSubmitting}
       />
       <Button
         label={editingTx ? '수정 완료' : '거래 등록'}
-        icon="pi pi-check"
+        icon="fa-solid fa-check"
         onClick={handleSave}
         className="p-button-primary font-bold"
         disabled={isSubmitting || !txAccount || !txCode || !txName || !txQuantity || !txPrice}
@@ -217,7 +217,7 @@ export default function TransactionDialog({
             }}
           />
           <Button
-            icon="pi pi-search"
+            icon="fa-solid fa-search"
             className="p-button-primary font-bold"
             onClick={handleSearch}
             loading={isSearching}
@@ -239,7 +239,7 @@ export default function TransactionDialog({
             disabled={isSubmitting}
           />
           <Button
-            icon="pi pi-search"
+            icon="fa-solid fa-search"
             className="p-button-secondary"
             label="코드 조회"
             onClick={handleLookupCode}

@@ -8,6 +8,7 @@ const APP_NAME = packageJson.name
 import '@/assets/css/main.scss'
 
 // PrimeReact Configuration
+import 'primeicons/primeicons.css'
 import PrimeReact from 'primereact/api'
 import { PrimeReactProvider, addLocale } from 'primereact/api'
 import { PrimeReact_locale } from '@/assets/ts/PrimeReact'

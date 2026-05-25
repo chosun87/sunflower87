@@ -10,7 +10,7 @@ import {
   Calendar,
 } from '@/assets/js/PrimeReact';
 
-export default function TransactionHistoryTab({
+export default function TransactionStockCmpt({
   transactions,
   accounts,
   onLoadTransactions,
@@ -112,7 +112,7 @@ export default function TransactionHistoryTab({
     );
   };
 
-  const accountBodyTemplate = (rowData) => {
+  const accountBodyTemplate = (rowData: any) => {
     const company = rowData.acc_company_nm || '';
     const name = rowData.acc_nm || '알 수 없는 계좌';
     if (company) {
@@ -147,18 +147,18 @@ export default function TransactionHistoryTab({
 
   const actionsBodyTemplate = (rowData) => {
     return (
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <Button
-          icon="pi pi-pencil"
-          className="p-button-rounded p-button-warning p-button-text p-button-sm"
+          icon="fa-solid fa-pencil"
+          className="p-button-rounded p-button-success p-button-text"
           onClick={() => onEditClick(rowData)}
-          tooltip="매매 내역 수정"
+          tooltip="매매 내역 수정" tooltipOptions={{ position: 'top' }}
         />
         <Button
-          icon="pi pi-trash"
-          className="p-button-rounded p-button-danger p-button-text p-button-sm"
+          icon="fa-solid fa-trash"
+          className="p-button-rounded p-button-danger p-button-text"
           onClick={() => onDeleteClick(rowData)}
-          tooltip="매매 내역 삭제"
+          tooltip="매매 내역 삭제" tooltipOptions={{ position: 'top' }}
         />
       </div>
     );
@@ -197,22 +197,12 @@ export default function TransactionHistoryTab({
       : `${totalTxAmountSum > 0 ? '+' : '-'}${Math.abs(totalTxAmountSum).toLocaleString()} 원`;
 
   return (
-    <div className="mt-3">
-      <div className="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-        <h3 className="text-xl font-bold m-0 text-700">매매 내역 대장</h3>
-        <Button
-          label="거래 내역 추가"
-          icon="pi pi-plus"
-          className="p-button-success p-button-sm font-bold shadow-2"
-          onClick={onAddClick}
-        />
-      </div>
-
+    <div className="transaction-stock-cmpt">
       <div className="flex align-items-center w-full mb-4 bg-gray-50 border-round">
         <div className="flex flex-wrap flex-1">
           <div className="p-inputgroup col-12 md:col-6 lg:col-4">
             <span className="p-inputgroup-addon">
-              <i className="pi pi-calendar"></i>
+              <i className="fa-solid fa-calendar"></i>
             </span>
             <Calendar
               value={dates}
@@ -228,7 +218,7 @@ export default function TransactionHistoryTab({
           </div>
           <div className="p-inputgroup col-12 md:col-6 lg:col-4">
             <span className="p-inputgroup-addon">
-              <i className="pi pi-calendar"></i>
+              <i className="fa-solid fa-calendar"></i>
             </span>
             <Dropdown
               value={selectedAcc}
@@ -245,7 +235,7 @@ export default function TransactionHistoryTab({
           </div>
           <div className="p-inputgroup col-12 md:col-6 lg:col-4">
             <span className="p-inputgroup-addon">
-              <i className="pi pi-calendar"></i>
+              <i className="fa-solid fa-calendar"></i>
             </span>
             <Dropdown
               value={searchCode}
@@ -261,10 +251,16 @@ export default function TransactionHistoryTab({
         </div>
 
         <Button
+          icon="fa-solid fa-search"
           label="검색"
-          icon="pi pi-search"
           onClick={handleSearch}
-          style={{ flex: '0 0 auto', height: '43px', xminWidth: '110px' }}
+        />
+
+        <Button raised
+          icon="fa-solid fa-plus"
+          label="거래 내역 추가"
+          className="ml-2"
+          onClick={onAddClick}
         />
       </div>
 
@@ -276,6 +272,9 @@ export default function TransactionHistoryTab({
         stripedRows
         paginator
         rows={10}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        currentPageReportTemplate="총 {totalRecords} 건"
+        paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         scrollable
         className="mt-2"
         emptyMessage="조건에 맞는 매매 거래 히스토리가 존재하지 않습니다."

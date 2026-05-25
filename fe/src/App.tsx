@@ -11,7 +11,9 @@ import AuthGuard from '@components/AuthGuard'
 const Login = lazy(() => import('@/pages/Login'))
 
 const Dashboard = lazy(() => import('@/pages/Dashboard')) //Dashboard
-const StockList = lazy(() => import('@/pages/StockList'))       //보유 자산
+const StockList = lazy(() => import('@/pages/StockList')) //보유 자산
+const TransactionStock = lazy(() => import('@/pages/TransactionStock')) //주식 매매 내역
+// const TransactionCash = lazy(() => import('@/pages/TransactionCash'))  //계좌 입출금 내역
 
 const TemplateBlank = lazy(() => import('@/templates/Blank'))
 const TemplateDataTable = lazy(() => import('@/templates/DataTable'))
@@ -72,6 +74,10 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           {/* 보유 자산 */}
           <Route path="/stockList" element={<StockList />} />
+          {/* 주식 매매 내역 */}
+          <Route path="/transactionStock" element={<TransactionStock />} />
+          {/* 계좌 입출금 내역 */}
+          {/* <Route path="/transactionCash" element={<TransactionCash />} /> */}
         </Route>
 
         {/* Template Pages */}

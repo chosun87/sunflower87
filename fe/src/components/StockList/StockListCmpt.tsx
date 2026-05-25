@@ -24,7 +24,7 @@ export default function StockListCmpt({ accounts }: { accounts: any[] }) {
           : (acc.stocks || []).filter((s: any) => s.quantity > 0);
 
         return (
-          <div className="mt-3 mb-6" key={acc.acc_cd}>
+          <div className="mb-4" key={acc.acc_cd}>
             {/* 헤더 타이틀 및 옵션 영역 */}
             <div className="flex align-items-center justify-content-between mb-3 border-bottom-1 pb-2 border-100">
               <div className="flex align-items-center w-full">

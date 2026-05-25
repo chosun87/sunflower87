@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db, Transaction, StockCache
+from database import get_db, Transaction, StockCache, Account
 import schemas
 from portfolio import recalculate_portfolio_for_account
 
@@ -10,15 +10,21 @@ router = APIRouter(prefix="/api/transactions", tags=["Transaction"])
 
 @router.get("", response_model=schemas.ApiResponse[List[schemas.TransactionResponse]])
 def get_transactions(acc_cd: str = None, stock_code: str = None, db: Session = Depends(get_db)):
-    query = db.query(Transaction, StockCache.stock_name).outerjoin(StockCache, Transaction.stock_code == StockCache.stock_code).filter(Transaction.dt_deleted.is_(None))
+    query = db.query(Transaction, StockCache.stock_name, Account.acc_nm, Account.acc_company_nm)\
+        .outerjoin(StockCache, Transaction.stock_code == StockCache.stock_code)\
+        .outerjoin(Account, Transaction.acc_cd == Account.acc_cd)\
+        .filter(Transaction.dt_deleted.is_(None))
+    
     if acc_cd: query = query.filter(Transaction.acc_cd == acc_cd)
     if stock_code: query = query.filter(Transaction.stock_code == stock_code)
     
     results = query.order_by(Transaction.dt_trade.desc()).all()
     data = []
-    for tx, name in results:
+    for tx, name, acc_nm, acc_company_nm in results:
         t_dict = {c.name: getattr(tx, c.name) for c in tx.__table__.columns}
         t_dict["stock_name"] = name
+        t_dict["acc_nm"] = acc_nm
+        t_dict["acc_company_nm"] = acc_company_nm
         t_dict["trade_type"] = tx.trade_type
         data.append(t_dict)
     return {"status": "success", "data": data}
