@@ -1,0 +1,595 @@
+@use 'variables' as *;
+
+// 전역 컨테이너 레이아웃
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--surface-50);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  overflow: hidden;
+}
+
+// 공통 Sidebar (aside) 스타일 - TailAdmin 디자인 구현
+.app-sidebar {
+  width: 290px;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1100;
+  transition: $transition-smooth;
+  border-right: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+
+  &.collapsed {
+    width: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+
+  .sidebar-header {
+    height: var(--header-height);
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--sidebar-border);
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--sidebar-logo-text);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .sidebar-logo-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .app-name {
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      color: var(--highlight-text-color);
+    }
+    .app-version {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      text-transform: none;
+      letter-spacing: normal;
+      line-height: 1;
+    }
+  }
+
+  // 메뉴 그룹 헤더
+  .menu-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .menu-group-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--sidebar-muted); // TailAdmin sidebar title color
+      margin: 0 0 0.75rem 0.5rem;
+      letter-spacing: 0.1em;
+    }
+  }
+
+  .sidebar-menu-wrapper {
+    padding: 1.5rem 1rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 2px;
+      height: 2px;
+    }
+  }
+
+  .p-panelmenu .p-panelmenu-panel {
+    box-shadow: none;
+  }
+
+  .p-panelmenu-header-content,
+  .p-panelmenu-content {
+    background: transparent;
+    border: none;
+  }
+
+  .p-panelmenu-header-link {
+    padding: 0;
+  }
+
+  .p-submenu-list {
+    margin-left: 2.25rem;
+  }
+
+  .sidebar-link,
+  .p-menuitem-link {
+    padding: 1rem;
+  }
+
+  // 단일 메뉴 링크
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--sidebar-text); // 테마 연동 텍스트
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+
+    &:hover {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text-color);
+
+      .menu-icon {
+        color: var(--highlight-text-color);
+      }
+    }
+
+    &.active {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text-color);
+      font-weight: 600;
+
+      .menu-icon {
+        color: var(--highlight-text-color);
+      }
+    }
+
+    &.active-parent {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text-color);
+      font-weight: 600;
+
+      .menu-icon {
+        color: var(--highlight-text-color);
+      }
+    }
+
+    .menu-icon {
+      width: 1.25rem;
+      font-size: 1.125rem;
+      text-align: center;
+      color: var(--sidebar-text);
+      transition: all 0.15s ease-in-out;
+    }
+
+    .sidebar-badge {
+      margin-left: auto;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 99px;
+      line-height: 1;
+
+      &.success {
+        background-color: #10b981;
+        color: #ffffff;
+      }
+    }
+  }
+
+  .p-menuitem {
+    border-radius: 6px;
+
+    &.active {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text-color);
+      font-weight: 600;
+
+      .p-menuitem-link {
+        background-color: transparent;
+      }
+
+      .p-menuitem-link,
+      .p-menuitem-text,
+      .p-menuitem-icon {
+        color: var(--highlight-text-color);
+      }
+    }
+  }
+}
+
+// 메인 랩퍼 (.app-header + main) 레이아웃
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+// 공통 Header - PrimeReact Menubar 커스텀 오버라이드
+.app-header {
+  height: var(--header-height);
+  background-color: var(--surface-0);
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  padding: 0 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--shadow-sm);
+
+  .p-menubar-root-list {
+    gap: 0.5rem;
+
+    .p-menuitem-link {
+      background: transparent;
+      color: var(--text-color);
+      font-weight: 500;
+      border-radius: 6px;
+      transition: $transition-smooth;
+
+      &:hover {
+        background-color: var(--highlight-bg);
+      }
+
+      .p-menuitem-icon {
+        color: var(--primary-color); // Amber icons
+        margin-right: 0.4rem;
+      }
+
+      .p-submenu-icon {
+        color: var(--text-color-secondary);
+        margin-left: 0.4rem;
+      }
+    }
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    .sidebar-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: $transition-smooth;
+
+      &:hover {
+        background-color: var(--highlight-bg);
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .theme-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: $transition-smooth;
+
+      &:hover {
+        background-color: var(--highlight-bg);
+        color: var(--highlight-text-color);
+      }
+    }
+
+    .user-profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: $transition-smooth;
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+
+      &:hover {
+        background-color: var(--highlight-bg);
+        color: var(--highlight-text-color);
+      }
+
+      .p-tooltip-text {
+        white-space: nowrap;
+      }
+
+      .user-info {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+
+        .user-name {
+          font-weight: 600;
+        }
+
+        .user-role {
+          color: var(--text-color-secondary);
+        }
+      }
+
+      i {
+        color: var(--text-color-secondary);
+      }
+    }
+  }
+}
+
+// 주식 대시보드 콘텐츠 레이아웃 (main)
+main.page {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 1.5rem;
+  background-color: var(--surface-100);
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  .main-inner {
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h2.page-title {
+        margin: 0 1rem;
+      }
+
+      .breadcrumb {
+        margin: 0 1rem;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+    }
+  }
+}
+
+// PrimeReact Panel 오버라이드 및 커스텀 헤더 배치 스타일
+.custom-panel {
+  border: 1px solid var(--border-color);
+  border-radius: $border-radius-lg;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  &.maximized {
+    background-color: var(--surface-0);
+    margin: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100%;
+    position: fixed !important;
+    top: 0px !important;
+    left: 0px !important;
+    z-index: 2000;
+  }
+
+  .p-panel-header {
+    background: var(--surface-0);
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .p-panel-content {
+    background: var(--surface-0);
+    border: none;
+    padding: 1.5rem;
+    color: var(--text-color);
+  }
+
+  // Panel Header Action Buttons
+  .panel-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .panel-header-title-icon {
+      color: var(--primary-color);
+      margin-right: 0.5rem;
+    }
+  }
+
+  .panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    button {
+      background: transparent;
+      border: none;
+      color: var(--text-color-secondary);
+      cursor: pointer;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: $transition-smooth;
+
+      &:hover {
+        background-color: var(--highlight-bg);
+        color: var(--highlight-text-color);
+      }
+    }
+  }
+}
+
+// Dashboard 페이지 전용 스타일
+.page.dashboard {
+  // KPI 요약 카드 그리드
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+
+    .custom-panel {
+      .p-panel-header {
+        background: transparent;
+      }
+    }
+  }
+
+  .grid {
+    margin: -0.5rem;
+  }
+
+  // My Watchlist 리스트 아이템 스타일 (DataView 적용)
+  .my-watchlist-panel {
+    .p-dataview-content {
+      background-color: transparent;
+      padding: 0;
+      .p-grid.grid {
+        margin: 0 !important;
+      }
+    }
+  }
+  .watchlist-item {
+    background-color: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: $transition-smooth;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      padding-left: 0.5rem;
+      background-color: rgba(255, 159, 0, 0.02);
+    }
+
+    .stock-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .stock-meta {
+        display: flex;
+        flex-direction: column;
+
+        .stock-name {
+          font-weight: 700;
+          color: var(--text-color);
+        }
+      }
+    }
+
+    .stock-prices {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      text-align: right;
+
+      .stock-current {
+        font-weight: 700;
+      }
+
+      .stock-change {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-weight: 600;
+        width: 75px;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  // Latest Transactions DataTable 테마 오버라이드
+  .transactions-table {
+    .p-datatable-thead > tr > th {
+      background-color: var(--surface-100);
+      color: var(--text-color-secondary);
+      border-color: var(--border-color);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .p-datatable-tbody > tr {
+      color: var(--text-color);
+      border-color: var(--border-color);
+
+      &:hover {
+        background-color: var(--surface-100);
+      }
+    }
+
+    .action-type {
+      font-weight: 600;
+    }
+  }
+}
+
+// dark-mode 용
+:root.dark-mode {
+  .custom-panel {
+    .p-panel-header,
+    .panel-header-title,
+    .p-panel-content {
+      background-color: var(--surface-50) !important;
+    }
+  }
+}

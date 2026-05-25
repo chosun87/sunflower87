@@ -1,0 +1,71 @@
+// 반응형 그리드 브레이크포인트
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+
+// 보조 속도 및 트랜지션
+$transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+$border-radius-lg: 12px;
+$border-radius-md: 8px;
+$border-radius-sm: 4px;
+
+:root {
+  // 전역 폰트 정의
+  --font-family:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic',
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+
+  --header-height: 60px;
+  --input-height: 2.5rem;
+}
+
+// 라이트/다크 모드에 맞춰 유기적으로 변화하는 CSS 변수 정의 (PrimeReact 컬러셋과 동조)
+:root.light-mode {
+  // --bg-primary: #f1f5f9; // Slate 100
+  // --bg-secondary: #ffffff;
+  // --bg-tertiary: #f8fafc;
+  --border-color: #e2e8f0; // Slate 200
+  // --text-main: #1c2434; // TailAdmin dark text
+  // --text-muted: #64748b; // Slate 500
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 8px 24px rgba(149, 157, 165, 0.1);
+  // [사이드바 라이트 테마 변수]
+  --sidebar-bg: #ffffff; // 라이트 모드 시 수려한 흰색 사이드바 복구
+  --sidebar-text: #64748b; // 평소 기본 상태 글씨는 연회색 그레이로 은은하게 처리
+  --sidebar-hover: #ecfeff; // 호버 및 액티브 시 bg-meta-4에 맞먹는 미려한 연회색 배경
+  --sidebar-active-text: var(
+    --highlight-text-color
+  ); // 호버 및 액티브 시 선명한 고대비 블랙 텍스트로 전환
+  --sidebar-muted: #64748b; // Muted 색상
+  --sidebar-logo-text: #1c2434; // 로고는 짙은 차콜색
+  --sidebar-border: #e2e8f0; // 옅은 경계선
+}
+
+:root.dark-mode {
+  // --bg-primary: #0a0d14; // Cosmic dark
+  // --bg-secondary: #121824; // Card dark
+  // --bg-tertiary: #1b2436;
+  --border-color: #202b40;
+  // --text-main: #f1f5f9; // Slate 100
+  // --text-muted: #8a99ad; // TailAdmin dark muted
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0px 8px 24px rgba(0, 0, 0, 0.3);
+  // [사이드바 다크 테마 변수]
+  --sidebar-bg: #121824; // 다크 모드 시 어둡고 중후한 카본 블랙 사이드바 복구
+  --sidebar-text: #8a99ad; // 평소 기본 상태 글씨는 은은한 연회색
+  --sidebar-hover: rgba(34, 211, 238, 0.16); // 호버 및 액티브 시 짙은 카본 그레이 배경
+  --sidebar-active-text: var(
+    --highlight-text-color
+  ); // 호버 및 액티브 시 선명한 화이트 텍스트로 전환
+  --sidebar-muted: #8a99ad; // Muted 색상
+  --sidebar-logo-text: #ffffff; // 로고는 완전한 흰색
+  --sidebar-border: #202b40; // 짙은 경계선
+
+  .p-panel-header,
+  .panel-header-title,
+  .p-panel-content {
+    background-color: var(--surface-50) !important;
+  }
+}

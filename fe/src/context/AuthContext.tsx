@@ -1,13 +1,25 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { initGoogleApi, signOut, setToken } from '@/api/googleAuth';
-import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams';
-import { showNotice, showConfirm } from '@/assets/js/dialogUtils';
+import { GOOGLE_AUTH_PARAMS } from '@/assets/ts/googleAuthParams';
+import { showNotice, showConfirm } from '@/assets/ts/dialogUtils';
 
-export const AuthContext = createContext(null);
-export const AuthTimerContext = createContext(null);
+interface AuthContextValue {
+  isInitialized: boolean;
+  isSignedIn: boolean;
+  login: () => void;
+  logout: () => Promise<void>;
+  extendLogin: () => void;
+}
 
-const AuthInternalProvider = ({ children }) => {
+interface AuthTimerContextValue {
+  authRemainingTime: string;
+}
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthTimerContext = createContext<AuthTimerContextValue | null>(null);
+
+const AuthInternalProvider = ({ children }: { children: ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [authRemainingTime, setAuthRemainingTime] = useState(0);
@@ -55,7 +67,7 @@ const AuthInternalProvider = ({ children }) => {
     onSuccess: (tokenResponse) => {
       const sessionMs = GOOGLE_AUTH_PARAMS.TOKEN_EXPIRY_MIN * 60 * 1000;
       sessionStorage.setItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY, tokenResponse.access_token);
-      sessionStorage.setItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY, Date.now() + sessionMs);
+      sessionStorage.setItem(GOOGLE_AUTH_PARAMS.EXPIRY_KEY, String(Date.now() + sessionMs));
 
       setToken(tokenResponse.access_token);
       setIsSignedIn(true);
@@ -86,7 +98,7 @@ const AuthInternalProvider = ({ children }) => {
 
   // 인증 만료 시 자동 로그아웃 처리 및 남은 시간 업데이트
   useEffect(() => {
-    let intervalId;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
 
     if (isSignedIn) {
       const updateRemainingTime = () => {
@@ -121,7 +133,7 @@ const AuthInternalProvider = ({ children }) => {
             const currentToken = sessionStorage.getItem(GOOGLE_AUTH_PARAMS.TOKEN_KEY);
             if (!currentToken) return;
 
-            logout();
+            void logout();
 
             showNotice({
               header: '자동 로그아웃 안내',
@@ -149,14 +161,14 @@ const AuthInternalProvider = ({ children }) => {
   }, [isSignedIn, extensionPromptShown, extendLogin, logout]);
 
   // 초 단위를 MM:SS 형식으로 변환
-  const formatRemainingTime = (seconds) => {
+  const formatRemainingTime = (seconds: number): string => {
     if (seconds <= 0) return '00:00';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const authValue = useMemo(
+  const authValue = useMemo<AuthContextValue>(
     () => ({
       isInitialized,
       isSignedIn,
@@ -167,7 +179,7 @@ const AuthInternalProvider = ({ children }) => {
     [isInitialized, isSignedIn, login, logout, extendLogin]
   );
 
-  const timerValue = useMemo(
+  const timerValue = useMemo<AuthTimerContextValue>(
     () => ({
       authRemainingTime: formatRemainingTime(authRemainingTime),
     }),
@@ -182,7 +194,7 @@ const AuthInternalProvider = ({ children }) => {
   );
 };
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // HTML 렌더링 구역 -----------------------------------------------------------------------------------
   return (
     <GoogleOAuthProvider clientId={GOOGLE_AUTH_PARAMS.CLIENT_ID}>
@@ -193,7 +205,7 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined || context === null) {
+  if (context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -201,7 +213,7 @@ export const useAuth = () => {
 
 export const useAuthTimer = () => {
   const context = useContext(AuthTimerContext);
-  if (context === undefined || context === null) {
+  if (context === null) {
     throw new Error('useAuthTimer must be used within an AuthProvider');
   }
   return context;

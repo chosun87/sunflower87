@@ -1,47 +1,103 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext';
-import { ConfirmDialog } from '@/assets/js/PrimeReact';
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AuthProvider } from '@/context/AuthContext'
 
-// 시맨틱 레이아웃을 위한 컴포넌트 로드
-import Header from '@components/common/Header';
-import Footer from '@components/common/Footer';
+import themeDark from 'primereact/resources/themes/md-dark-indigo/theme.css?url'
+import themeLight from 'primereact/resources/themes/md-light-indigo/theme.css?url'
 
-// 주요 페이지 컴포넌트 다이나믹 로딩 (Lazy Loading) 적용
-const Login = lazy(() => import('@/pages/Login'));
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
-const StockDetail = lazy(() => import('@/pages/StockDetail'));
+import Layout from '@components/Layout'
+import AuthGuard from '@components/AuthGuard'
+
+const Login = lazy(() => import('@/pages/Login'))
+
+const Dashboard = lazy(() => import('@/pages/Dashboard')) //Dashboard
+const StockList = lazy(() => import('@/pages/StockList'))       //보유 자산
+
+const TemplateBlank = lazy(() => import('@/templates/Blank'))
+const TemplateDataTable = lazy(() => import('@/templates/DataTable'))
+
+function AppContent() {
+  const location = useLocation()
+  const isLoginPage = location.pathname === '/login'
+
+  // 기획 사양: 기본(default)은 Light 모드 구동
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // 1. body 태그에 theme 클래스 바인딩 (Sass variables 및 스타일 분기용)
+    if (isDarkMode) {
+      document.documentElement.classList.remove('light-mode')
+      document.documentElement.classList.add('dark-mode')
+    } else {
+      document.documentElement.classList.remove('dark-mode')
+      document.documentElement.classList.add('light-mode')
+    }
+
+    // 2. index.html의 theme-link 스타일시트 href 경로 실시간 스위칭
+    const themeLink = document.getElementById('theme-link') as HTMLLinkElement
+    if (themeLink) {
+      themeLink.href = isDarkMode ? themeDark : themeLight
+    }
+  }, [isDarkMode])
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode)
+  }
+
+  const renderFallback = () => {
+    return (
+      <main className="page full-page">
+        <div className="p-4 text-center">
+          🌻 sunflower87 로딩 중...
+        </div>
+      </main>
+    )
+  }
+
+  const pageContent = (
+    <Suspense fallback={renderFallback()}>
+      <Routes>
+        {/* Public Route */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Unknown routes redirect to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+
+        {/* Protected Routes wrapped by AuthGuard */}
+        <Route element={<AuthGuard />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+          {/* 메뉴 라우팅 설정 */}
+          {/* Dashboard */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          {/* 보유 자산 */}
+          <Route path="/stockList" element={<StockList />} />
+        </Route>
+
+        {/* Template Pages */}
+        <Route path="/templates/blank" element={<TemplateBlank />} />
+        <Route path="/templates/datatable" element={<TemplateDataTable />} />
+      </Routes>
+    </Suspense>
+  )
+
+  if (isLoginPage) {
+    return pageContent
+  }
+
+  return (
+    <Layout isDarkMode={isDarkMode} toggleTheme={toggleTheme}>
+      {pageContent}
+    </Layout>
+  )
+}
 
 function App() {
   return (
     <AuthProvider>
-      <ConfirmDialog />
-      <Router basename={import.meta.env.BASE_URL}>
-        <div className="app-container flex flex-column min-h-screen">
-          {/* Header 컴포넌트 내부에서 <header> 태그 관리 */}
-          <Header />
-
-          {/* SUN님 지시사항: HTML Semantics <main> 및 다이나믹 로딩 래퍼 적용 */}
-          <main className="app-content flex-grow-1">
-            <Suspense fallback={<div className="p-4 text-center">🌻 sunflower87 로딩 중...</div>}>
-              <Routes>
-                {/* 메뉴 라우팅 설정 */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/stock" element={<StockDetail />} />
-
-                {/* 기본 경로 접근 시 로그인 또는 대시보드로 리다이렉트 */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </Suspense>
-          </main>
-
-          {/* Footer 컴포넌트 내부에서 <footer> 태그 관리 */}
-          <Footer />
-        </div>
-      </Router>
+      <AppContent />
     </AuthProvider>
-  );
+  )
 }
 
-export default App;
+export default App

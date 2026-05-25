@@ -1,16 +1,29 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
+import { createRoot } from 'react-dom/client'
+import App from '@/App'
+import packageJson from '@/../package.json'
 
-// 가이드라인에 맞춘 스타일 시트 로드 순서 준수
-import 'primereact/resources/themes/lara-light-indigo/theme.css'; // 테마
-import 'primereact/resources/primereact.min.css'; // 코어 CSS
-import 'primeicons/primeicons.css'; // 아이콘
-import 'primeflex/primeflex.css'; // 유틸리티 클래스
-import '@/assets/css/index.scss'; // Pretendard 폰트 등이 포함된 커스텀 Sass
+const APP_NAME = packageJson.name
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// 커스텀 글로벌 Sass 스타일 적용
+import '@/assets/css/main.scss'
+
+// PrimeReact Configuration
+import PrimeReact from 'primereact/api'
+import { PrimeReactProvider, addLocale } from 'primereact/api'
+import { PrimeReact_locale } from '@/assets/ts/PrimeReact'
+
+addLocale('ko', PrimeReact_locale.ko.Calendar)
+
+import { BrowserRouter } from 'react-router-dom'
+
+PrimeReact.ripple = true
+
+createRoot(document.getElementById('root')!).render(
+  // <StrictMode>
+  <PrimeReactProvider value={{ ripple: true }}>
+    <BrowserRouter basename="/sunflower87">
+      <App />
+    </BrowserRouter>
+  </PrimeReactProvider>,
+  // </StrictMode>,
+)

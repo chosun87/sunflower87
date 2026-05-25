@@ -1,0 +1,140 @@
+@use 'sass:color';
+@use 'variables' as *;
+@use 'dashboard';
+
+// PrimeReact Styles
+@use 'primereact/resources/primereact.min.css';
+@use 'primeflex/primeflex.css';
+
+// Global Font Loading
+@import url('/node_modules/pretendard/dist/web/variable/pretendardvariable.css'); // Pretendard Variable 폰트 임포트
+// @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+// FontAwesome Free 아이콘 스타일
+@import '/node_modules/@fortawesome/fontawesome-free/css/all.min.css';
+
+// HTML & Body resets
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--surface-100);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100%;
+}
+
+// Global Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--surface-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 99px;
+
+  &:hover {
+    background: color.adjust(#202b40, $lightness: 10%); // standard dark slate adjust
+  }
+}
+
+// PrimeFlex 유틸리티 및 오버라이드 조화
+.text-muted {
+  color: var(--text-color-secondary) !important;
+}
+
+.border-color-custom {
+  border-color: var(--border-color) !important;
+}
+
+.monospace {
+  font-feature-settings: 'tnum';
+  /* 최신 브라우저 권장 */
+  font-variant-numeric: tabular-nums;
+}
+
+.text-buy,
+.text-up {
+  color: var(--red-600);
+}
+
+.text-sell,
+.text-down {
+  color: var(--blue-600);
+}
+
+.full-page {
+  height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .btn-login {
+    margin-top: 2rem;
+  }
+}
+
+//--v PrimeReact 전역 컴포넌트 폰트 스타일 오버라이드
+.p-component {
+  font-family: var(--font-family);
+}
+
+.p-inputwrapper {
+  height: calc(var(--input-height) + 2px);
+}
+.p-inputtext {
+  padding: 0 1rem;
+  height: var(--input-height);
+  display: flex;
+  align-items: center;
+}
+
+.p-inputgroup {
+  .p-button {
+    height: var(--input-height);
+    &.p-button-icon-only {
+      width: var(--input-height);
+      padding: 0;
+    }
+  }
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  margin: 0;
+  padding: 0.75rem 1rem;
+}
+
+.p-datatable {
+  .p-datatable-table {
+    background-color: var(--surface-0);
+  }
+
+  .p-datatable-thead > tr > th,
+  .p-datatable-thead > tr > td,
+  .p-datatable-tfoot > tr > th,
+  .p-datatable-tfoot > tr > td {
+    background: var(--highlight-bg);
+    color: var(--highlight-text-color);
+    font-weight: 700;
+  }
+
+  .p-paginator {
+    background-color: transparent;
+    border: none;
+  }
+}
+
+.p-avatar.p-avatar-circle {
+  border: solid 0.125rem var(--primary-color);
+}
+//--^ PrimeReact 전역 컴포넌트 폰트 스타일 오버라이드
