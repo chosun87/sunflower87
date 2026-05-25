@@ -1,9 +1,0 @@
-# 의존성 및 시스템 폴더 제외
-node_modules/
-**/node_modules/**
-venv/
-**/venv/**
-.venv/
-**/.venv/**
-.git/
-**/.git/**
