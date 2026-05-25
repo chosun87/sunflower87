@@ -20,6 +20,7 @@
 | **타입 안정성** | **TypeScript** | `^5.3.3` | 데이터 스키마 타입 안정성 보장 및 정밀 컴파일 검증 |
 | **UI 컴포넌트** | **PrimeReact** | `^10.9.8` | 그리드, 카드, 다이얼로그, 테이블 등 엔터프라이즈급 UI 구성요소 |
 | **UI 아이콘** | **FontAwesome Free** | `^6.5.1` | 사이드바 메뉴, 계좌 설정, 입출금 상태, 피드백 평점 등 전역 아이콘 수록 |
+| **기본 폰트** | **Pretendard** | `^1.3.9` | 폰트. "Pretendard Variable" 사용 |
 | **드래그 앤 드롭** | **SortableJS** | `^1.15.2` | 대시보드 카드 순서 드래그 정렬 및 설정 화면의 계좌 순서 정렬 연동 |
 | **레이아웃 유틸** | **PrimeFlex** | `^4.0.0` | 유틸리티 퍼스트 CSS 프레임워크 (레이아웃 배치 및 간격 조절용) |
 | **스타일링** | **Sass (SCSS)** | `^1.99.0` | 변수, 중첩, 믹스인 등을 지원하는 고성능 CSS 확장 언어 |
@@ -72,8 +73,19 @@
     - `be/routers/account.py`: 계좌 마스터 CRUD, 시계열 리오더링 및 일자별 잔고 CRUD 제어 전담
     - `be/routers/transaction.py`: 주식 매매 거래 내역 CRUD 전담
     - `be/routers/recommendation.py`: AI 추천 종목 CRUD 및 피드백 전담
+    - `be/git/git_task.py` (구 `be/routers/tasks.py` 이동 및 이름 변경): 기획 마크다운 태스크 생성 및 원격 Git 동기화 전담
+      - **기능 1**: 지정된 이름과 내용을 기반으로 `docs/tasks` 디렉토리에 마크다운 태스크 파일 물리 작성
+      - **기능 2**: 디렉토리 트래버설 공격 방지를 위해 파일명 유효성 정규식 검사(알파뉴메릭, 하이픈, 언더스코어 및 `.md` 확장자 강제)를 수행
+      - **기능 3**: `be/git/git_service.py`와 연동하여 태스크 파일을 로컬 Git 리포지토리에 추가 및 커밋(`git commit`) 후 원격 리포지토리에 자동으로 푸시(`git push`)
+    - `be/git/git_service.py` (구 `be/git_service.py` 이동): Git 형상관리(`git add`, `git commit`, `git push`) 연동을 전담하는 공통 유틸리티 서비스
+    - `be/portfolio.py` (구 `portfolio_service.py` 단수화): 계좌 자산 연산, 실시간 수익 추적, OHLCV 주가 동적 캐싱 및 표준 영업일 정제를 전담하는 핵심 금융 엔진
+      - **기능 1**: 한국 거래소(KOSPI/삼성전자 005930 기준) 개장 캘린더를 동적 조회하여 공휴일/휴장일이 제외된 정밀한 표준 영업일 범위 및 리스트 제공
+      - **기능 2 (OHLCV 캐싱 & Gap 정제)**: OHLCV 시계열 주가 캐싱 및 Gap 정제 알고리즘에 따른 비동기 캐시 반환/과거·미래 백필 수행
+      - **기능 3 (이동평균법 보유고 산정)**: 특정 계좌의 특정 종목 거래 기록을 시간순으로 정밀 순회하며 수량, 이동평균 평단가, 매수총액, 누적 수수료 및 실현 손익 추적
+      - **기능 4 (포트폴리오 DTO 조립)**: 각 계좌의 주식 평가 총액과 현금 예수금을 합산하여 계좌별 수익률 및 전체 통합 총자산 DTO를 프론트엔드 규격에 맞춰 가공 조립
+      - **기능 5 (연대기 역산 복원)**: 지정된 계좌의 전체 거래 내역을 최초 자산 시점부터 연대기순으로 완전 역산 시뮬레이션하여 예수금 잔고(`cash_balance`) 및 보유 수량/평단가를 복원하여 DB 영구 동기화
 *   **파이썬 모듈/파일명 (단수형 및 파이썬 표준 적용)**: 
-    - `account.py`, `transaction.py`, `stock.py`, `recommendation.py`, `task.py`, `portfolio.py`, `stock_ohlcv.py`, `transaction_cash.py`
+    - `account.py`, `transaction.py`, `stock.py`, `recommendation.py`, `portfolio.py`, `stock_ohlcv.py`, `transaction_cash.py`, `git/git_task.py`, `git/git_service.py`
 *   **REST API 엔드포인트 경로 (복수형 유지)**:
     - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcv`, `GET /api/transactions_cash`
 *   **🚨 백엔드 공통 상수 관리 ([constants.py](file:///C:/01_projects/sunflower87/be/constants.py))**:
@@ -197,6 +209,14 @@
 | **`PUT`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 캐시 레코드 삭제 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 해당 일자 레코드 삭제 | `{"status": "success", "message": "OHLCV cache record deleted."}` |
 | **`POST`** | `/api/stocks/refresh-prices` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | `pykrx` 실시간 현재가 수집 및 보유주식 current_price 연동 | `{"status": "success", "updated": [...]}` |
+
+### 🚀 [신설] 로그인 상태 1분 단위 주가 실시간 연쇄 동기화 시스템 (Trigger-and-Refetch Pattern)
+*   **실시간 동기화의 한계 극복**: 단순히 백엔드에서 주가를 1분마다 갱신하더라도 프론트엔드 상태가 리로드되지 않으면 화면에 변화가 보이지 않는 한계를 극복하기 위해, **Trigger-and-Refetch(트리거 후 재조회) 아키텍처**를 적용합니다.
+*   **작동 메커니즘**:
+    1.  **FE 백그라운드 주기적 트리거**: 사용자가 로그인 상태일 때, 프론트엔드는 React Context 또는 `useEffect` 내의 `setInterval` 타이머를 통해 **1분 간격**으로 백엔드의 실시간 주가 동기화 API(`POST /api/stocks/refresh-prices`)를 호출(Trigger)합니다.
+    2.  **BE 주가 수집 및 적재**: 백엔드는 수량이 `quantity > 0`인 보유 종목들을 판별해 외부 `pykrx` 연동으로 실시간 주가를 고속 수집하고, `stock` 및 금일 자 `stock_ohlcv_cache`를 업데이트한 뒤 성공 결과(`{"status": "success", "updated": [...]}`)를 응답합니다.
+    3.  **FE 연쇄적 상태 리밸리데이션 (Refetch)**: 프론트엔드는 `refresh-prices` API 응답이 성공적으로 리턴되는 즉시, 연쇄적으로 메인 계좌/자산 정보 조회 API (`GET /api/accounts`)를 백그라운드 호출하여 React의 전역 자산 상태(`accounts`, `total_asset` 등)를 즉각 무효화 및 재조회(Refetch)합니다.
+*   **기대 효과**: 사용자는 새로고침 버튼을 일체 누르지 않아도 화면상의 주가 배지, 평가 금액, 평가 손익률, 통합 총자산 수치들이 1분마다 살아있는 대시보드처럼 **실시간으로 연쇄 반영**되어 미려하게 렌더링되는 최고급 사용자 경험(UX)을 제공받게 됩니다.
 
 ---
 
