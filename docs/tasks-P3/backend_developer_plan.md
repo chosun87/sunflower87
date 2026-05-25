@@ -144,13 +144,13 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 - **`PUT /api/stocks/master/{stock_code}`** [Update]: 커스텀 종목 마스터 정보 수정
 - **`DELETE /api/stocks/master/{stock_code}`** [Delete]: 종목 마스터 레코드 소프트 딜리트 (`dt_deleted` 마킹)
 
-### 📊 ⑦ 주가 시고저종 API (`be/routers/stock_ohlcv.py`) - `stock_ohlcv_cache` 테이블
+### 📊 ⑦ 주가 OHLCV API (`be/routers/stock_ohlcv.py`) - `stock_ohlcv_cache` 테이블
 - **`GET /api/stock_ohlcv`** [Read OHLCV]: 특정 종목의 과거 시계열 조회 (즉시 캐시 고속 반환 후 BackgroundTasks 크롤러 백그라운드 수집 실행)
 - **`GET /api/stock_ohlcv/{stock_code}/{trade_date}`** [Read One]: 특정 종목의 특정 영업일 OHLCV 단일 행 상세 조회
-- **`POST /api/stock_ohlcv`** [Create]: 특정 일자의 시고저종 임의 생성/입력
-- **`PUT /api/stock_ohlcv/{stock_code}/{trade_date}`** [Update]: 특정 일자의 주가 정보 수정
+- **`POST /api/stock_ohlcv`** [Create]: 특정 일자의 시고저종, 거래량, 거래대금, 등락률 임의 생성/입력
+- **`PUT /api/stock_ohlcv/{stock_code}/{trade_date}`** [Update]: 특정 일자의 주가(등락률, 거래대금 포함) 정보 수정
 - **`DELETE /api/stock_ohlcv/{stock_code}/{trade_date}`** [Delete]: 특정 일자의 주가 캐시 레코드 삭제
-- **`POST /api/stocks/refresh-prices`** [Refresh All]: 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화
+- **`POST /api/stocks/refresh-prices`** [Refresh All]: 보유한 모든 주식의 실시간 현재가 및 지표 외부 수집 및 DB 캐시 1분 간격 동기화
 
 ### 🤖 ⑧ AI 추천 API (`be/routers/recommendation.py`) - `recommendation` 테이블
 - **`GET /api/recommendations`** [Read All]: 오늘 날짜 기준 AI 포트폴리오 권장 추천 종목 목록 조회

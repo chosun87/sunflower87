@@ -58,7 +58,7 @@
 *   `dt_cached` (캐싱 일시, `DATETIME`, Not Null, Default `utcnow`)
 *   `dt_deleted` (삭제/상폐 일시, `DATETIME`, Nullable) ➔ 기존 `is_active` 플래그 제거 후 도입
 
-### ⑥ 주가 시고저종 캐시 테이블 (`stock_ohlcv_cache`)
+### ⑥ 주가 OHLCV 캐시 테이블 (`stock_ohlcv_cache`)
 *   `stock_code` (종목 코드, `VARCHAR`, **Composite Primary Key 1**, **Foreign Key** `stock_cache.stock_code`)
 *   `trade_date` (거래 일자, `VARCHAR`, **Composite Primary Key 2`) ➔ 형식: `YYYY-MM-DD`
 *   `open_price` (시가, `INTEGER`, Not Null)
@@ -66,6 +66,8 @@
 *   `low_price` (저가, `INTEGER`, Not Null)
 *   `close_price` (종가, `INTEGER`, Not Null)
 *   `volume` (거래량, `INTEGER`, Not Null)
+*   `trading_value` (거래대금, `INTEGER`, Not Null)
+*   `fluctuation_rate` (등락률, `REAL`, Not Null)
 
 ### ⑦ AI 추천 종목 테이블 (`recommendation`)
 *기존 `recommendations` ➔ `recommendation`으로 단수화하며, AI 추천 기능 확장성에 대비해 맨 하단으로 배치 설계했습니다.*

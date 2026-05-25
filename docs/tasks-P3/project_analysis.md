@@ -198,15 +198,15 @@
 
 ---
 
-### 📊 ⑦ 주가 시고저종 API 명세 (`/api/stock_ohlcv` 외) - `stock_ohlcv_cache` 전용 (EARTH 규격)
+### 📊 ⑦ 주가 OHLCV(등락률, 거래대금 포함) API 명세 (`/api/stock_ohlcv` 외) - `stock_ohlcv_cache` 전용 (EARTH 규격)
 *시고저종 캐시 주가 데이터에 대한 조회, 수동 등록, 임의 편집 및 개별 삭제를 지원하는 CRUD입니다.*
 
 | Method | Endpoint | Description | Request Parameters / Body | 내부 연계/영향 API (Internal Calls & Impact) | Response Payload (JSON Summary) |
 | :---: | :--- | :--- | :--- | :--- | :--- |
 | **`GET`** | `/api/stock_ohlcv` | 특정 종목의 과거 시계열 조회 (즉시 캐시 고속 반환 후 BackgroundTasks 크롤러 백그라운드 수집 실행) | **Query Params**: `code`, `start_date`, `end_date` | `FastAPI BackgroundTasks` 및 `pykrx` 연계 백필 작동 | `{"status": "success", "data": [...]}` |
 | **`GET`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 종목의 특정 영업일 OHLCV 단일 행 상세 조회 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 단일 조회 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/stock_ohlcv` | 특정 일자의 시고저종 임의 생성/입력 (수동 주가 정보 주입) | **Body (JSON)**:<br>`{"stock_code": "005930", "trade_date": "2026-05-24", "open_price": 78000, "high_price": 79000, "low_price": 77500, "close_price": 78500, "volume": 120000}` | `stock_ohlcv_cache`에 레코드 수동 주입 | `{"status": "success", "data": {...}}` *(201 Created)* |
-| **`PUT`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
+| **`POST`** | `/api/stock_ohlcv` | 특정 일자의 주가(등락률, 거래대금 포함) 임의 생성/입력 (수동 주가 정보 주입) | **Body (JSON)**:<br>`{"stock_code": "005930", "trade_date": "2026-05-24", "open_price": 78000, "high_price": 79000, "low_price": 77500, "close_price": 78500, "volume": 120000, "trading_value": 9420000000, "fluctuation_rate": 1.29}` | `stock_ohlcv_cache`에 레코드 수동 주입 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`PUT`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종, 거래량, 거래대금, 등락률 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 캐시 레코드 삭제 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 해당 일자 레코드 삭제 | `{"status": "success", "message": "OHLCV cache record deleted."}` |
 | **`POST`** | `/api/stocks/refresh-prices` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | `pykrx` 실시간 현재가 수집 및 보유주식 current_price 연동 | `{"status": "success", "updated": [...]}` |
 
@@ -319,6 +319,8 @@ erDiagram
         INTEGER low_price
         INTEGER close_price
         INTEGER volume
+        INTEGER trading_value
+        REAL fluctuation_rate
     }
 
     recommendation {
