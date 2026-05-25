@@ -147,18 +147,18 @@ export default function TransactionStockCmpt({
 
   const actionsBodyTemplate = (rowData) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex justify-content-end">
         <Button
           icon="fa-solid fa-pencil"
-          className="p-button-rounded p-button-success p-button-text"
-          onClick={() => onEditClick(rowData)}
+          className="p-button-rounded p-button-text p-button-success"
           tooltip="매매 내역 수정" tooltipOptions={{ position: 'top' }}
+          onClick={() => onEditClick(rowData)}
         />
         <Button
           icon="fa-solid fa-trash"
-          className="p-button-rounded p-button-danger p-button-text"
-          onClick={() => onDeleteClick(rowData)}
+          className="p-button-rounded p-button-text p-button-danger"
           tooltip="매매 내역 삭제" tooltipOptions={{ position: 'top' }}
+          onClick={() => onDeleteClick(rowData)}
         />
       </div>
     );
@@ -327,10 +327,12 @@ export default function TransactionStockCmpt({
           }
         ></Column>
         <Column
-          header="작업"
+          header="수정 &#8226; 삭제"
           body={actionsBodyTemplate}
           exportable={false}
-          style={{ minWidth: '8rem' }}
+          align="right"
+          className="p-0"
+          style={{ minWidth: '4rem' }}
         ></Column>
       </DataTable>
     </div>
