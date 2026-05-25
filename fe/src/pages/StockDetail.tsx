@@ -36,7 +36,7 @@ export default function StockDetail() {
       const params = { code: stockCode };
       if (start_date) params.start_date = start_date;
       if (end_date) params.end_date = end_date;
-      
+
       const resData = await get('/api/stocks/ohlcv', params);
       if (resData.status !== 'success') {
         throw new Error(resData.message || '주가 데이터를 가져오는데 실패했습니다.');
@@ -66,7 +66,7 @@ export default function StockDetail() {
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       if (chartContainerRef.current) {
-        chartContainerRef.current.requestFullscreen().catch(err => {
+        chartContainerRef.current.requestFullscreen().catch((err) => {
           console.error('Fullscreen error:', err);
         });
       }
@@ -91,7 +91,7 @@ export default function StockDetail() {
   // 차트 Pan / Zoom 이벤트 핸들러 (300ms Debounce 결계)
   const handleChartPanZoom = (chartContext, { xaxis }) => {
     if (!xaxis || !xaxis.min || !xaxis.max) return;
-    
+
     // category 방식의 X축에서 min, max는 1 기반의 인덱스로 넘어올 가능성이 높습니다.
     const labels = chartContext?.w?.globals?.labels || [];
     if (labels.length === 0) return;
@@ -420,12 +420,12 @@ export default function StockDetail() {
       <Card className="shadow-4 border-round p-3 relative">
         {/* 전체 화면 토글 버튼 */}
         <div className="absolute top-0 right-0 p-3 z-5">
-            <Button
-              icon="pi pi-expand"
-              className="p-button-rounded p-button-text p-button-secondary"
-              tooltip="전체 화면 토글"
-              onClick={toggleFullscreen}
-            />
+          <Button
+            icon="pi pi-expand"
+            className="p-button-rounded p-button-text p-button-secondary"
+            tooltip="전체 화면 토글"
+            onClick={toggleFullscreen}
+          />
         </div>
 
         {isChartLoading && ohlcvData.length === 0 ? (
@@ -460,12 +460,21 @@ export default function StockDetail() {
             }}
           >
             {isChartLoading && (
-              <div 
+              <div
                 className="absolute top-0 left-0 w-full h-full flex flex-column align-items-center justify-content-center z-5 border-round"
-                style={{ backgroundColor: 'rgba(128, 128, 128, 0.15)', backdropFilter: 'blur(2px)' }}
+                style={{
+                  backgroundColor: 'rgba(128, 128, 128, 0.15)',
+                  backdropFilter: 'blur(2px)',
+                }}
               >
-                <ProgressSpinner style={{ width: '40px', height: '40px' }} strokeWidth="4" animationDuration=".5s" />
-                <span className="text-600 font-bold mt-2 text-sm shadow-1">과거 주가 데이터 백필 중...</span>
+                <ProgressSpinner
+                  style={{ width: '40px', height: '40px' }}
+                  strokeWidth="4"
+                  animationDuration=".5s"
+                />
+                <span className="text-600 font-bold mt-2 text-sm shadow-1">
+                  과거 주가 데이터 백필 중...
+                </span>
               </div>
             )}
             <Chart
