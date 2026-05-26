@@ -78,14 +78,13 @@
       - **기능 2**: 디렉토리 트래버설 공격 방지를 위해 파일명 유효성 정규식 검사(알파뉴메릭, 하이픈, 언더스코어 및 `.md` 확장자 강제)를 수행
       - **기능 3**: `be/git/git_service.py`와 연동하여 태스크 파일을 로컬 Git 리포지토리에 추가 및 커밋(`git commit`) 후 원격 리포지토리에 자동으로 푸시(`git push`)
     - `be/git/git_service.py` (구 `be/git_service.py` 이동): Git 형상관리(`git add`, `git commit`, `git push`) 연동을 전담하는 공통 유틸리티 서비스
-    - `be/portfolio.py` (구 `portfolio_service.py` 단수화): 계좌 자산 연산, 실시간 수익 추적, OHLCV 주가 동적 캐싱 및 표준 영업일 정제를 전담하는 핵심 금융 엔진
-      - **기능 1**: 한국 거래소(KOSPI/삼성전자 005930 기준) 개장 캘린더를 동적 조회하여 공휴일/휴장일이 제외된 정밀한 표준 영업일 범위 및 리스트 제공
-      - **기능 2 (OHLCV 캐싱 & Gap 정제)**: OHLCV 시계열 주가 캐싱 및 Gap 정제 알고리즘에 따른 비동기 캐시 반환/과거·미래 백필 수행
-      - **기능 3 (이동평균법 보유고 산정)**: 특정 계좌의 특정 종목 거래 기록을 시간순으로 정밀 순회하며 수량, 이동평균 평단가, 매수총액, 누적 수수료 및 실현 손익 추적
-      - **기능 4 (포트폴리오 DTO 조립)**: 각 계좌의 주식 평가 총액과 현금 예수금을 합산하여 계좌별 수익률 및 전체 통합 총자산 DTO를 프론트엔드 규격에 맞춰 가공 조립
-      - **기능 5 (연대기 역산 복원)**: 지정된 계좌의 전체 거래 내역을 최초 자산 시점부터 연대기순으로 완전 역산 시뮬레이션하여 예수금 잔고(`cash_balance`) 및 보유 수량/평단가를 복원하여 DB 영구 동기화
+    - **[리팩토링] 도메인 서비스 계층(`be/services/`) 신설 및 쪼개기**: 기존 600줄이 넘던 거대한 `be/portfolio.py` 단일 파일을 3개의 마이크로 서비스로 분할하여 단일 책임 원칙(SRP)을 준수합니다.
+      - `be/services/market_service.py`: 한국 거래소(KOSPI/삼성전자) 개장 캘린더 동적 조회, 시계열 OHLCV 주가 캐싱, Gap 정제 알고리즘 등 시세 통신 전담
+      - `be/services/portfolio_service.py`: 특정 계좌의 거래 연대기 역산 복원, 이동평균법 보유고 산정 및 전체 계좌 포트폴리오 DTO 가공 조립 전담
+      - `be/services/dashboard_service.py`: 4대 KPI (오늘/금월/금년/총 누적 수익) 실시간 산출 및 대시보드 데이터 가공 전담
+    - `be/routers/dashboard.py` [NEW]: 대시보드 KPI 전용 조회 라우터
 *   **파이썬 모듈/파일명 (단수형 및 파이썬 표준 적용)**: 
-    - `account.py`, `transaction.py`, `stock.py`, `recommendation.py`, `portfolio.py`, `stock_ohlcv.py`, `transaction_cash.py`, `git/git_task.py`, `git/git_service.py`
+    - `account.py`, `dashboard.py`, `transaction.py`, `stock.py`, `recommendation.py`, `stock_ohlcv.py`, `transaction_cash.py`, `services/market_service.py`, `services/portfolio_service.py`, `services/dashboard_service.py`, `git/git_task.py`, `git/git_service.py`
 *   **REST API 엔드포인트 경로 (복수형 유지)**:
     - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcvs`, `GET /api/transaction_cashes`
 *   **🚨 백엔드 공통 상수 관리 ([constants.py](file:///C:/01_projects/sunflower87/be/constants.py))**:

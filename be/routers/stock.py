@@ -6,7 +6,7 @@ from sqlalchemy import or_
 
 import schemas
 from database import Stock, StockCache, get_db
-from portfolio import get_enriched_accounts_data
+from services.portfolio_service import get_enriched_accounts_data
 
 router = APIRouter(prefix="/api/stocks", tags=["Stock"])
 

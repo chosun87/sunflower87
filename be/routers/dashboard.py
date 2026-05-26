@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import get_db
-from portfolio import get_dashboard_kpi
+from services.dashboard_service import get_dashboard_kpi
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 

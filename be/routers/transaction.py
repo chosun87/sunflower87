@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import Account, StockCache, Transaction, get_db
-from portfolio import recalculate_portfolio_for_account
+from services.portfolio_service import recalculate_portfolio_for_account
 
 router = APIRouter(prefix="/api/transactions", tags=["Transaction"])
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import StockOHLCVCache, get_db
-from portfolio import sync_ohlcv_cache
+from services.market_service import sync_ohlcv_cache
 
 router = APIRouter(prefix="/api/stock_ohlcvs", tags=["StockOHLCV"])
 
