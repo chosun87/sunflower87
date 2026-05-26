@@ -148,11 +148,13 @@ class TransactionCashCreate(BaseModel):
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return v  # 실제론 정밀 파싱 필요하나 간략화
 
+
 class TransactionCashUpdate(BaseModel):
     dt_cash: Optional[str] = None
     cash_type: Optional[CashType] = None
     amount: Optional[int] = None
     description: Optional[str] = None
+
 
 class TransactionCashResponse(BaseModel):
     id: int
@@ -175,11 +177,13 @@ class AccountDailyBalanceCreate(BaseModel):
     total_balance: int = 0
     return_rate: float = 0.0
 
+
 class AccountDailyBalanceUpdate(BaseModel):
     cash_balance: Optional[int] = None
     stock_eval_balance: Optional[int] = None
     total_balance: Optional[int] = None
     return_rate: Optional[float] = None
+
 
 class AccountDailyBalanceResponse(BaseModel):
     acc_cd: str
@@ -213,6 +217,7 @@ class StockUpdate(BaseModel):
     current_price: Optional[int] = None
     purchase_amount: Optional[int] = None
 
+
 class StockCreate(BaseModel):
     acc_cd: str
     stock_code: str
@@ -228,9 +233,11 @@ class StockCacheCreate(BaseModel):
     stock_name: str
     market: Optional[str] = None
 
+
 class StockCacheUpdate(BaseModel):
     stock_name: Optional[str] = None
     market: Optional[str] = None
+
 
 class StockCacheResponse(BaseModel):
     stock_code: str
@@ -268,6 +275,7 @@ class StockOHLCVCreate(BaseModel):
     trading_value: int = 0
     fluctuation_rate: float = 0.0
 
+
 class StockOHLCVUpdate(BaseModel):
     open_price: Optional[int] = None
     high_price: Optional[int] = None
@@ -276,6 +284,8 @@ class StockOHLCVUpdate(BaseModel):
     volume: Optional[int] = None
     trading_value: Optional[int] = None
     fluctuation_rate: Optional[float] = None
+
+
 # --- Recommendation ---
 class RecommendationResponse(BaseModel):
     stock_code: str

@@ -63,26 +63,34 @@ def delete_cash_transaction(id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{id}", response_model=schemas.ApiResponse[schemas.TransactionCashResponse])
+@router.get(
+    "/{id}", response_model=schemas.ApiResponse[schemas.TransactionCashResponse]
+)
 def get_cash_transaction(id: int, db: Session = Depends(get_db)):
-    tx = db.query(TransactionCash).filter(
-        TransactionCash.id == id, 
-        TransactionCash.dt_deleted.is_(None)
-    ).first()
+    tx = (
+        db.query(TransactionCash)
+        .filter(TransactionCash.id == id, TransactionCash.dt_deleted.is_(None))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="TransactionCash not found")
     return {"status": "success", "data": tx}
 
 
-@router.put("/{id}", response_model=schemas.ApiResponse[schemas.TransactionCashResponse])
-def update_cash_transaction(id: int, tx_data: schemas.TransactionCashUpdate, db: Session = Depends(get_db)):
-    tx = db.query(TransactionCash).filter(
-        TransactionCash.id == id, 
-        TransactionCash.dt_deleted.is_(None)
-    ).first()
+@router.put(
+    "/{id}", response_model=schemas.ApiResponse[schemas.TransactionCashResponse]
+)
+def update_cash_transaction(
+    id: int, tx_data: schemas.TransactionCashUpdate, db: Session = Depends(get_db)
+):
+    tx = (
+        db.query(TransactionCash)
+        .filter(TransactionCash.id == id, TransactionCash.dt_deleted.is_(None))
+        .first()
+    )
     if not tx:
         raise HTTPException(status_code=404, detail="TransactionCash not found")
-        
+
     if tx_data.dt_cash is not None:
         tx.dt_cash = datetime.strptime(tx_data.dt_cash, "%Y-%m-%d %H:%M:%S")
     if tx_data.cash_type is not None:
@@ -91,7 +99,7 @@ def update_cash_transaction(id: int, tx_data: schemas.TransactionCashUpdate, db:
         tx.amount = tx_data.amount
     if tx_data.description is not None:
         tx.description = tx_data.description
-        
+
     db.commit()
     recalculate_portfolio_for_account(db, tx.acc_cd)
     db.refresh(tx)

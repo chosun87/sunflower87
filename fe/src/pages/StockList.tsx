@@ -19,7 +19,13 @@ export default function StockList() {
         console.error('Failed to load portfolio:', e);
       }
     };
+
     fetchPortfolio();
+
+    window.addEventListener('market-data-updated', fetchPortfolio);
+    return () => {
+      window.removeEventListener('market-data-updated', fetchPortfolio);
+    };
   }, []);
 
   return (

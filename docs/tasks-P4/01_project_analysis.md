@@ -207,16 +207,16 @@
 | **`POST`** | `/api/stock_ohlcvs` | 특정 일자의 주가(등락률, 거래대금 포함) 임의 생성/입력 (수동 주가 정보 주입) | **Body (JSON)**:<br>`{"stock_code": "005930", "trade_date": "2026-05-24", "open_price": 78000, "high_price": 79000, "low_price": 77500, "close_price": 78500, "volume": 120000, "trading_value": 9420000000, "fluctuation_rate": 1.29}` | `stock_ohlcv_cache`에 레코드 수동 주입 | `{"status": "success", "data": {...}}` *(201 Created)* |
 | **`PUT`** | `/api/stock_ohlcvs/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종, 거래량, 거래대금, 등락률 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/stock_ohlcvs/{stock_code}/{trade_date}` | 특정 일자의 주가 캐시 레코드 삭제 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 해당 일자 레코드 삭제 | `{"status": "success", "message": "OHLCV cache record deleted."}` |
-| **`POST`** | `/api/stocks/refresh-prices` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | 네이버 금융 Polling API 연동 및 보유주식 current_price 갱신 | `{"status": "success", "updated": [...]}` |
+| **`POST`** | `/api/stock_ohlcvs/current` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | 네이버 금융 Polling API 연동 및 보유주식 current_price 갱신 | `{"status": "success", "updated": [...]}` |
 
 ### 🚀 [신설] 로그인 상태 1분 단위 주가 실시간 연쇄 동기화 시스템 (투트랙 전략 & Trigger-and-Refetch Pattern)
 *   **실시간 주가 수집의 한계 돌파 (투트랙 전략 도입)**: `pykrx` 오픈소스는 장중 실시간 데이터 수집이 불가능하고 잦은 호출 시 IP가 차단되는 한계가 있습니다. 이를 해결하기 위해 백엔드의 데이터 수집을 두 가지 트랙으로 분리합니다.
-    - **트랙 1 (실시간 현재가)**: `POST /api/stocks/refresh-prices` 호출 시 **네이버 금융 모바일 Polling API**(`https://polling.finance.naver.com/...`)를 직접 호출(Piggybacking)하여 0.1초 만에 장중 100% 실시간 주가를 가져옵니다. 별도 API Key가 필요 없습니다.
-    - **트랙 2 (과거 데이터 및 마스터)**: 차트용 OHLCV 과거 데이터 및 종목 마스터 수집 등은 기존과 동일하게 강력한 **`pykrx`**를 사용합니다.
+    - **트랙 1 (실시간 당일 시·고·저·종·거래량)**: `POST /api/stock_ohlcvs/current` 호출 시 **네이버 금융 모바일 Polling API**(`https://polling.finance.naver.com/api/realtime/domestic/stock/${종목코드}`)를 직접 호출(Piggybacking)하여 0.1초 만에 장중 100% 실시간 주가 데이터를 가져옵니다. 별도 API Key가 필요 없습니다.
+    - **트랙 2 (과거 데이터 및 마스터)**: 차트용 과거 데이터 및 종목 마스터 수집 등은 기존과 동일하게 강력한 **`pykrx`**를 사용합니다.
 *   **실시간 동기화 작동 메커니즘**:
-    1.  **FE 백그라운드 주기적 트리거**: 사용자가 로그인 상태일 때, 프론트엔드는 React Context 또는 `useEffect` 내의 `setInterval` 타이머를 통해 **1분 간격**으로 백엔드의 실시간 주가 동기화 API(`POST /api/stocks/refresh-prices`)를 호출(Trigger)합니다.
+    1.  **FE 백그라운드 주기적 트리거**: 사용자가 로그인 상태일 때, 프론트엔드는 React Context 또는 `useEffect` 내의 `setInterval` 타이머를 통해 **1분 간격**으로 백엔드의 실시간 주가 동기화 API(`POST /api/stock_ohlcvs/current`)를 호출(Trigger)합니다.
     2.  **BE 주가 수집 및 적재**: 백엔드는 수량이 `quantity > 0`인 보유 종목들을 판별해 **네이버 금융 Polling API**로 실시간 주가를 고속 수집하고, `stock` 테이블의 `current_price`를 업데이트한 뒤 성공 결과를 응답합니다.
-    3.  **FE 연쇄적 상태 리밸리데이션 (Refetch)**: 프론트엔드는 `refresh-prices` API 응답이 성공적으로 리턴되는 즉시, 연쇄적으로 메인 계좌/자산 정보 조회 API (`GET /api/accounts`)를 백그라운드 호출하여 React의 전역 자산 상태(`accounts`, `total_asset` 등)를 즉각 무효화 및 재조회(Refetch)합니다.
+    3.  **FE 연쇄적 상태 리밸리데이션 (Refetch)**: 프론트엔드는 `current` API 응답이 성공적으로 리턴되는 즉시, 연쇄적으로 메인 계좌/자산 정보 조회 API (`GET /api/accounts`)를 백그라운드 호출하여 React의 전역 자산 상태(`accounts`, `total_asset` 등)를 즉각 무효화 및 재조회(Refetch)합니다.
 *   **기대 효과**: 사용자는 새로고침 버튼을 일체 누르지 않아도 장중에 화면상의 주가 배지, 평가 금액, 평가 손익률, 통합 총자산 수치들이 1분마다 살아있는 대시보드처럼 **실시간으로 완벽히 연쇄 반영**되어 미려하게 렌더링되는 최고급 사용자 경험(UX)을 제공받게 됩니다.
 
 ---

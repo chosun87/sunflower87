@@ -11,6 +11,7 @@ from database import (
     TransactionCash,
 )
 
+
 def calculate_stock_balance(transactions, target_stock_code, acc_cd):
     holding_quantity = 0
     total_purchase_amt = 0.0

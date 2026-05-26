@@ -17,12 +17,12 @@ from git import git_task  # noqa: E402
 from migrate import run_migrations  # noqa: E402
 from routers import (  # noqa: E402
     account,
+    dashboard,
     recommendation,
     stock,
     stock_ohlcv,
     transaction,
     transaction_cash,
-    dashboard,
 )
 
 

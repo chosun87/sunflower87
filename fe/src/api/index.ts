@@ -29,7 +29,7 @@ const handleResponse = async (response) => {
   return data;
 };
 
-const fetchJson = async (path, { method = 'GET', params, body, headers } = {}) => {
+const fetchJson = async (path: any, { method = 'GET', params, body, headers }: any = {}) => {
   const url = buildUrl(path, params);
   const fetchOptions = {
     method,
@@ -44,15 +44,15 @@ const fetchJson = async (path, { method = 'GET', params, body, headers } = {}) =
   return handleResponse(response);
 };
 
-export const get = (path, params) => fetchJson(path, { method: 'GET', params });
-export const post = (path, body) => fetchJson(path, { method: 'POST', body });
-export const put = (path, body) => fetchJson(path, { method: 'PUT', body });
-export const del = (path) => fetchJson(path, { method: 'DELETE' });
+export const get = (path: any, params?: any) => fetchJson(path, { method: 'GET', params });
+export const post = (path: any, body?: any) => fetchJson(path, { method: 'POST', body });
+export const put = (path: any, body?: any) => fetchJson(path, { method: 'PUT', body });
+export const del = (path: any) => fetchJson(path, { method: 'DELETE' });
 
 export const getRecommendations = () => get('/api/recommendations');
-export const searchStock = (keyword) =>
+export const searchStock = (keyword?: string) =>
   get('/api/stocks/search', { keyword: String(keyword || '').trim() });
-export const getStockNameByCode = (code) =>
+export const getStockNameByCode = (code?: string) =>
   get('/api/stocks/lookup', { code: String(code || '').trim() });
-export const getDashboardKpi = (acc_cd) => 
+export const getDashboardKpi = (acc_cd?: string) =>
   get('/api/dashboard/kpi', acc_cd ? { acc_cd } : undefined);

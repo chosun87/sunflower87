@@ -4,47 +4,56 @@ import { kpiData, KpiDataItem } from '@/data/kpiData';
 import { getDashboardKpi } from '@/api';
 
 const formatCurrency = (num: number) => {
-  return '₩' + new Intl.NumberFormat('ko-KR').format(num);
+  return new Intl.NumberFormat('ko-KR').format(num);
 };
 
 const formatPercent = (num: number) => {
-  return `${num > 0 ? '+' : ''}${num}%`;
+  return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`;
+};
+
+const isZero = (str: string) => {
+  const numericString = String(str).replace(/[^0-9.-]+/g, '');
+  return Number(numericString) === 0;
 };
 
 export default function KpiCards() {
   const [data, setData] = useState<KpiDataItem[]>(kpiData);
 
   useEffect(() => {
-    getDashboardKpi()
-      .then((res: any) => {
-        const kpi = res.data;
-        const updated = kpiData.map(card => {
-          let valueStr = card.value;
-          let changeStr = card.change;
-          let isValueUp = card.isValueUp;
-          let isChangeUp = card.isChangeUp;
+    const fetchData = () => {
+      getDashboardKpi()
+        .then((res: any) => {
+          const kpi = res.data;
+          const updated = kpiData.map((card) => {
+            let valueStr = card.value;
+            let changeStr = card.change;
+            const kpiSection = kpi[card.id];
+            if (kpiSection) {
+              valueStr = formatCurrency(
+                card.id === 'total' ? kpiSection.total_asset : kpiSection.profit
+              );
+              changeStr = formatPercent(kpiSection.return_rate);
+            }
 
-          const kpiSection = kpi[card.id];
-          if (kpiSection) {
-            valueStr = formatCurrency(card.id === 'total' ? kpiSection.total_asset : kpiSection.profit);
-            changeStr = formatPercent(kpiSection.return_rate);
-            isValueUp = card.id === 'total' ? true : kpiSection.profit >= 0;
-            isChangeUp = kpiSection.return_rate >= 0;
-          }
-
-          return {
-            ...card,
-            value: valueStr,
-            change: changeStr,
-            isValueUp,
-            isChangeUp
-          };
+            return {
+              ...card,
+              value: valueStr,
+              change: changeStr,
+            };
+          });
+          setData(updated);
+        })
+        .catch((err: any) => {
+          console.error('Failed to load KPI data', err);
         });
-        setData(updated);
-      })
-      .catch((err: any) => {
-        console.error("Failed to load KPI data", err);
-      });
+    };
+
+    fetchData();
+
+    window.addEventListener('market-data-updated', fetchData);
+    return () => {
+      window.removeEventListener('market-data-updated', fetchData);
+    };
   }, []);
 
   return (
@@ -63,16 +72,34 @@ export default function KpiCards() {
         >
           <div className="flex align-items-center justify-content-end gap-3">
             <span
-              className={`text-3xl font-bold monospace mb-2 ${card.isValueUp ? 'text-up' : 'text-down'}`}
+              className={`text-3xl font-bold mb-2 ${
+                isZero(card.value)
+                  ? ''
+                  : card.id === 'total' || !String(card.value).includes('-')
+                    ? 'text-up'
+                    : 'text-down'
+              }`}
             >
               {card.value}
             </span>
 
             <span
-              className={`text-sm font-semibold monospace ${card.isChangeUp ? 'text-up' : 'text-down'}`}
+              className={`font-semibold ${
+                isZero(card.change)
+                  ? ''
+                  : String(card.change).includes('-')
+                    ? 'text-down'
+                    : 'text-up'
+              }`}
             >
               <i
-                className={`fa-solid ${card.isChangeUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'} mr-1`}
+                className={`${
+                  isZero(card.change)
+                    ? ''
+                    : String(card.change).includes('-')
+                      ? 'fa-solid fa-arrow-trend-down'
+                      : 'fa-solid fa-arrow-trend-up'
+                } mr-1`}
               ></i>
               {card.change}
             </span>

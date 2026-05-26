@@ -4,9 +4,7 @@ export interface KpiDataItem {
   icon: string;
   iconColor: string;
   value: string;
-  isValueUp: boolean;
   change: string;
-  isChangeUp: boolean;
   bgColor: string;
   borderColor: string;
 }
@@ -19,9 +17,7 @@ export const kpiData: KpiDataItem[] = [
     icon: 'fa-solid fa-calendar-day',
     iconColor: 'var(--orange-500)',
     value: '0',
-    isValueUp: false,
     change: '0.00%',
-    isChangeUp: true,
     bgColor: 'var(--orange-50)',
     borderColor: 'var(--orange-500)',
   },
@@ -31,9 +27,7 @@ export const kpiData: KpiDataItem[] = [
     icon: 'fa-solid fa-calendar-days',
     iconColor: 'var(--green-500)',
     value: '0',
-    isValueUp: true,
     change: '0.00%',
-    isChangeUp: true,
     bgColor: 'var(--green-50)',
     borderColor: 'var(--green-500)',
   },
@@ -43,9 +37,7 @@ export const kpiData: KpiDataItem[] = [
     icon: 'fa-solid fa-calendar',
     iconColor: 'var(--indigo-500)',
     value: '0',
-    isValueUp: false,
     change: '0.00%',
-    isChangeUp: false,
     bgColor: 'var(--indigo-50)',
     borderColor: 'var(--indigo-500)',
   },
@@ -55,9 +47,7 @@ export const kpiData: KpiDataItem[] = [
     icon: 'fa-solid fa-trophy',
     iconColor: 'var(--purple-500)',
     value: '0',
-    isValueUp: true,
     change: '0.00%',
-    isChangeUp: true,
     bgColor: 'var(--purple-50)',
     borderColor: 'var(--purple-500)',
   },

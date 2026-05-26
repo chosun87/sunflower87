@@ -131,33 +131,54 @@ def get_performance(acc_cd: str, db: Session = Depends(get_db)):
     return {"status": "success", "performance": balances}
 
 
-@router.get("/{acc_cd}/daily-balances/{trade_date}", response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse])
+@router.get(
+    "/{acc_cd}/daily-balances/{trade_date}",
+    response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse],
+)
 def get_daily_balance(acc_cd: str, trade_date: str, db: Session = Depends(get_db)):
-    balance = db.query(AccountDailyBalance).filter(
-        AccountDailyBalance.acc_cd == acc_cd, 
-        AccountDailyBalance.trade_date == trade_date
-    ).first()
+    balance = (
+        db.query(AccountDailyBalance)
+        .filter(
+            AccountDailyBalance.acc_cd == acc_cd,
+            AccountDailyBalance.trade_date == trade_date,
+        )
+        .first()
+    )
     if not balance:
         raise HTTPException(status_code=404, detail="Daily balance not found")
     return {"status": "success", "data": balance}
 
 
-@router.post("/{acc_cd}/daily-balances", status_code=201, response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse])
-def create_daily_balance(acc_cd: str, balance: schemas.AccountDailyBalanceCreate, db: Session = Depends(get_db)):
-    existing = db.query(AccountDailyBalance).filter(
-        AccountDailyBalance.acc_cd == acc_cd, 
-        AccountDailyBalance.trade_date == balance.trade_date
-    ).first()
+@router.post(
+    "/{acc_cd}/daily-balances",
+    status_code=201,
+    response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse],
+)
+def create_daily_balance(
+    acc_cd: str,
+    balance: schemas.AccountDailyBalanceCreate,
+    db: Session = Depends(get_db),
+):
+    existing = (
+        db.query(AccountDailyBalance)
+        .filter(
+            AccountDailyBalance.acc_cd == acc_cd,
+            AccountDailyBalance.trade_date == balance.trade_date,
+        )
+        .first()
+    )
     if existing:
-        raise HTTPException(status_code=400, detail="Daily balance for this date already exists")
-        
+        raise HTTPException(
+            status_code=400, detail="Daily balance for this date already exists"
+        )
+
     new_bal = AccountDailyBalance(
         acc_cd=acc_cd,
         trade_date=balance.trade_date,
         cash_balance=balance.cash_balance,
         stock_eval_balance=balance.stock_eval_balance,
         total_balance=balance.total_balance,
-        return_rate=balance.return_rate
+        return_rate=balance.return_rate,
     )
     db.add(new_bal)
     db.commit()
@@ -165,15 +186,27 @@ def create_daily_balance(acc_cd: str, balance: schemas.AccountDailyBalanceCreate
     return {"status": "success", "data": new_bal}
 
 
-@router.put("/{acc_cd}/daily-balances/{trade_date}", response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse])
-def update_daily_balance(acc_cd: str, trade_date: str, balance_data: schemas.AccountDailyBalanceUpdate, db: Session = Depends(get_db)):
-    balance = db.query(AccountDailyBalance).filter(
-        AccountDailyBalance.acc_cd == acc_cd, 
-        AccountDailyBalance.trade_date == trade_date
-    ).first()
+@router.put(
+    "/{acc_cd}/daily-balances/{trade_date}",
+    response_model=schemas.ApiResponse[schemas.AccountDailyBalanceResponse],
+)
+def update_daily_balance(
+    acc_cd: str,
+    trade_date: str,
+    balance_data: schemas.AccountDailyBalanceUpdate,
+    db: Session = Depends(get_db),
+):
+    balance = (
+        db.query(AccountDailyBalance)
+        .filter(
+            AccountDailyBalance.acc_cd == acc_cd,
+            AccountDailyBalance.trade_date == trade_date,
+        )
+        .first()
+    )
     if not balance:
         raise HTTPException(status_code=404, detail="Daily balance not found")
-        
+
     if balance_data.cash_balance is not None:
         balance.cash_balance = balance_data.cash_balance
     if balance_data.stock_eval_balance is not None:
@@ -182,7 +215,7 @@ def update_daily_balance(acc_cd: str, trade_date: str, balance_data: schemas.Acc
         balance.total_balance = balance_data.total_balance
     if balance_data.return_rate is not None:
         balance.return_rate = balance_data.return_rate
-        
+
     db.commit()
     db.refresh(balance)
     return {"status": "success", "data": balance}
@@ -190,13 +223,20 @@ def update_daily_balance(acc_cd: str, trade_date: str, balance_data: schemas.Acc
 
 @router.delete("/{acc_cd}/daily-balances/{trade_date}")
 def delete_daily_balance(acc_cd: str, trade_date: str, db: Session = Depends(get_db)):
-    balance = db.query(AccountDailyBalance).filter(
-        AccountDailyBalance.acc_cd == acc_cd, 
-        AccountDailyBalance.trade_date == trade_date
-    ).first()
+    balance = (
+        db.query(AccountDailyBalance)
+        .filter(
+            AccountDailyBalance.acc_cd == acc_cd,
+            AccountDailyBalance.trade_date == trade_date,
+        )
+        .first()
+    )
     if not balance:
         raise HTTPException(status_code=404, detail="Daily balance not found")
-        
+
     db.delete(balance)
     db.commit()
-    return {"status": "success", "message": "Daily balance record deleted successfully."}
+    return {
+        "status": "success",
+        "message": "Daily balance record deleted successfully.",
+    }

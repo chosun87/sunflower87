@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 
 from config import DATA_GAP_THRESHOLD, TRADE_DATE_PERIOD
