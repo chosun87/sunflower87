@@ -54,3 +54,5 @@ export const searchStock = (keyword) =>
   get('/api/stocks/search', { keyword: String(keyword || '').trim() });
 export const getStockNameByCode = (code) =>
   get('/api/stocks/lookup', { code: String(code || '').trim() });
+export const getDashboardKpi = (acc_cd) => 
+  get('/api/dashboard/kpi', acc_cd ? { acc_cd } : undefined);

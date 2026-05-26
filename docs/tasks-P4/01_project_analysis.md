@@ -63,7 +63,7 @@
 | **데이터베이스 ORM** | **SQLAlchemy** | 파이썬 객체와 DB 테이블을 매핑해주는 ORM 라이브러리 |
 | **주가 데이터 API** | **pykrx** | 한국 거래소(KRX) 네이버/다트의 주가, 시세, 종목 정보를 실시간 수집하는 크롤링 툴킷 |
 | **보안 및 환경설정** | **python-dotenv** | `.env` 파일에 기록된 민감 정보(DB URL, API Key) 자동 로드 |
-| **품질 및 린터** | **ruff**, **black**, **isort**, **flake8** | 자동 정렬, 코드 포맷팅 및 PEP8 규격 검증 라이브러리 세트 |
+| **품질 및 린터** | **ruff**, **black**, **isort**, **flake8** | 자동 정렬, 코드 포맷팅 및 PEP8 규격 검증 라이브러 세트 |
 
 ### 📂 백엔드 모듈 구성 (Routers & Services) - 업계 표준 관례 및 도메인 분리 적용
 *   **단일 책임 원칙(SRP) 및 도메인 지향 설계**: 각 API 모듈을 물리적 테이블에 1:1로 매핑하여 격리합니다.
@@ -87,7 +87,7 @@
 *   **파이썬 모듈/파일명 (단수형 및 파이썬 표준 적용)**: 
     - `account.py`, `transaction.py`, `stock.py`, `recommendation.py`, `portfolio.py`, `stock_ohlcv.py`, `transaction_cash.py`, `git/git_task.py`, `git/git_service.py`
 *   **REST API 엔드포인트 경로 (복수형 유지)**:
-    - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcv`, `GET /api/transactions_cash`
+    - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcvs`, `GET /api/transaction_cashes`
 *   **🚨 백엔드 공통 상수 관리 ([constants.py](file:///C:/01_projects/sunflower87/be/constants.py))**:
     - `TradeType` (BUY/SELL), `CashType` (DEPOSIT/WITHDRAW/INTEREST/DIVIDEND/FEE), `MarketType` (KOSPI/KOSDAQ/KONEX/ETF)을 선언하여 사용합니다.
 
@@ -139,21 +139,21 @@
 | :---: | :--- | :--- | :--- | :--- | :--- |
 | **`GET`** | `/api/transactions` | 전체 또는 조건별(계좌, 종목 등) 매매 거래 목록 조회 | **Query Params**:<br>- `acc_cd`: 계좌 필터<br>- `stock_code`: 종목 필터 | 자체 테이블 (`transaction`) 조회 전용 (내부적으로 `stock_cache` 조인하여 종목명 동적 반환) | `{"status": "success", "data": [{"id": 1, "trade_type": "BUY", ...}]}` |
 | **`GET`** | `/api/transactions/{id}` | 특정 매매 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/transactions/add` | 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_trade": "2026-05-23 22:45:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`POST`** | `/api/transactions` | 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_trade": "2026-05-23 22:45:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
 | **`PUT`** | `/api/transactions/{id}` | 특정 매매 로그 수정 및 이전/신규 계좌 포트폴리오 동시 역산 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 거래 개체 데이터 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/transactions/{id}` | 특정 거래 기록 삭제 및 자산 내역 이전 상태로 정밀 역산 복원(Rollback) | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Transaction deleted & portfolio rolled back."}` |
 
 ---
 
-### 💰 ③ 현금 거래 API 명세 (`/api/transactions_cash`) - `transaction_cash` 테이블 전용
+### 💰 ③ 현금 거래 API 명세 (`/api/transaction_cashes`) - `transaction_cash` 테이블 전용
 
 | Method | Endpoint | Description | Request Parameters / Body | 내부 연계/영향 API (Internal Calls & Impact) | Response Payload (JSON Summary) |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **`GET`** | `/api/transactions_cash` | 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회 | **Query Params**:<br>- `acc_cd` (Required): 계좌 필터 | 자체 테이블 (`transaction_cash`) 조회 전용 | `{"status": "success", "data": [{"id": 1, "cash_type": "DIVIDEND", "amount": 50000, ...}]}` |
-| **`GET`** | `/api/transactions_cash/{id}` | 특정 현금 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/transactions_cash/add` | 입금, 출금, 이자 수익, 주식 배당금 등의 신규 현금 흐름 기록 등록 및 예수금 실시간 재정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_cash": "2026-05-23 23:12:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
-| **`PUT`** | `/api/transactions_cash/{id}` | 특정 현금 거래 명세 및 금액 수정 및 예수금 실시간 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 현금 거래 개체 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
-| **`DELETE`** | `/api/transactions_cash/{id}` | 특정 현금 거래 기록 제거 및 예수금 실시간 역산 복원 | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Cash transaction deleted & balance recalculated."}` |
+| **`GET`** | `/api/transaction_cashes` | 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회 | **Query Params**:<br>- `acc_cd` (Required): 계좌 필터 | 자체 테이블 (`transaction_cash`) 조회 전용 | `{"status": "success", "data": [{"id": 1, "cash_type": "DIVIDEND", "amount": 50000, ...}]}` |
+| **`GET`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
+| **`POST`** | `/api/transaction_cashes` | 입금, 출금, 이자 수익, 주식 배당금 등의 신규 현금 흐름 기록 등록 및 예수금 실시간 재정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_cash": "2026-05-23 23:12:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`PUT`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 명세 및 금액 수정 및 예수금 실시간 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 현금 거래 개체 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
+| **`DELETE`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 기록 제거 및 예수금 실시간 역산 복원 | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Cash transaction deleted & balance recalculated."}` |
 
 ---
 
@@ -198,25 +198,27 @@
 
 ---
 
-### 📊 ⑦ 주가 OHLCV(등락률, 거래대금 포함) API 명세 (`/api/stock_ohlcv` 외) - `stock_ohlcv_cache` 전용 (EARTH 규격)
+### 📊 ⑦ 주가 OHLCV(등락률, 거래대금 포함) API 명세 (`/api/stock_ohlcvs` 외) - `stock_ohlcv_cache` 전용 (EARTH 규격)
 *시고저종 캐시 주가 데이터에 대한 조회, 수동 등록, 임의 편집 및 개별 삭제를 지원하는 CRUD입니다.*
 
 | Method | Endpoint | Description | Request Parameters / Body | 내부 연계/영향 API (Internal Calls & Impact) | Response Payload (JSON Summary) |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **`GET`** | `/api/stock_ohlcv` | 특정 종목의 과거 시계열 조회 (즉시 캐시 고속 반환 후 BackgroundTasks 크롤러 백그라운드 수집 실행) | **Query Params**: `code`, `start_date`, `end_date` | `FastAPI BackgroundTasks` 및 `pykrx` 연계 백필 작동 | `{"status": "success", "data": [...]}` |
-| **`GET`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 종목의 특정 영업일 OHLCV 단일 행 상세 조회 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 단일 조회 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/stock_ohlcv` | 특정 일자의 주가(등락률, 거래대금 포함) 임의 생성/입력 (수동 주가 정보 주입) | **Body (JSON)**:<br>`{"stock_code": "005930", "trade_date": "2026-05-24", "open_price": 78000, "high_price": 79000, "low_price": 77500, "close_price": 78500, "volume": 120000, "trading_value": 9420000000, "fluctuation_rate": 1.29}` | `stock_ohlcv_cache`에 레코드 수동 주입 | `{"status": "success", "data": {...}}` *(201 Created)* |
-| **`PUT`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종, 거래량, 거래대금, 등락률 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
-| **`DELETE`** | `/api/stock_ohlcv/{stock_code}/{trade_date}` | 특정 일자의 주가 캐시 레코드 삭제 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 해당 일자 레코드 삭제 | `{"status": "success", "message": "OHLCV cache record deleted."}` |
-| **`POST`** | `/api/stocks/refresh-prices` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | `pykrx` 실시간 현재가 수집 및 보유주식 current_price 연동 | `{"status": "success", "updated": [...]}` |
+| **`GET`** | `/api/stock_ohlcvs` | 특정 종목의 과거 시계열 조회 (즉시 캐시 고속 반환 후 BackgroundTasks 크롤러 백그라운드 수집 실행) | **Query Params**: `code`, `start_date`, `end_date` | `FastAPI BackgroundTasks` 및 `pykrx` 연계 백필 작동 | `{"status": "success", "data": [...]}` |
+| **`GET`** | `/api/stock_ohlcvs/{stock_code}/{trade_date}` | 특정 종목의 특정 영업일 OHLCV 단일 행 상세 조회 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 단일 조회 | `{"status": "success", "data": {...}}` |
+| **`POST`** | `/api/stock_ohlcvs` | 특정 일자의 주가(등락률, 거래대금 포함) 임의 생성/입력 (수동 주가 정보 주입) | **Body (JSON)**:<br>`{"stock_code": "005930", "trade_date": "2026-05-24", "open_price": 78000, "high_price": 79000, "low_price": 77500, "close_price": 78500, "volume": 120000, "trading_value": 9420000000, "fluctuation_rate": 1.29}` | `stock_ohlcv_cache`에 레코드 수동 주입 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`PUT`** | `/api/stock_ohlcvs/{stock_code}/{trade_date}` | 특정 일자의 주가 정보 수정 | **Path**: `stock_code`, `trade_date`<br>**Body (JSON)**: 수정할 시고저종, 거래량, 거래대금, 등락률 수치 | `stock_ohlcv_cache` 해당 일자 데이터 수정 | `{"status": "success", "data": {...}}` |
+| **`DELETE`** | `/api/stock_ohlcvs/{stock_code}/{trade_date}` | 특정 일자의 주가 캐시 레코드 삭제 | **Path**: `stock_code`, `trade_date` | `stock_ohlcv_cache` 해당 일자 레코드 삭제 | `{"status": "success", "message": "OHLCV cache record deleted."}` |
+| **`POST`** | `/api/stocks/refresh-prices` | 보유한 모든 주식의 실시간 현재가 외부 수집 및 DB 캐시 1분 간격 동기화 | None | 네이버 금융 Polling API 연동 및 보유주식 current_price 갱신 | `{"status": "success", "updated": [...]}` |
 
-### 🚀 [신설] 로그인 상태 1분 단위 주가 실시간 연쇄 동기화 시스템 (Trigger-and-Refetch Pattern)
-*   **실시간 동기화의 한계 극복**: 단순히 백엔드에서 주가를 1분마다 갱신하더라도 프론트엔드 상태가 리로드되지 않으면 화면에 변화가 보이지 않는 한계를 극복하기 위해, **Trigger-and-Refetch(트리거 후 재조회) 아키텍처**를 적용합니다.
-*   **작동 메커니즘**:
+### 🚀 [신설] 로그인 상태 1분 단위 주가 실시간 연쇄 동기화 시스템 (투트랙 전략 & Trigger-and-Refetch Pattern)
+*   **실시간 주가 수집의 한계 돌파 (투트랙 전략 도입)**: `pykrx` 오픈소스는 장중 실시간 데이터 수집이 불가능하고 잦은 호출 시 IP가 차단되는 한계가 있습니다. 이를 해결하기 위해 백엔드의 데이터 수집을 두 가지 트랙으로 분리합니다.
+    - **트랙 1 (실시간 현재가)**: `POST /api/stocks/refresh-prices` 호출 시 **네이버 금융 모바일 Polling API**(`https://polling.finance.naver.com/...`)를 직접 호출(Piggybacking)하여 0.1초 만에 장중 100% 실시간 주가를 가져옵니다. 별도 API Key가 필요 없습니다.
+    - **트랙 2 (과거 데이터 및 마스터)**: 차트용 OHLCV 과거 데이터 및 종목 마스터 수집 등은 기존과 동일하게 강력한 **`pykrx`**를 사용합니다.
+*   **실시간 동기화 작동 메커니즘**:
     1.  **FE 백그라운드 주기적 트리거**: 사용자가 로그인 상태일 때, 프론트엔드는 React Context 또는 `useEffect` 내의 `setInterval` 타이머를 통해 **1분 간격**으로 백엔드의 실시간 주가 동기화 API(`POST /api/stocks/refresh-prices`)를 호출(Trigger)합니다.
-    2.  **BE 주가 수집 및 적재**: 백엔드는 수량이 `quantity > 0`인 보유 종목들을 판별해 외부 `pykrx` 연동으로 실시간 주가를 고속 수집하고, `stock` 및 금일 자 `stock_ohlcv_cache`를 업데이트한 뒤 성공 결과(`{"status": "success", "updated": [...]}`)를 응답합니다.
+    2.  **BE 주가 수집 및 적재**: 백엔드는 수량이 `quantity > 0`인 보유 종목들을 판별해 **네이버 금융 Polling API**로 실시간 주가를 고속 수집하고, `stock` 테이블의 `current_price`를 업데이트한 뒤 성공 결과를 응답합니다.
     3.  **FE 연쇄적 상태 리밸리데이션 (Refetch)**: 프론트엔드는 `refresh-prices` API 응답이 성공적으로 리턴되는 즉시, 연쇄적으로 메인 계좌/자산 정보 조회 API (`GET /api/accounts`)를 백그라운드 호출하여 React의 전역 자산 상태(`accounts`, `total_asset` 등)를 즉각 무효화 및 재조회(Refetch)합니다.
-*   **기대 효과**: 사용자는 새로고침 버튼을 일체 누르지 않아도 화면상의 주가 배지, 평가 금액, 평가 손익률, 통합 총자산 수치들이 1분마다 살아있는 대시보드처럼 **실시간으로 연쇄 반영**되어 미려하게 렌더링되는 최고급 사용자 경험(UX)을 제공받게 됩니다.
+*   **기대 효과**: 사용자는 새로고침 버튼을 일체 누르지 않아도 장중에 화면상의 주가 배지, 평가 금액, 평가 손익률, 통합 총자산 수치들이 1분마다 살아있는 대시보드처럼 **실시간으로 완벽히 연쇄 반영**되어 미려하게 렌더링되는 최고급 사용자 경험(UX)을 제공받게 됩니다.
 
 ---
 
@@ -235,10 +237,6 @@
 ---
 
 ## 5. 데이터 관계도 (ERD) - 🚨 일자별 잔고 테이블 반영
-
-```mermaid
-erji Diagram
-```
 
 ```mermaid
 erDiagram

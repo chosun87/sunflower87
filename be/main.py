@@ -22,6 +22,7 @@ from routers import (  # noqa: E402
     stock_ohlcv,
     transaction,
     transaction_cash,
+    dashboard,
 )
 
 
@@ -57,6 +58,7 @@ app.include_router(transaction_cash.router)
 app.include_router(stock.router)
 app.include_router(stock_ohlcv.router)
 app.include_router(recommendation.router)
+app.include_router(dashboard.router)
 app.include_router(git_task.router)
 
 

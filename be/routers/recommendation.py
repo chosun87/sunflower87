@@ -94,3 +94,39 @@ def delete_recommendation(stock_code: str, db: Session = Depends(get_db)):
     db_rec.dt_deleted = datetime.utcnow()
     db.commit()
     return {"status": "success", "message": "Deleted."}
+
+@router.get("/{stock_code}", response_model=schemas.ApiResponse[schemas.RecommendationResponse])
+def get_recommendation(stock_code: str, db: Session = Depends(get_db)):
+    result = (
+        db.query(Recommendation, StockCache.stock_name)
+        .outerjoin(StockCache, Recommendation.stock_code == StockCache.stock_code)
+        .filter(Recommendation.stock_code == stock_code, Recommendation.dt_deleted.is_(None))
+        .first()
+    )
+    if not result:
+        raise HTTPException(404, "Recommendation not found")
+    rec, name = result
+    r_dict = {c.name: getattr(rec, c.name) for c in rec.__table__.columns}
+    r_dict["stock_name"] = name
+    return {"status": "success", "data": r_dict}
+
+from pydantic import BaseModel
+class FeedbackUpdate(BaseModel):
+    investor_score: int
+
+@router.patch("/{stock_code}/feedback")
+def update_feedback(stock_code: str, feedback: FeedbackUpdate, db: Session = Depends(get_db)):
+    db_rec = (
+        db.query(Recommendation)
+        .filter(Recommendation.stock_code == stock_code, Recommendation.dt_deleted.is_(None))
+        .first()
+    )
+    if not db_rec:
+        raise HTTPException(404, "Recommendation not found")
+    
+    db_rec.investor_score = feedback.investor_score
+    if feedback.investor_score == 0:
+        db_rec.dt_deleted = datetime.utcnow()
+        
+    db.commit()
+    return {"status": "success", "message": "Feedback submitted."}

@@ -99,50 +99,50 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 백엔드에서 제공하며 프론트엔드가 호출하는 **전체 8개 테이블 완전 대칭형 RESTful CRUD API 스펙**입니다.
 
 ### 💳 ① 계좌 마스터 API (`be/routers/account.py`) - `account` 테이블
-- **`GET /api/accounts`** [Read All]: 활성화된 전체 계좌 목록 조회
-- **`GET /api/accounts/{acc_cd}`** [Read One]: 특정 계좌 상세 단일 조회
-- **`POST /api/accounts`** [Create]: 신규 증권 계좌 등록 (Initial Cash 설정)
-- **`PUT /api/accounts/{acc_cd}`** [Update]: 계좌 명칭, 투자 원금 및 순서 정보 수정 (포트폴리오 및 일지 자동 재연쇄 정산)
-- **`DELETE /api/accounts/{acc_cd}`** [Delete]: 증권 계좌 소프트 딜리트 처리 (`dt_deleted` 필드에 삭제일 마킹)
-- **`PUT /api/accounts/reorder`** [Update Priority]: `SortableJS` 드래그앤드롭 리오더링에 따른 계좌 우선순위 배치 동기화
-- **`GET /api/accounts/{acc_cd}/performance`** [Performance Time Series]: 계좌별 날짜별 잔고 및 누적 수익률 시계열 전송
+- **`GET /api/account`** [Read All]: 활성화된 전체 계좌 목록 조회
+- **`GET /api/account/{acc_cd}`** [Read One]: 특정 계좌 상세 단일 조회
+- **`POST /api/account`** [Create]: 신규 증권 계좌 등록 (Initial Cash 설정)
+- **`PUT /api/account/{acc_cd}`** [Update]: 계좌 명칭, 투자 원금 및 순서 정보 수정 (포트폴리오 및 일지 자동 재연쇄 정산)
+- **`DELETE /api/account/{acc_cd}`** [Delete]: 증권 계좌 소프트 딜리트 처리 (`dt_deleted` 필드에 삭제일 마킹)
+- **`PUT /api/account/reorder`** [Update Priority]: `SortableJS` 드래그앤드롭 리오더링에 따른 계좌 우선순위 배치 동기화
+- **`GET /api/account/{acc_cd}/performance`** [Performance Time Series]: 계좌별 날짜별 잔고 및 누적 수익률 시계열 전송
 
 ### 📝 ② 주식 매매 거래 API (`be/routers/transaction.py`) - `transaction` 테이블
-- **`GET /api/transactions`** [Read All]: 전체 또는 조건별(계좌, 종목 등) 매매 거래 목록 조회
-- **`GET /api/transactions/{id}`** [Read One]: 특정 매매 거래 단일 상세 조회
-- **`POST /api/transactions/add`** [Create]: 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 및 일자별 잔고 자동 재정산 호출
-- **`PUT /api/transactions/{id}`** [Update]: 특정 매매 로그 수정 및 이전/신규 계좌 포트폴리오/일자별 잔고 동시 역산 재계산
-- **`DELETE /api/transactions/{id}`** [Delete]: 특정 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 잔고/예수금/일자별 잔고 자동 역산 복원(Rollback)
+- **`GET /api/transaction`** [Read All]: 전체 또는 조건별(계좌, 종목 등) 매매 거래 목록 조회
+- **`GET /api/transaction/{id}`** [Read One]: 특정 매매 거래 단일 상세 조회
+- **`POST /api/transaction/add`** [Create]: 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 및 일자별 잔고 자동 재정산 호출
+- **`PUT /api/transaction/{id}`** [Update]: 특정 매매 로그 수정 및 이전/신규 계좌 포트폴리오/일자별 잔고 동시 역산 재계산
+- **`DELETE /api/transaction/{id}`** [Delete]: 특정 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 잔고/예수금/일자별 잔고 자동 역산 복원(Rollback)
 
 ### 💰 ③ 현금 거래 API (`be/routers/transaction_cash.py`) - `transaction_cash` 테이블
-- **`GET /api/transactions_cash`** [Read All]: 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회
-- **`GET /api/transactions_cash/{id}`** [Read One]: 특정 현금 거래 단일 상세 조회
-- **`POST /api/transactions_cash/add`** [Create]: 입출금, 이자, 배당 등의 신규 현금 흐름 기록 등록 및 예수금/일자별 잔고 자동 재정산 연쇄
-- **`PUT /api/transactions_cash/{id}`** [Update]: 특정 현금 거래 명세 및 금액 수정 및 예수금/일자별 잔고 실시간 재연산
-- **`DELETE /api/transactions_cash/{id}`** [Delete]: 특정 현금 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 예수금/일자별 잔고 실시간 역산 복원
+- **`GET /api/transaction_cash`** [Read All]: 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회
+- **`GET /api/transaction_cash/{id}`** [Read One]: 특정 현금 거래 단일 상세 조회
+- **`POST /api/transaction_cash/add`** [Create]: 입출금, 이자, 배당 등의 신규 현금 흐름 기록 등록 및 예수금/일자별 잔고 자동 재정산 연쇄
+- **`PUT /api/transaction_cash/{id}`** [Update]: 특정 현금 거래 명세 및 금액 수정 및 예수금/일자별 잔고 실시간 재연산
+- **`DELETE /api/transaction_cash/{id}`** [Delete]: 특정 현금 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 예수금/일자별 잔고 실시간 역산 복원
 
 ### 🚨 ④ 계좌 일자별 잔고 API (`be/routers/account.py`) - `account_daily_balance` 테이블
-- **`GET /api/accounts/{acc_cd}/daily-balances`** [Read All]: 계좌별 날짜별 잔고 목록 시계열 조회
-- **`GET /api/accounts/{acc_cd}/daily-balances/{trade_date}`** [Read One]: 계좌별 특정 날짜의 단일 잔고 스냅샷 조회
-- **`POST /api/accounts/{acc_cd}/daily-balances`** [Create]: 계좌별 특정 날짜의 커스텀 잔고 스냅샷 강제 생성/주입
-- **`PUT /api/accounts/{acc_cd}/daily-balances/{trade_date}`** [Update]: 계좌별 특정 날짜의 잔고 스냅샷 수치 수동 편집 및 수정
-- **`DELETE /api/accounts/{acc_cd}/daily-balances/{trade_date}`** [Delete]: 계좌별 특정 날짜의 잔고 스냅샷 레코드 삭제
-- **`POST /api/accounts/{acc_cd}/recalculate-balances`** [Recalculate]: 계좌 거래 대장을 바탕으로 일자별 잔고 전체 자동 재정산/재구성 (수동 자가치유)
+- **`GET /api/account/{acc_cd}/daily-balance`** [Read All]: 계좌별 날짜별 잔고 목록 시계열 조회
+- **`GET /api/account/{acc_cd}/daily-balance/{trade_date}`** [Read One]: 계좌별 특정 날짜의 단일 잔고 스냅샷 조회
+- **`POST /api/account/{acc_cd}/daily-balance`** [Create]: 계좌별 특정 날짜의 커스텀 잔고 스냅샷 강제 생성/주입
+- **`PUT /api/account/{acc_cd}/daily-balance/{trade_date}`** [Update]: 계좌별 특정 날짜의 잔고 스냅샷 수치 수동 편집 및 수정
+- **`DELETE /api/account/{acc_cd}/daily-balance/{trade_date}`** [Delete]: 계좌별 특정 날짜의 잔고 스냅샷 레코드 삭제
+- **`POST /api/account/{acc_cd}/recalculate-balance`** [Recalculate]: 계좌 거래 대장을 바탕으로 일자별 잔고 전체 자동 재정산/재구성 (수동 자가치유)
 
 ### 📦 ⑤ 보유 잔고 API (`be/routers/stock.py`) - `stock` 테이블
-- **`GET /api/stocks`** [Read All]: 전체 계좌 또는 특정 계좌의 보유 잔고 목록 조회
-- **`GET /api/stocks/{acc_cd}/{stock_code}`** [Read One]: 특정 계좌 소속의 특정 종목 보유고 단일 조회
-- **`POST /api/stocks`** [Create]: 임의 보유 잔고 레코드 수동 생성 (오프라인/레거시 마스터 이식용)
-- **`PUT /api/stocks/{acc_cd}/{stock_code}`** [Update]: 특정 보유 잔고 수치 수동 편집
-- **`DELETE /api/stocks/{acc_cd}/{stock_code}`** [Delete]: 특정 보유 잔고 삭제 (포트폴리오 강제 초기화용)
+- **`GET /api/stock`** [Read All]: 전체 계좌 또는 특정 계좌의 보유 잔고 목록 조회
+- **`GET /api/stock/{acc_cd}/{stock_code}`** [Read One]: 특정 계좌 소속의 특정 종목 보유고 단일 조회
+- **`POST /api/stock`** [Create]: 임의 보유 잔고 레코드 수동 생성 (오프라인/레거시 마스터 이식용)
+- **`PUT /api/stock/{acc_cd}/{stock_code}`** [Update]: 특정 보유 잔고 수치 수동 편집
+- **`DELETE /api/stock/{acc_cd}/{stock_code}`** [Delete]: 특정 보유 잔고 삭제 (포트폴리오 강제 초기화용)
 
 ### 🏷️ ⑥ 종목 마스터 API (`be/routers/stock.py`) - `stock_cache` 테이블
-- **`GET /api/stocks/search`** [Search]: 부분 검색 키워드 기반 동적 종목 초고속 인메모리식 자동완성 검색
-- **`GET /api/stocks/lookup`** [Lookup]: 6자리 주식 코드로 한글 종목명 매핑 조회
-- **`POST /api/stocks/sync-master`** [Sync]: 수동 종목 마스터 강제 재크롤링 및 로컬 마스터 캐시 최신화
-- **`POST /api/stocks/master`** [Create]: 커스텀 종목 마스터 레코드 수동 생성
-- **`PUT /api/stocks/master/{stock_code}`** [Update]: 커스텀 종목 마스터 정보 수정
-- **`DELETE /api/stocks/master/{stock_code}`** [Delete]: 종목 마스터 레코드 소프트 딜리트 (`dt_deleted` 마킹)
+- **`GET /api/stock/search`** [Search]: 부분 검색 키워드 기반 동적 종목 초고속 인메모리식 자동완성 검색
+- **`GET /api/stock/lookup`** [Lookup]: 6자리 주식 코드로 한글 종목명 매핑 조회
+- **`POST /api/stock/sync-master`** [Sync]: 수동 종목 마스터 강제 재크롤링 및 로컬 마스터 캐시 최신화
+- **`POST /api/stock/master`** [Create]: 커스텀 종목 마스터 레코드 수동 생성
+- **`PUT /api/stock/master/{stock_code}`** [Update]: 커스텀 종목 마스터 정보 수정
+- **`DELETE /api/stock/master/{stock_code}`** [Delete]: 종목 마스터 레코드 소프트 딜리트 (`dt_deleted` 마킹)
 
 ### 📊 ⑦ 주가 OHLCV API (`be/routers/stock_ohlcv.py`) - `stock_ohlcv_cache` 테이블
 - **`GET /api/stock_ohlcv`** [Read OHLCV]: 특정 종목의 과거 시계열 조회 (즉시 캐시 고속 반환 후 BackgroundTasks 크롤러 백그라운드 수집 실행)
@@ -150,12 +150,12 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 - **`POST /api/stock_ohlcv`** [Create]: 특정 일자의 시고저종, 거래량, 거래대금, 등락률 임의 생성/입력
 - **`PUT /api/stock_ohlcv/{stock_code}/{trade_date}`** [Update]: 특정 일자의 주가(등락률, 거래대금 포함) 정보 수정
 - **`DELETE /api/stock_ohlcv/{stock_code}/{trade_date}`** [Delete]: 특정 일자의 주가 캐시 레코드 삭제
-- **`POST /api/stocks/refresh-prices`** [Refresh All]: 보유한 모든 주식의 실시간 현재가 및 지표 외부 수집 및 DB 캐시 1분 간격 동기화
+- **`POST /api/stock/refresh-prices`** [Refresh All]: 보유한 모든 주식의 실시간 현재가 및 지표 외부 수집 및 DB 캐시 1분 간격 동기화
 
 ### 🤖 ⑧ AI 추천 API (`be/routers/recommendation.py`) - `recommendation` 테이블
-- **`GET /api/recommendations`** [Read All]: 오늘 날짜 기준 AI 포트폴리오 권장 추천 종목 목록 조회
-- **`GET /api/recommendations/{stock_code}`** [Read One]: 특정 AI 추천 종목 단일 상세 조회
-- **`POST /api/recommendations`** [Create]: 신규 AI 추천 종목 등록
-- **`PUT /api/recommendations/{stock_code}`** [Update]: 추천 내용/사유/점수 수정
-- **`DELETE /api/recommendations/{stock_code}`** [Delete]: 추천 종목 소프트 딜리트 (`dt_deleted` 마킹)
-- **`PATCH /api/recommendations/{stock_code}/feedback`** [Feedback]: 투자자의 의견 피드백 점수(0~5) 부여 (0점일 시 즉시 소프트 딜리트 연쇄)
+- **`GET /api/recommendation`** [Read All]: 오늘 날짜 기준 AI 포트폴리오 권장 추천 종목 목록 조회
+- **`GET /api/recommendation/{stock_code}`** [Read One]: 특정 AI 추천 종목 단일 상세 조회
+- **`POST /api/recommendation`** [Create]: 신규 AI 추천 종목 등록
+- **`PUT /api/recommendation/{stock_code}`** [Update]: 추천 내용/사유/점수 수정
+- **`DELETE /api/recommendation/{stock_code}`** [Delete]: 추천 종목 소프트 딜리트 (`dt_deleted` 마킹)
+- **`PATCH /api/recommendation/{stock_code}/feedback`** [Feedback]: 투자자의 의견 피드백 점수(0~5) 부여 (0점일 시 즉시 소프트 딜리트 연쇄)
