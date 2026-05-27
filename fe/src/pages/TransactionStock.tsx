@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { get, post, put, del, searchStock, getStockNameByCode } from '@/api/index';
 import TransactionStockCmpt from '@/components/TransactionStock/TransactionStockCmpt';
 import TrStockDialog from '@/components/TransactionStock/TrStockDialog';
-import { showNotice, showError, showConfirm } from '@/assets/js/dialogUtils';
+import { showNotice, showError, showConfirm } from '@/assets/ts/dialogUtils';
 
 const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: '주식 매매 내역' }];
 

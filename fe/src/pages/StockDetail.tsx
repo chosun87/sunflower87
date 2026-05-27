@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
-import { Card, Button, ProgressSpinner } from '@/assets/js/PrimeReact';
-import { showError } from '@/assets/js/dialogUtils';
+import { Card, Button, ProgressSpinner } from '@/assets/ts/PrimeReact';
+import { showError } from '@/assets/ts/dialogUtils';
 import { get } from '@/api';
 
 export default function StockDetail() {

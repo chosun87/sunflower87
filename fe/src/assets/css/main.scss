@@ -7,11 +7,10 @@
 @use 'primeflex/primeflex.css';
 
 // Global Font Loading
-@import url('/node_modules/pretendard/dist/web/variable/pretendardvariable.css'); // Pretendard Variable 폰트 임포트
-// @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@use 'pretendard/dist/web/variable/pretendardvariable.css'; // Pretendard Variable 폰트 임포트
 
 // FontAwesome Free 아이콘 스타일
-@import '/node_modules/@fortawesome/fontawesome-free/css/all.min.css';
+@use '@fortawesome/fontawesome-free/css/all.min.css';
 
 // HTML & Body resets
 html,

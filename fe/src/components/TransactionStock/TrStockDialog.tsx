@@ -8,8 +8,8 @@ import {
   InputText,
   InputNumber,
   Calendar,
-} from '@/assets/js/PrimeReact';
-import { showNotice, showError } from '@/assets/js/dialogUtils';
+} from '@/assets/ts/PrimeReact';
+import { showNotice, showError } from '@/assets/ts/dialogUtils';
 
 export default function TrStockDialog({
   visible,
