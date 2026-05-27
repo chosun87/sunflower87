@@ -46,8 +46,7 @@ def create_account(account: schemas.AccountCreate, db: Session = Depends(get_db)
         acc_nm=account.acc_nm,
         acc_company_nm=account.acc_company_nm,
         acc_order=account.acc_order,
-        initial_cash=account.initial_cash,
-        cash_balance=account.initial_cash,
+        cash_balance=0,
     )
     db.add(new_account)
     db.commit()
@@ -70,10 +69,6 @@ def update_account(
         db_account.acc_nm = account.acc_nm
     if account.acc_order is not None:
         db_account.acc_order = account.acc_order
-    if account.initial_cash is not None:
-        db_account.initial_cash = account.initial_cash
-        db.commit()
-        recalculate_portfolio_for_account(db, acc_cd)
     db.commit()
     db.refresh(db_account)
     return {"status": "success", "data": db_account}

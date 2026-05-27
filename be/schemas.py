@@ -50,7 +50,6 @@ class AccountBase(BaseModel):
     acc_nm: str
     acc_company_nm: str
     acc_order: Optional[int] = 1
-    initial_cash: Optional[int] = 0
 
 
 class AccountCreate(AccountBase):
@@ -59,7 +58,6 @@ class AccountCreate(AccountBase):
 
 class AccountUpdate(BaseModel):
     acc_nm: Optional[str] = None
-    initial_cash: Optional[int] = None
     acc_order: Optional[int] = None
 
 

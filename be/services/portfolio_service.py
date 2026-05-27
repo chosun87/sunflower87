@@ -206,7 +206,7 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
             status_code=404, detail=f"Account with code '{acc_cd}' not found."
         )
 
-    cash_balance = float(account.initial_cash or 0.0)
+    cash_balance = 0.0
     holdings = {}
 
     stock_txs = (

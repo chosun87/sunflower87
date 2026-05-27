@@ -41,7 +41,6 @@ class Account(Base):
     acc_company_nm = Column(String, nullable=False)
     acc_order = Column(Integer, nullable=False, default=1)
     cash_balance = Column(Integer, nullable=False, default=0)
-    initial_cash = Column(Integer, nullable=False, default=0)
     dt_created = Column(DateTime, default=datetime.utcnow, nullable=False)
     dt_deleted = Column(DateTime, nullable=True)
 
