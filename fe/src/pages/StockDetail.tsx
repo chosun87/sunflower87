@@ -31,9 +31,12 @@ export default function StockDetail() {
   const debounceTimer = useRef(null);
 
   // 백엔드 API 호출 공통 함수 (Debounce에서 재사용)
-  const fetchOhlcvData = async (start_date = null, end_date = null) => {
+  const fetchOhlcvData = async (
+    start_date: string | null = null,
+    end_date: string | null = null
+  ) => {
     try {
-      const params = { code: stockCode };
+      const params: { code: string; start_date?: string; end_date?: string } = { code: stockCode };
       if (start_date) params.start_date = start_date;
       if (end_date) params.end_date = end_date;
 
@@ -89,7 +92,7 @@ export default function StockDetail() {
   }, []);
 
   // 차트 Pan / Zoom 이벤트 핸들러 (300ms Debounce 결계)
-  const handleChartPanZoom = (chartContext, { xaxis }) => {
+  const handleChartPanZoom = (chartContext: any, { xaxis }: any) => {
     if (!xaxis || !xaxis.min || !xaxis.max) return;
 
     // category 방식의 X축에서 min, max는 1 기반의 인덱스로 넘어올 가능성이 높습니다.
@@ -257,7 +260,7 @@ export default function StockDetail() {
         events: {
           zoomed: handleChartPanZoom,
           scrolled: handleChartPanZoom,
-          click: function (event, chartContext, config) {
+          click: function (event: any, chartContext: any, config: any) {
             const idx = config.dataPointIndex;
             // 캔들/데이터 포인트를 클릭했을 때만 툴팁 토글 동작
             if (idx !== undefined && idx !== -1) {
@@ -338,7 +341,7 @@ export default function StockDetail() {
           rotate: 0, // 글자가 45도로 눕지 않고 완벽한 수평 정렬을 유지하도록 통제
           rotateAlways: false,
           hideOverlappingLabels: true, // 겹치는 라벨 자동 숨김 (수동 솎아내기 제거)
-          formatter: (val) => {
+          formatter: (val: any) => {
             if (!val || typeof val !== 'string') return val;
             const idx = chartData.rawList.findIndex((r) => r.trade_date === val);
             if (idx !== -1 && chartData.tempTransitions && chartData.tempTransitions[idx]) {
@@ -358,7 +361,7 @@ export default function StockDetail() {
           enabled: true,
         },
         labels: {
-          formatter: (val) => Math.round(val).toLocaleString(),
+          formatter: (val: number) => Math.round(val).toLocaleString(),
           style: {
             colors: 'var(--text-color-secondary)',
             cssClass: 'monospace',
@@ -508,13 +511,13 @@ export default function StockDetail() {
           const { item, prevClose, ma5Val, ma20Val } = customClickTooltip;
 
           // 이전 거래일 종가(또는 당일 시가) 대비 등락 색상 계산 (다크 배경용 밝은 컬러)
-          const getPriceColor = (price) => {
+          const getPriceColor = (price: number) => {
             if (!prevClose || price === prevClose) return '#f8f9fa';
             return price > prevClose ? '#ff6666' : '#64a0ff';
           };
 
           // 등락률 문자열 계산 (Prime Icon 적용)
-          const getDiffNode = (price) => {
+          const getDiffNode = (price: number) => {
             if (!prevClose || price === prevClose) return <span>0.00%</span>;
             const diff = ((price - prevClose) / prevClose) * 100;
             const isUp = diff > 0;

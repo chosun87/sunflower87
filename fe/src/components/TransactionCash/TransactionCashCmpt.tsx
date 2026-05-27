@@ -40,9 +40,9 @@ export default function TransactionCashCmpt({
 
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
-  const txTypeBodyTemplate = (rowData: any) => {
-    const typeInfo = CASH_TYPE[rowData.type as keyof typeof CASH_TYPE] || {
-      label: rowData.type,
+  const cashTypeBodyTemplate = (rowData: any) => {
+    const typeInfo = CASH_TYPE[rowData.cash_type as keyof typeof CASH_TYPE] || {
+      label: rowData.cash_type,
       color: 'text-gray-500',
     };
 
@@ -52,15 +52,15 @@ export default function TransactionCashCmpt({
     return <span className={`font-bold ${typeInfo.color}`}>{typeInfo.label}</span>;
   };
 
-  const dateBodyTemplate = (rowData: any) => {
-    return rowData.date ? (
-      <span className="monospace">{dayjs(rowData.date).format('YYYY-MM-DD')}</span>
+  const dtCashBodyTemplate = (rowData: any) => {
+    return rowData.dt_cash ? (
+      <span className="monospace">{dayjs(rowData.dt_cash).format('YYYY-MM-DD')}</span>
     ) : (
       ''
     );
   };
 
-  const accountBodyTemplate = (rowData: any) => {
+  const accCdBodyTemplate = (rowData: any) => {
     const matchedAcc = accounts?.find((a: any) => a.acc_cd === rowData.acc_cd);
     const company = rowData.acc_company_nm || matchedAcc?.acc_company_nm || '';
     const name = rowData.acc_nm || matchedAcc?.acc_nm || rowData.acc_cd;
@@ -75,7 +75,7 @@ export default function TransactionCashCmpt({
     return <span className="monospace font-bold">{(rowData.amount || 0).toLocaleString()} 원</span>;
   };
 
-  const descBodyTemplate = (rowData: any) => {
+  const descriptionBodyTemplate = (rowData: any) => {
     return <span>{rowData.description}</span>;
   };
 
@@ -166,14 +166,14 @@ export default function TransactionCashCmpt({
         emptyMessage="조건에 맞는 입출금 내역이 존재하지 않습니다."
       >
         <Column
-          field="date"
+          field="dt_cash"
           header="거래일"
-          body={dateBodyTemplate}
+          body={dtCashBodyTemplate}
           sortable
           footer={<span className="font-bold">합계</span>}
         ></Column>
-        <Column field="type" header="구분" body={txTypeBodyTemplate} sortable></Column>
-        <Column field="acc_cd" header="거래 계좌" body={accountBodyTemplate} sortable></Column>
+        <Column field="cash_type" header="구분" body={cashTypeBodyTemplate} sortable></Column>
+        <Column field="acc_cd" header="거래 계좌" body={accCdBodyTemplate} sortable></Column>
         <Column
           field="amount"
           header="금액 (원)"
@@ -186,7 +186,7 @@ export default function TransactionCashCmpt({
             </span>
           }
         ></Column>
-        <Column field="description" header="적요" body={descBodyTemplate} sortable></Column>
+        <Column field="description" header="적요" body={descriptionBodyTemplate} sortable></Column>
         <Column
           header="수정 &#8226; 삭제"
           body={actionsBodyTemplate}

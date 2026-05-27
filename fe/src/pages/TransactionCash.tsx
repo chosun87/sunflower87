@@ -22,10 +22,7 @@ export default function TransactionCash() {
         const mapped = (res.data || []).map((tx: any) => ({
           ...tx,
           tx_id: tx.id,
-          date: tx.dt_cash,
-          type: tx.cash_type,
-          amount: tx.amount,
-          description: tx.description,
+          description: tx.description || '',
         }));
         setTransactions(mapped as never[]);
       }
@@ -84,10 +81,10 @@ export default function TransactionCash() {
     try {
       const apiPayload = {
         acc_cd: payload.acc_cd,
-        cash_type: payload.type,
+        cash_type: payload.cash_type,
         amount: payload.amount,
         description: payload.description || '',
-        dt_cash: payload.date,
+        dt_cash: payload.dt_cash,
       };
 
       if (editingTx) {
@@ -107,7 +104,7 @@ export default function TransactionCash() {
   };
 
   return (
-    <main className="page template template-datatable">
+    <main className="page transaction-cash">
       <div className="main-inner">
         <div className="page-header">
           <h2 className="page-title">계좌 입출금 내역</h2>

@@ -24,29 +24,31 @@ export default function TrStockDialog({
   onSave, // (payload) => Promise<void>
 }) {
   // 내부 폼 상태 관리 레이어 (Resetting state with a key 패턴 적용으로 초기값 바로 바인딩)
-  const [txType, setTxType] = useState(editingTx?.type || 'BUY');
+  const [txType, setTxType] = useState(editingTx?.trade_type || 'BUY');
   const [txAccount, setTxAccount] = useState(
     editingTx?.acc_cd || (accounts && accounts.length > 0 ? accounts[0].acc_cd : '')
   );
-  const [txCode, setTxCode] = useState(editingTx?.code || cachedStock?.code || '');
-  const [txName, setTxName] = useState(editingTx?.name || cachedStock?.name || '');
+  const [txCode, setTxCode] = useState(editingTx?.stock_code || cachedStock?.code || '');
+  const [txName, setTxName] = useState(editingTx?.stock_name || cachedStock?.name || '');
   const [txQuantity, setTxQuantity] = useState(editingTx?.quantity || null);
   const [txPrice, setTxPrice] = useState(editingTx?.price || null);
   const [txTaxFee, setTxTaxFee] = useState(editingTx?.tax_fee || 0);
-  const [txDate, setTxDate] = useState(editingTx?.date ? new Date(editingTx.date) : new Date());
+  const [txDate, setTxDate] = useState(
+    editingTx?.dt_trade ? new Date(editingTx.dt_trade) : new Date()
+  );
 
   useEffect(() => {
     if (visible) {
-      setTxType(editingTx?.type || 'BUY');
+      setTxType(editingTx?.trade_type || 'BUY');
       setTxAccount(
         editingTx?.acc_cd || (accounts && accounts.length > 0 ? accounts[0].acc_cd : '')
       );
-      setTxCode(editingTx?.code || cachedStock?.code || '');
-      setTxName(editingTx?.name || cachedStock?.name || '');
+      setTxCode(editingTx?.stock_code || cachedStock?.code || '');
+      setTxName(editingTx?.stock_name || cachedStock?.name || '');
       setTxQuantity(editingTx?.quantity || null);
       setTxPrice(editingTx?.price || null);
       setTxTaxFee(editingTx?.tax_fee || 0);
-      setTxDate(editingTx?.date ? new Date(editingTx.date) : new Date());
+      setTxDate(editingTx?.dt_trade ? new Date(editingTx.dt_trade) : new Date());
     }
   }, [visible, editingTx, cachedStock, accounts]);
 
@@ -139,14 +141,14 @@ export default function TrStockDialog({
       : '';
 
     const payload = {
-      type: txType,
-      code: txCode,
-      name: txName,
+      trade_type: txType,
+      stock_code: txCode,
+      stock_name: txName,
       quantity: Math.abs(Number(txQuantity) || 0), // 부호 정합성 검증 추가
       price: Math.abs(Number(txPrice) || 0),
       tax_fee: Math.abs(Number(txTaxFee) || 0), // 부호 정합성 검증 추가
       acc_cd: txAccount,
-      date: targetDateStr,
+      dt_trade: targetDateStr,
     };
 
     onSave(payload);

@@ -22,10 +22,6 @@ export default function TransactionStock() {
         const mapped = (res.data || []).map((tx: any) => ({
           ...tx,
           tx_id: tx.id,
-          date: tx.dt_trade,
-          type: tx.trade_type,
-          code: tx.stock_code,
-          name: tx.stock_name,
         }));
         setTransactions(mapped as never[]);
       }
@@ -84,12 +80,12 @@ export default function TransactionStock() {
     try {
       const apiPayload = {
         acc_cd: payload.acc_cd,
-        trade_type: payload.type,
-        stock_code: payload.code,
+        trade_type: payload.trade_type,
+        stock_code: payload.stock_code,
         quantity: payload.quantity,
         price: payload.price,
         tax_fee: payload.tax_fee,
-        dt_trade: payload.date,
+        dt_trade: payload.dt_trade,
       };
 
       if (editingTx) {
@@ -126,7 +122,7 @@ export default function TransactionStock() {
   };
 
   return (
-    <main className="page template template-datatable">
+    <main className="page transaction-stock">
       <div className="main-inner">
         <div className="page-header">
           <h2 className="page-title">주식 매매 내역</h2>

@@ -29,7 +29,7 @@ export default function StockList() {
   }, []);
 
   return (
-    <main className="page template template-datatable">
+    <main className="page stock-list">
       <div className="main-inner">
         <div className="page-header">
           <h2 className="page-title">보유 자산</h2>

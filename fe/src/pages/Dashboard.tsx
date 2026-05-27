@@ -1,7 +1,8 @@
 import KpiCards from '@components/Dashboard/KpiCards';
 import PortfolioPerformance from '@components/Dashboard/PortfolioPerformance';
 import DividendSummary from '@components/Dashboard/DividendSummary';
-import LatestTransactions from '@components/Dashboard/LatestTransactions';
+import LatestTrStockList from '@/components/Dashboard/LatestTrStockList';
+import LatestTrCash from '@/components/Dashboard/LatestTrCash';
 import MyWatchlist from '@components/Dashboard/MyWatchlist';
 
 export default function Dashboard() {
@@ -26,18 +27,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3. Footer 대시보드 2단 그리드 레이아웃 */}
+        {/* 3. 최근 거래 내역 및 입출금 내역 그리드 레이아웃 */}
         <div className="grid">
           {/* 좌측 메인 차트 및 상세 */}
           <div className="col-12 xl:col-6">
             {/* 최근 거래 내역 Panel */}
-            <LatestTransactions />
+            <LatestTrStockList />
           </div>
 
           {/* 우측 보조 카드 영역 */}
           <div className="col-12 xl:col-6">
-            {/* 배당 통계 Panel */}
-            <DividendSummary />
+            {/* 최근 입출금 내역 Panel */}
+            <LatestTrCash />
           </div>
         </div>
       </div>

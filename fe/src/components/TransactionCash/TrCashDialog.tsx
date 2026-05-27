@@ -14,23 +14,25 @@ export default function TrCashDialog({
 }) {
   // 내부 폼 상태 관리
   // CASH_TYPE_OPTIONS의 기본값은 보통 'DEPOSIT'이므로 이를 디폴트로 설정
-  const [txType, setTxType] = useState(editingTx?.type || 'DEPOSIT');
+  const [txType, setTxType] = useState(editingTx?.cash_type || 'DEPOSIT');
   const [txAccount, setTxAccount] = useState(
     editingTx?.acc_cd || (accounts && accounts.length > 0 ? accounts[0].acc_cd : '')
   );
   const [txAmount, setTxAmount] = useState(editingTx?.amount || null);
   const [txDesc, setTxDesc] = useState(editingTx?.description || '');
-  const [txDate, setTxDate] = useState(editingTx?.date ? new Date(editingTx.date) : new Date());
+  const [txDate, setTxDate] = useState(
+    editingTx?.dt_cash ? new Date(editingTx.dt_cash) : new Date()
+  );
 
   useEffect(() => {
     if (visible) {
-      setTxType(editingTx?.type || 'DEPOSIT');
+      setTxType(editingTx?.cash_type || 'DEPOSIT');
       setTxAccount(
         editingTx?.acc_cd || (accounts && accounts.length > 0 ? accounts[0].acc_cd : '')
       );
       setTxAmount(editingTx?.amount || null);
       setTxDesc(editingTx?.description || '');
-      setTxDate(editingTx?.date ? new Date(editingTx.date) : new Date());
+      setTxDate(editingTx?.dt_cash ? new Date(editingTx.dt_cash) : new Date());
     }
   }, [visible, editingTx, accounts]);
 
@@ -49,11 +51,11 @@ export default function TrCashDialog({
     const targetDateStr = txDate ? dayjs(txDate).format('YYYY-MM-DD 00:00:00') : '';
 
     const payload = {
-      type: txType,
+      cash_type: txType,
       amount: Math.abs(Number(txAmount) || 0), // 금액은 절대값 처리 (API나 서비스에서 부호 처리함)
       description: txDesc,
       acc_cd: txAccount,
-      date: targetDateStr,
+      dt_cash: targetDateStr,
     };
 
     onSave(payload);

@@ -61,7 +61,7 @@ def get_transaction(id: int, db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/add",
+    "",
     status_code=201,
     response_model=schemas.ApiResponse[schemas.TransactionResponse],
 )

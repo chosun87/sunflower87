@@ -9,6 +9,7 @@ import {
   InputText,
   Calendar,
 } from '@/assets/ts/PrimeReact';
+import { TRADE_TYPE } from '@/assets/ts/constants';
 
 export default function TransactionStockCmpt({
   transactions,
@@ -95,24 +96,24 @@ export default function TransactionStockCmpt({
 
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
-  const txTypeBodyTemplate = (rowData) => {
-    const isBuy = rowData.type === 'BUY';
+  const tradeTypeBodyTemplate = (rowData) => {
+    const isBuy = rowData.trade_type === TRADE_TYPE.BUY.code;
     return isBuy ? (
-      <Badge value="매수" className="type-buy" />
+      <Badge value={TRADE_TYPE.BUY.label} className="type-buy" />
     ) : (
-      <Badge value="매도" className="type-sell" />
+      <Badge value={TRADE_TYPE.SELL.label} className="type-sell" />
     );
   };
 
-  const dateBodyTemplate = (rowData) => {
-    return rowData.date ? (
-      <span className="monospace">{dayjs(rowData.date).format('YYYY-MM-DD HH:mm')}</span>
+  const dtTradeBodyTemplate = (rowData) => {
+    return rowData.dt_trade ? (
+      <span className="monospace">{dayjs(rowData.dt_trade).format('YYYY-MM-DD HH:mm')}</span>
     ) : (
       ''
     );
   };
 
-  const accountBodyTemplate = (rowData: any) => {
+  const accCdBodyTemplate = (rowData: any) => {
     const company = rowData.acc_company_nm || '';
     const name = rowData.acc_nm || '알 수 없는 계좌';
     if (company) {
@@ -122,25 +123,25 @@ export default function TransactionStockCmpt({
     return name;
   };
 
-  const txCodeBodyTemplate = (rowData) => {
-    return <span className="monospace">{rowData.code}</span>;
+  const stockCodeBodyTemplate = (rowData) => {
+    return <span className="monospace">{rowData.stock_code}</span>;
   };
 
-  const txQuantityBodyTemplate = (rowData) => {
+  const quantityBodyTemplate = (rowData) => {
     return <span className="monospace">{rowData.quantity.toLocaleString()} 주</span>;
   };
 
-  const txPriceBodyTemplate = (rowData) => {
+  const priceBodyTemplate = (rowData) => {
     return <span className="monospace">{rowData.price.toLocaleString()} 원</span>;
   };
 
-  const txTotalBodyTemplate = (rowData) => {
+  const amountBodyTemplate = (rowData) => {
     return (
       <span className="monospace">{(rowData.quantity * rowData.price).toLocaleString()} 원</span>
     );
   };
 
-  const txTaxFeeBodyTemplate = (rowData) => {
+  const taxFeeBodyTemplate = (rowData) => {
     const fee = rowData.tax_fee || 0;
     return <span className="monospace">{fee.toLocaleString()} 원</span>;
   };
@@ -172,7 +173,7 @@ export default function TransactionStockCmpt({
 
     (transactions || []).forEach((tx) => {
       const amount = (tx.quantity || 0) * (tx.price || 0);
-      if (tx.type === 'SELL' || tx.type === 'sell') {
+      if (tx.trade_type === TRADE_TYPE.SELL.code || tx.trade_type === 'sell') {
         totalSellAmount += amount;
       } else {
         totalBuyAmount += amount;
@@ -182,7 +183,7 @@ export default function TransactionStockCmpt({
     const totalTxAmountSum = totalSellAmount - totalBuyAmount;
     const totalQuantitySum = (transactions || []).reduce((sum, tx) => {
       const quantity = tx.quantity || 0;
-      if (tx.type === 'SELL' || tx.type === 'sell') {
+      if (tx.trade_type === TRADE_TYPE.SELL.code || tx.trade_type === 'sell') {
         return sum - quantity;
       }
       return sum + quantity;
@@ -279,21 +280,21 @@ export default function TransactionStockCmpt({
         emptyMessage="조건에 맞는 매매 거래 히스토리가 존재하지 않습니다."
       >
         <Column
-          field="date"
+          field="dt_trade"
           header="거래 일시"
-          body={dateBodyTemplate}
+          body={dtTradeBodyTemplate}
           sortable
           footer={<span className="font-bold">합계</span>}
         ></Column>
-        <Column field="type" header="구분" body={txTypeBodyTemplate} sortable></Column>
-        <Column field="acc_cd" header="거래 계좌" body={accountBodyTemplate} sortable></Column>
-        <Column field="code" header="종목코드" body={txCodeBodyTemplate} sortable></Column>
-        <Column field="name" header="종목명" sortable></Column>
+        <Column field="trade_type" header="구분" body={tradeTypeBodyTemplate} sortable></Column>
+        <Column field="acc_cd" header="거래 계좌" body={accCdBodyTemplate} sortable></Column>
+        <Column field="stock_code" header="종목코드" body={stockCodeBodyTemplate} sortable></Column>
+        <Column field="stock_name" header="종목명" sortable></Column>
         <Column
           field="quantity"
           header="거래 수량"
           align="right"
-          body={txQuantityBodyTemplate}
+          body={quantityBodyTemplate}
           sortable
           footer={
             <span className="monospace font-bold">{totalQuantitySum.toLocaleString()} 주</span>
@@ -303,13 +304,13 @@ export default function TransactionStockCmpt({
           field="price"
           header="거래 단가"
           align="right"
-          body={txPriceBodyTemplate}
+          body={priceBodyTemplate}
           sortable
         ></Column>
         <Column
           header="총 거래금액"
           align="right"
-          body={txTotalBodyTemplate}
+          body={amountBodyTemplate}
           sortable
           footer={
             <span className={`monospace font-bold ${totalTxAmountClass}`}>{totalTxAmountText}</span>
@@ -319,7 +320,7 @@ export default function TransactionStockCmpt({
           field="tax_fee"
           header="세금+수수료"
           align="right"
-          body={txTaxFeeBodyTemplate}
+          body={taxFeeBodyTemplate}
           sortable
           footer={
             <span className="monospace font-bold">{totalTxTaxFeeSum.toLocaleString()} 원</span>
