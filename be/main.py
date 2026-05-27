@@ -12,8 +12,11 @@ load_dotenv()
 # 모듈 경로 추가로 패키지 임포트 보장
 sys.path.append(str(Path(__file__).parent.resolve()))
 
-from database import init_db  # noqa: E402
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from database import init_db, SessionLocal, Account  # noqa: E402
 from git import git_task  # noqa: E402
+from services.daily_balance_service import sync_daily_balances_for_account
 from migrate import run_migrations  # noqa: E402
 from routers import (  # noqa: E402
     account,
@@ -26,13 +29,41 @@ from routers import (  # noqa: E402
 )
 
 
+def run_midnight_batch():
+    print("[Batch] Running daily balance synchronization...")
+    db = SessionLocal()
+    try:
+        accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
+        for acc in accounts:
+            try:
+                res = sync_daily_balances_for_account(db, acc.acc_cd)
+                print(f"[Batch] Account {acc.acc_cd}: {res.get('message')}")
+            except Exception as e:
+                print(f"[Batch] Error syncing account {acc.acc_cd}: {e}")
+    finally:
+        db.close()
+    print("[Batch] Daily balance synchronization complete.")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 데이터베이스 마이그레이션 우선 기동 (스키마 보장)
     run_migrations()
     # 데이터베이스 테이블 초기화 및 무결성 검증 (구동 시점에 구동)
     init_db()
+
+    # 1. Start APScheduler for Midnight Batch (00:30)
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_midnight_batch, "cron", hour=0, minute=30)
+    scheduler.start()
+
+    # 2. Run initial sync on Startup
+    run_midnight_batch()
+
     yield
+
+    # Shutdown scheduler when app stops
+    scheduler.shutdown()
 
 
 app = FastAPI(

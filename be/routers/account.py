@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import schemas
 from database import Account, AccountDailyBalance, get_db
 from services.portfolio_service import recalculate_portfolio_for_account
+from services.daily_balance_service import sync_daily_balances_for_account
 
 router = APIRouter(prefix="/api/accounts", tags=["Account"])
 
@@ -102,6 +103,22 @@ def reorder_accounts(acc_orders: List[str], db: Session = Depends(get_db)):
 def recalculate_balances(acc_cd: str, db: Session = Depends(get_db)):
     recalculate_portfolio_for_account(db, acc_cd)
     return {"status": "success", "message": "Daily balances recalculated successfully."}
+
+
+@router.post("/sync-all-daily-balances")
+def sync_all_daily_balances(db: Session = Depends(get_db)):
+    accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
+    results = []
+    for acc in accounts:
+        res = sync_daily_balances_for_account(db, acc.acc_cd)
+        results.append({"acc_cd": acc.acc_cd, "result": res})
+    return {"status": "success", "data": results}
+
+
+@router.post("/{acc_cd}/sync-daily-balances")
+def sync_account_daily_balances(acc_cd: str, db: Session = Depends(get_db)):
+    res = sync_daily_balances_for_account(db, acc_cd)
+    return res
 
 
 @router.get("/{acc_cd}/daily-balances")
