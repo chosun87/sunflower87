@@ -16,6 +16,8 @@ be/*.pyc
 be/data/
 be/sunflower87.db*
 
+db/
+
 # Frontend (fe/)
 fe/.env
 fe/node_modules/
