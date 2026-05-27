@@ -10,14 +10,20 @@ const breadcrumbItems = [{ label: 'Home', url: '/' }, { label: '계좌 입출금
 export default function TransactionCash() {
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [currentFilters, setCurrentFilters] = useState({});
 
   const [dialogVisible, setDialogVisible] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchTransactions = async (filters: any = {}) => {
+  const fetchTransactions = async (filters?: any) => {
+    const activeFilters = filters !== undefined ? filters : currentFilters;
+    if (filters !== undefined) {
+      setCurrentFilters(filters);
+    }
+    
     try {
-      const res = await get('/api/transactions_cash', filters);
+      const res = await get('/api/transactions_cash', activeFilters);
       if (res.status === 'success') {
         const mapped = (res.data || []).map((tx: any) => ({
           ...tx,
