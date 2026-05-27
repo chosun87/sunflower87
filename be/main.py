@@ -2,6 +2,7 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,12 +12,8 @@ load_dotenv()
 
 # 모듈 경로 추가로 패키지 임포트 보장
 sys.path.append(str(Path(__file__).parent.resolve()))
-
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from database import init_db, SessionLocal, Account  # noqa: E402
+from database import Account, SessionLocal, init_db  # noqa: E402
 from git import git_task  # noqa: E402
-from services.daily_balance_service import sync_daily_balances_for_account
 from migrate import run_migrations  # noqa: E402
 from routers import (  # noqa: E402
     account,
@@ -27,6 +24,7 @@ from routers import (  # noqa: E402
     transaction,
     transaction_cash,
 )
+from services.daily_balance_service import sync_daily_balances_for_account  # noqa: E402
 
 
 def run_midnight_batch():

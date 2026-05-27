@@ -7,14 +7,15 @@ import { get } from '@/api/index';
 import { TRADE_TYPE } from '@/assets/ts/constants';
 
 export interface Transaction {
-  id: string;
+  id: number;
+  acc_cd: string;
   dt_trade: string;
   trade_type: string;
   stock_code: string;
   stock_name: string;
   quantity: number;
   price: number;
-  amount: number;
+  tax_fee: number;
 }
 
 const MAXROW = 4;
@@ -45,12 +46,13 @@ export default function LatestTrStockList() {
 
   // --- [템플릿 렌더러 정의] ---
   const tradeTypeBodyTemplate = (rowData: Transaction) => {
-    const isBuy = rowData.trade_type === TRADE_TYPE.BUY.code;
-    return isBuy ? (
-      <Badge value={TRADE_TYPE.BUY.label} className="type-buy" />
-    ) : (
-      <Badge value={TRADE_TYPE.SELL.label} className="type-sell" />
-    );
+    const key = (rowData.trade_type || '').toUpperCase();
+    const typeInfo = TRADE_TYPE[key as keyof typeof TRADE_TYPE] || {
+      label: rowData.trade_type,
+      color: 'text-gray-500',
+    };
+    const badgeClass = typeInfo.color.replace('text-', 'bg-') + ' text-white';
+    return <Badge value={typeInfo.label} className={badgeClass} />;
   };
 
   const dtTradeBodyTemplate = (rowData: Transaction) => {

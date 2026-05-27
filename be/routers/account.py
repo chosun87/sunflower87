@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import Account, AccountDailyBalance, get_db
-from services.portfolio_service import recalculate_portfolio_for_account
 from services.daily_balance_service import sync_daily_balances_for_account
+from services.portfolio_service import recalculate_portfolio_for_account
 
 router = APIRouter(prefix="/api/accounts", tags=["Account"])
 

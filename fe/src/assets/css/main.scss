@@ -26,6 +26,18 @@ body {
   height: 100%;
 }
 
+// PrimeFlex v4와 기존 테마(lara) 간의 호환성 매핑
+// PrimeFlex v4는 --p-red-500 등의 신규 토큰을 사용하지만, 기존 테마 CSS는 --red-500을 제공합니다.
+:root {
+  --p-red-500: var(--red-500);
+  --p-red-600: var(--red-600);
+  --p-blue-500: var(--blue-500);
+  --p-blue-600: var(--blue-600);
+  --p-green-500: var(--green-500);
+  --p-purple-500: var(--purple-500);
+  --p-gray-500: var(--gray-500);
+}
+
 // Global Scrollbar styling
 ::-webkit-scrollbar {
   width: 6px;

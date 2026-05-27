@@ -41,15 +41,13 @@ export default function TransactionCashCmpt({
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
   const cashTypeBodyTemplate = (rowData: any) => {
-    const typeInfo = CASH_TYPE[rowData.cash_type as keyof typeof CASH_TYPE] || {
+    const key = (rowData.cash_type || '').toUpperCase();
+    const typeInfo = CASH_TYPE[key as keyof typeof CASH_TYPE] || {
       label: rowData.cash_type,
       color: 'text-gray-500',
     };
-
-    // Badge 컴포넌트를 사용하여 라벨과 색상 반영. (색상은 PrimeReact 기본 severity를 쓰거나 className을 사용)
-    // 여기서는 기존 스타일 방식을 유지하되, Tailwind 텍스트 색상 클래스를 직접 활용할 수 있도록 span으로 렌더링해도 됩니다.
-    // 기존 TransactionStock은 className="type-buy" 등을 썼지만, 상수 객체에 color가 있으므로 이를 활용합니다.
-    return <span className={`font-bold ${typeInfo.color}`}>{typeInfo.label}</span>;
+    const badgeClass = typeInfo.color.replace('text-', 'bg-') + ' text-white';
+    return <Badge value={typeInfo.label} className={badgeClass} />;
   };
 
   const dtCashBodyTemplate = (rowData: any) => {

@@ -97,12 +97,13 @@ export default function TransactionStockCmpt({
   // --- [매매 내역 전용 내부 템플릿 렌더러 정의] ---
 
   const tradeTypeBodyTemplate = (rowData) => {
-    const isBuy = rowData.trade_type === TRADE_TYPE.BUY.code;
-    return isBuy ? (
-      <Badge value={TRADE_TYPE.BUY.label} className="type-buy" />
-    ) : (
-      <Badge value={TRADE_TYPE.SELL.label} className="type-sell" />
-    );
+    const key = (rowData.trade_type || '').toUpperCase();
+    const typeInfo = TRADE_TYPE[key as keyof typeof TRADE_TYPE] || {
+      label: rowData.trade_type,
+      color: 'text-gray-500',
+    };
+    const badgeClass = typeInfo.color.replace('text-', 'bg-') + ' text-white';
+    return <Badge value={typeInfo.label} className={badgeClass} />;
   };
 
   const dtTradeBodyTemplate = (rowData) => {

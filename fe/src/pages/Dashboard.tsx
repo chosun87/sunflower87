@@ -2,7 +2,7 @@ import KpiCards from '@components/Dashboard/KpiCards';
 import PortfolioPerformance from '@components/Dashboard/PortfolioPerformance';
 import DividendSummary from '@components/Dashboard/DividendSummary';
 import LatestTrStockList from '@/components/Dashboard/LatestTrStockList';
-import LatestTrCash from '@/components/Dashboard/LatestTrCash';
+import LatestTrCashList from '@/components/Dashboard/LatestTrCashList';
 import MyWatchlist from '@components/Dashboard/MyWatchlist';
 
 export default function Dashboard() {
@@ -38,7 +38,7 @@ export default function Dashboard() {
           {/* 우측 보조 카드 영역 */}
           <div className="col-12 xl:col-6">
             {/* 최근 입출금 내역 Panel */}
-            <LatestTrCash />
+            <LatestTrCashList />
           </div>
         </div>
       </div>

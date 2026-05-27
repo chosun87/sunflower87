@@ -4,9 +4,11 @@ import dayjs from 'dayjs';
 import { Column, DataTable, Badge, Button } from '@/assets/ts/PrimeReact';
 import CustomPanel from '@components/CustomPanel';
 import { get } from '@/api/index';
+import { CASH_TYPE } from '@/assets/ts/constants';
 
 export interface TransactionCash {
-  id: string;
+  id: number;
+  acc_cd: string;
   dt_cash: string;
   cash_type: string;
   amount: number;
@@ -15,7 +17,7 @@ export interface TransactionCash {
 
 const MAXROW = 4;
 
-export default function LatestTrCash() {
+export default function LatestTrCashList() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionCash[]>([]);
 
@@ -42,12 +44,14 @@ export default function LatestTrCash() {
 
   // --- [템플릿 렌더러 정의] ---
   const cashTypeBodyTemplate = (rowData: TransactionCash) => {
-    const isDeposit = rowData.cash_type === 'DEPOSIT' || rowData.cash_type === 'deposit';
-    return isDeposit ? (
-      <Badge value="입금" className="type-buy" />
-    ) : (
-      <Badge value="출금" className="type-sell" />
-    );
+    // 소문자로 들어올 경우를 대비한 안전 장치 및 기본값 폴백
+    const key = (rowData.cash_type || '').toUpperCase();
+    const typeInfo = CASH_TYPE[key as keyof typeof CASH_TYPE] || {
+      label: rowData.cash_type,
+      color: 'text-gray-500',
+    };
+    const badgeClass = typeInfo.color.replace('text-', 'bg-') + ' text-white';
+    return <Badge value={typeInfo.label} className={badgeClass} />;
   };
 
   const dtCashBodyTemplate = (rowData: TransactionCash) => {
