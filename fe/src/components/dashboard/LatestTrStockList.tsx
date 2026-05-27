@@ -28,10 +28,11 @@ export default function LatestTrStockList() {
       try {
         const res = await get('/api/transactions');
         if (res.status === 'success') {
-          const mapped = (res.data || []).map((tx: any) => ({
-            ...tx,
-            tx_id: tx.id,
-          }))
+          const mapped = (res.data || [])
+            .map((tx: any) => ({
+              ...tx,
+              tx_id: tx.id,
+            }))
             .slice(0, MAXROW); // 최근 5건만 가져오기
           setTransactions(mapped);
         }

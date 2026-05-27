@@ -24,11 +24,12 @@ export default function LatestTrCash() {
       try {
         const res = await get('/api/transactions_cash');
         if (res.status === 'success') {
-          const mapped = (res.data || []).map((tx: any) => ({
-            ...tx,
-            tx_id: tx.id,
-            description: tx.description || '',
-          }))
+          const mapped = (res.data || [])
+            .map((tx: any) => ({
+              ...tx,
+              tx_id: tx.id,
+              description: tx.description || '',
+            }))
             .slice(0, MAXROW);
           setTransactions(mapped);
         }
