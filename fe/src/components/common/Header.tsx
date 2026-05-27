@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/assets/js/PrimeReact';
+import { Button } from '@/assets/ts/PrimeReact';
 import { useAuth, useAuthTimer } from '@/context/AuthContext';
-import { GOOGLE_AUTH_PARAMS } from '@/assets/js/googleAuthParams';
+import { GOOGLE_AUTH_PARAMS } from '@/assets/ts/googleAuthParams';
 
 export default function Header() {
   const navigate = useNavigate();

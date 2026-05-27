@@ -22,11 +22,11 @@
 - **누락 없음**: 기획서가 `POST /api/transactions`로 업데이트됨에 따라, 실제 코드(`router.post("")`)와 기획서가 완벽하게 일치합니다.
 
 ### 3. `transaction_cash.py` (API Prefix 수정 필요 ⚠️)
-- **Prefix 문제:** 현재 코드의 라우터 Prefix가 `/api/transaction_cash`(단수형)로 설정되어 있습니다. 이를 복수형인 **`/api/transaction_cashes`** 로 수정해야 합니다.
-- **생성 엔드포인트:** 코드의 `POST ""` 방식이 업데이트된 기획서와 일치합니다.
-**누락된 엔드포인트:**
-- `GET /api/transaction_cashes/{id}` (단일 상세 조회) - **개설 필요**
-- `PUT /api/transaction_cashes/{id}` (현금 거래 수정) - **개설 필요**
+- **Prefix 문제:** 현재 코드의 라우터 Prefix가 `/api/transaction_cash`(단수형)로 설정되어 있습니다. 이를 복수형인 **`/api/transactions_cash`** 로 수정해야 합니다.
+
+### 추가로 개설/연결해야 하는 API 목록
+- `GET /api/transactions_cash/{id}` (단일 상세 조회) - **개설 필요**
+- `PUT /api/transactions_cash/{id}` (현금 거래 수정) - **개설 필요**
 
 ### 4. `stock.py` (API Prefix: `/api/stocks` - ✅ 올바름)
 **누락이 가장 많은 라우터입니다. (현재 `/portfolio`, `/masters` 만 존재)**

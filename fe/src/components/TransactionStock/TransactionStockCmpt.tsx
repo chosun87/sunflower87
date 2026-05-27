@@ -8,7 +8,7 @@ import {
   Dropdown,
   InputText,
   Calendar,
-} from '@/assets/js/PrimeReact';
+} from '@/assets/ts/PrimeReact';
 
 export default function TransactionStockCmpt({
   transactions,

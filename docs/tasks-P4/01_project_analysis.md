@@ -86,7 +86,7 @@
 *   **파이썬 모듈/파일명 (단수형 및 파이썬 표준 적용)**: 
     - `account.py`, `dashboard.py`, `transaction.py`, `stock.py`, `recommendation.py`, `stock_ohlcv.py`, `transaction_cash.py`, `services/market_service.py`, `services/portfolio_service.py`, `services/dashboard_service.py`, `git/git_task.py`, `git/git_service.py`
 *   **REST API 엔드포인트 경로 (복수형 유지)**:
-    - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcvs`, `GET /api/transaction_cashes`
+    - `GET /api/accounts`, `POST /api/transactions`, `GET /api/stocks/search`, `GET /api/recommendations`, `GET /api/tasks`, `GET /api/stock_ohlcvs`, `GET /api/transactions_cash`
 *   **🚨 백엔드 공통 상수 관리 ([constants.py](file:///C:/01_projects/sunflower87/be/constants.py))**:
     - `TradeType` (BUY/SELL), `CashType` (DEPOSIT/WITHDRAW/INTEREST/DIVIDEND/FEE), `MarketType` (KOSPI/KOSDAQ/KONEX/ETF)을 선언하여 사용합니다.
 
@@ -144,15 +144,15 @@
 
 ---
 
-### 💰 ③ 현금 거래 API 명세 (`/api/transaction_cashes`) - `transaction_cash` 테이블 전용
+### 💰 ③ 현금 거래 API 명세 (`/api/transactions_cash`) - `transaction_cash` 테이블 전용
 
 | Method | Endpoint | Description | Request Parameters / Body | 내부 연계/영향 API (Internal Calls & Impact) | Response Payload (JSON Summary) |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **`GET`** | `/api/transaction_cashes` | 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회 | **Query Params**:<br>- `acc_cd` (Required): 계좌 필터 | 자체 테이블 (`transaction_cash`) 조회 전용 | `{"status": "success", "data": [{"id": 1, "cash_type": "DIVIDEND", "amount": 50000, ...}]}` |
-| **`GET`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/transaction_cashes` | 입금, 출금, 이자 수익, 주식 배당금 등의 신규 현금 흐름 기록 등록 및 예수금 실시간 재정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_cash": "2026-05-23 23:12:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
-| **`PUT`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 명세 및 금액 수정 및 예수금 실시간 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 현금 거래 개체 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
-| **`DELETE`** | `/api/transaction_cashes/{id}` | 특정 현금 거래 기록 제거 및 예수금 실시간 역산 복원 | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Cash transaction deleted & balance recalculated."}` |
+| **`GET`** | `/api/transactions_cash` | 특정 계좌의 현금 입출금, 이자 수익, 배당 이력 전체 조회 | **Query Params**:<br>- `acc_cd` (Required): 계좌 필터 | 자체 테이블 (`transaction_cash`) 조회 전용 | `{"status": "success", "data": [{"id": 1, "cash_type": "DIVIDEND", "amount": 50000, ...}]}` |
+| **`GET`** | `/api/transactions_cash/{id}` | 특정 현금 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
+| **`POST`** | `/api/transactions_cash` | 입금, 출금, 이자 수익, 주식 배당금 등의 신규 현금 흐름 기록 등록 및 예수금 실시간 재정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_cash": "2026-05-23 23:12:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`PUT`** | `/api/transactions_cash/{id}` | 특정 현금 거래 명세 및 금액 수정 및 예수금 실시간 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 현금 거래 개체 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
+| **`DELETE`** | `/api/transactions_cash/{id}` | 특정 현금 거래 기록 제거 및 예수금 실시간 역산 복원 | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Cash transaction deleted & balance recalculated."}` |
 
 ---
 

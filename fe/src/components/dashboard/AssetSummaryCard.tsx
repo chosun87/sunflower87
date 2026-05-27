@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Card, Dropdown } from '@/assets/js/PrimeReact';
+import { Card, Dropdown } from '@/assets/ts/PrimeReact';
 
 export default function AssetSummaryCard({
   totalAsset,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   Button,
@@ -34,6 +34,21 @@ export default function TrStockDialog({
   const [txPrice, setTxPrice] = useState(editingTx?.price || null);
   const [txTaxFee, setTxTaxFee] = useState(editingTx?.tax_fee || 0);
   const [txDate, setTxDate] = useState(editingTx?.date ? new Date(editingTx.date) : new Date());
+
+  useEffect(() => {
+    if (visible) {
+      setTxType(editingTx?.type || 'BUY');
+      setTxAccount(
+        editingTx?.acc_cd || (accounts && accounts.length > 0 ? accounts[0].acc_cd : '')
+      );
+      setTxCode(editingTx?.code || cachedStock?.code || '');
+      setTxName(editingTx?.name || cachedStock?.name || '');
+      setTxQuantity(editingTx?.quantity || null);
+      setTxPrice(editingTx?.price || null);
+      setTxTaxFee(editingTx?.tax_fee || 0);
+      setTxDate(editingTx?.date ? new Date(editingTx.date) : new Date());
+    }
+  }, [visible, editingTx, cachedStock, accounts]);
 
   const [isSearching, setIsSearching] = useState(false);
   const [historySuggestions, setHistorySuggestions] = useState([]);

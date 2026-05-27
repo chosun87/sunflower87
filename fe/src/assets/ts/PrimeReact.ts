@@ -1,4 +1,5 @@
 // components/PrimeReact.js
+export { AutoComplete } from 'primereact/autocomplete';
 export { Avatar } from 'primereact/avatar';
 export { Badge } from 'primereact/badge';
 export { BreadCrumb } from 'primereact/breadcrumb';

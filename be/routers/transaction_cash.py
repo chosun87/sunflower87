@@ -8,7 +8,7 @@ import schemas
 from database import TransactionCash, get_db
 from services.portfolio_service import recalculate_portfolio_for_account
 
-router = APIRouter(prefix="/api/transaction_cashes", tags=["TransactionCash"])
+router = APIRouter(prefix="/api/transactions_cash", tags=["TransactionCash"])
 
 
 @router.get(

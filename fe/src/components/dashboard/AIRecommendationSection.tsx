@@ -1,4 +1,4 @@
-import { Card, Badge, Button } from '@/assets/js/PrimeReact';
+import { Card, Badge, Button } from '@/assets/ts/PrimeReact';
 
 export default function AIRecommendationSection({ recommendations }) {
   return (
