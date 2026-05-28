@@ -35,7 +35,7 @@
 2. **[AIRecommendationSection.jsx](file:///c:/01_Projects/sunflower87/fe/src/components/dashboard/AIRecommendationSection.jsx)**: 오늘의 AI 추천 종목 영역 카드 그리드 렌더링.
 3. **[AssetDetailTab.jsx](file:///c:/01_Projects/sunflower87/fe/src/components/dashboard/AssetDetailTab.jsx)**: 계좌별 보유 주식 리스트 DataTable 및 내부 요약 합계 연산 가동.
 4. **[TransactionHistoryTab.jsx](file:///c:/01_Projects/sunflower87/fe/src/components/dashboard/TransactionHistoryTab.jsx)**: SQLite 매매 대장 기록 일체 및 수정/삭제 역산 트리거 바인딩.
-5. **[TransactionDialog.jsx](file:///c:/01_Projects/sunflower87/fe/src/components/dashboard/TransactionDialog.jsx)**: 신규 매매 거래 등록 및 수정 모달의 입력 제어 폼 캡슐화.
+5. **[TransactionDialog.jsx](file:///c:/01_Projects/sunflower87/fe/src/components/dashboard/TransactionDialog.jsx)**: 신규 매매 등록 및 수정 모달의 입력 제어 폼 캡슐화.
 
 ---
 

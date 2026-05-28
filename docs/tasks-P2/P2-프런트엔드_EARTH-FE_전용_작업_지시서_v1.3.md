@@ -28,7 +28,7 @@
 
 ---
 
-## 📌 2단계. 거래 내역 검색 UI 구현 (`TransactionHistoryTab`)
+## 📌 2단계. 매매 내역  검색 UI 구현 (`TransactionHistoryTab`)
 - **상세 요구사항:**
   - `TransactionHistoryTab` 상단 영역에 PrimeReact `Dropdown`(계좌 필터), `AutoComplete` 또는 `InputText`(종목 필터), `Calendar(selectionMode="range")`(기간 필터) 폼을 배치하십시오.
   - 사용자가 검색 조건을 변경할 때마다 공통 API 모듈(`fe/src/api/index.js`)을 통해 백엔드 확장 API를 호출하고 DataTable을 기민하게 동기화하십시오.

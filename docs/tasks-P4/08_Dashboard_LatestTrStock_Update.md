@@ -1,4 +1,4 @@
-# 대시보드 최근 거래 내역(LatestTrStockList) 수정안
+# 대시보드 최근 매매 내역 (LatestTrStockList) 수정안
 
 ## 변경 사항
 1. **표시 개수 제한**: `LatestTrStockData.ts`에 임시 데이터가 4개 뿐이므로 추후 API 연동을 감안해 데이터 렌더링 시 최대 5개까지만 노출하도록 처리 (`slice(0, 5)`)

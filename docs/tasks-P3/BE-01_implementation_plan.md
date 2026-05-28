@@ -33,7 +33,7 @@
 ### 5단계: FastAPI 라우터 단수화 및 규격 맞춤 (`routers/`)
 기존 복수형 파이썬 파일을 단수형으로 분리/이름 변경하고 내부 API Endpoints를 기획서와 동기화합니다.
 - `account.py` (CRUD 및 `/daily-balances` 생성/조회)
-- `transaction.py` (매매 거래 CRUD 및 역산 트리거)
+- `transaction.py` (매매 CRUD 및 역산 트리거)
 - `transaction_cash.py` (현금 흐름 CRUD 및 역산 트리거)
 - `stock.py` (보유 잔고 및 종목 마스터)
 - `stock_ohlcv.py` (캔들 캐시 및 1분 폴링 `/refresh-prices` 트리거)

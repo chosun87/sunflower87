@@ -72,7 +72,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 거래 내역 구분 배지 스타일 */
+/* 매매 내역  구분 배지 스타일 */
 .type-buy {
   background-color: var(--red-600) !important;
   color: #ffffff !important;
@@ -106,6 +106,11 @@ body {
   }
 }
 
+.stock-nm .p-inputgroup .p-autocomplete .p-button {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
 //--v PrimeReact 전역 컴포넌트 폰트 스타일 오버라이드
 .p-component {
   font-family: var(--font-family);
@@ -114,6 +119,7 @@ body {
 .p-inputwrapper {
   height: calc(var(--input-height) + 2px);
 }
+
 .p-inputtext {
   padding: 0 1rem;
   height: var(--input-height);
@@ -124,6 +130,7 @@ body {
 .p-inputgroup {
   .p-button {
     height: var(--input-height);
+
     &.p-button-icon-only {
       width: var(--input-height);
       padding: 0;
@@ -141,10 +148,10 @@ body {
     background-color: var(--surface-0);
   }
 
-  .p-datatable-thead > tr > th,
-  .p-datatable-thead > tr > td,
-  .p-datatable-tfoot > tr > th,
-  .p-datatable-tfoot > tr > td {
+  .p-datatable-thead>tr>th,
+  .p-datatable-thead>tr>td,
+  .p-datatable-tfoot>tr>th,
+  .p-datatable-tfoot>tr>td {
     background: var(--highlight-bg);
     color: var(--highlight-text-color);
     font-weight: 700;
@@ -159,4 +166,5 @@ body {
 .p-avatar.p-avatar-circle {
   border: solid 0.125rem var(--primary-color);
 }
+
 //--^ PrimeReact 전역 컴포넌트 폰트 스타일 오버라이드

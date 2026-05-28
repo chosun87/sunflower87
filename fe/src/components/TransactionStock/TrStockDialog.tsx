@@ -65,10 +65,23 @@ export default function TrStockDialog({
     value: acc.acc_cd,
   }));
 
+  // 보유 중인 주식 목록 추출 (보유 수량이 0보다 큰 종목만, 중복 제거)
+  const heldStocks = Array.from(
+    new Set(
+      (accounts || [])
+        .flatMap((acc) => (acc.stocks || [])
+          .filter((s) => s.quantity > 0)
+          .map((s) => s.stock_name)
+        )
+        .filter(Boolean)
+    )
+  );
+
   const filterHistorySuggestions = (query) => {
+    const combinedSuggestions = Array.from(new Set([...heldStocks, ...searchHistory]));
     const normalized = query.trim().toLowerCase();
-    const filtered = searchHistory.filter((item) => item.toLowerCase().includes(normalized));
-    setHistorySuggestions(filtered.length > 0 ? filtered : searchHistory);
+    const filtered = combinedSuggestions.filter((item) => item.toLowerCase().includes(normalized));
+    setHistorySuggestions(filtered.length > 0 ? filtered : combinedSuggestions);
   };
 
   // 내부 종목 검색 처리 핸들러
@@ -181,7 +194,7 @@ export default function TrStockDialog({
             className={`pi ${editingTx ? 'pi-file-edit' : 'pi-plus-circle'} text-primary text-xl`}
           ></i>
           <span className="font-bold text-xl">
-            {editingTx ? '매매 거래 기록 수정' : '신규 매매 거래 등록'}
+            {editingTx ? '매매 기록 수정' : '신규 매매 등록'}
           </span>
         </div>
       }
@@ -234,7 +247,6 @@ export default function TrStockDialog({
           />
           <Button
             icon="fa-solid fa-search"
-            className="p-button-primary font-bold"
             onClick={handleSearch}
             loading={isSearching}
             disabled={isSubmitting}
@@ -256,8 +268,6 @@ export default function TrStockDialog({
           />
           <Button
             icon="fa-solid fa-search"
-            className="p-button-secondary"
-            label="코드 조회"
             onClick={handleLookupCode}
             disabled={isSubmitting || !/^\d{6}$/.test(txCode.trim())}
             loading={isSearching}
@@ -288,27 +298,29 @@ export default function TrStockDialog({
         </div>
       </div>
 
-      <div className="field mb-4">
-        <label className="font-bold mb-2 block">세금 및 수수료 (원)</label>
-        <InputNumber
-          value={txTaxFee}
-          onValueChange={(e) => setTxTaxFee(e.value || 0)}
-          placeholder="미입력 시 0원"
-          min={0}
-          disabled={isSubmitting}
-        />
-      </div>
+      <div className="grid">
+        <div className="col-6 field mb-4">
+          <label className="font-bold mb-2 block">세금 및 수수료 (원)</label>
+          <InputNumber
+            value={txTaxFee}
+            onValueChange={(e) => setTxTaxFee(e.value || 0)}
+            placeholder="미입력 시 0원"
+            min={0}
+            disabled={isSubmitting}
+          />
+        </div>
 
-      <div className="field mb-2">
-        <label className="font-bold mb-2 block">거래일</label>
-        <Calendar
-          value={txDate}
-          onChange={(e) => setTxDate(e.value)}
-          dateFormat="yy-mm-dd"
-          locale="ko"
-          showIcon
-          disabled={isSubmitting}
-        />
+        <div className="col-6 field mb-4">
+          <label className="font-bold mb-2 block">거래일</label>
+          <Calendar
+            value={txDate}
+            onChange={(e) => setTxDate(e.value)}
+            dateFormat="yy-mm-dd"
+            locale="ko"
+            showIcon
+            disabled={isSubmitting}
+          />
+        </div>
       </div>
     </Dialog>
   );

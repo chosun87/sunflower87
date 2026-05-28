@@ -24,7 +24,7 @@
 
 ---
 
-## 📌 2단계. 거래 내역 검색 UI 구현 (`TransactionHistoryTab`)
+## 📌 2단계. 매매 내역  검색 UI 구현 (`TransactionHistoryTab`)
 - **내용:** 대규모 매매 내역 속에서 원하는 조건의 데이터를 기민하게 추적할 수 있도록 검색 바를 신설합니다.
 - **상세 요구사항:**
   - `TransactionHistoryTab` 레이아웃 상단에 PrimeReact 컴포넌트를 활용한 폼 영역을 배치하십시오.

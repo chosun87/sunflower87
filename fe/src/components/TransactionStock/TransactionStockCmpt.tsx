@@ -259,7 +259,7 @@ export default function TransactionStockCmpt({
         <Button
           raised
           icon="fa-solid fa-plus"
-          label="거래 내역 추가"
+          label="매매 내역  추가"
           className="ml-2"
           onClick={onAddClick}
         />
@@ -278,7 +278,7 @@ export default function TransactionStockCmpt({
         paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         scrollable
         className="mt-2"
-        emptyMessage="조건에 맞는 매매 거래 히스토리가 존재하지 않습니다."
+        emptyMessage="조건에 맞는 매매 히스토리가 존재하지 않습니다."
       >
         <Column
           field="dt_trade"

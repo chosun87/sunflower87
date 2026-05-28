@@ -46,7 +46,7 @@ class Account(Base):
 
 
 class Transaction(Base):
-    """매매 거래 내역 (transaction) 테이블 모델"""
+    """매매 내역  (transaction) 테이블 모델"""
 
     __tablename__ = "transaction"
 

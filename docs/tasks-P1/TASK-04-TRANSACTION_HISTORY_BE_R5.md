@@ -16,10 +16,10 @@
 ## 🌍 [BE_TASK] 백엔드 상세 구현 지침
 
 ### 1. 자산 평가 API (`GET /api/accounts`) Zero-Value 방어 정산 쿼리 개정
-어띠베는 DB에서 거래 내역을 합산할 때 매수 이력이 없는 경우(`NULL`) 또는 총합이 `0`인 경우를 대비해 아래 예외 처리 알고리즘을 반드시 적용하라.
+어띠베는 DB에서 매매 내역 을 합산할 때 매수 이력이 없는 경우(`NULL`) 또는 총합이 `0`인 경우를 대비해 아래 예외 처리 알고리즘을 반드시 적용하라.
 
 * **총 매수금액 (`total_purchase_amt`) 0원 방어:**
-    - SQL `COALESCE(SUM(quantity * price + tax_fee), 0)` 처리를 통해 거래 내역이 없으면 무조건 `0`을 반환하도록 설계하라.
+    - SQL `COALESCE(SUM(quantity * price + tax_fee), 0)` 처리를 통해 매매 내역 이 없으면 무조건 `0`을 반환하도록 설계하라.
 * **매입평단가 (`avg_price`) 및 수익률 (`return_rate`) 계산 예외 처리:**
     - **[Case 1] 보유수량(`quantity`)이 0이거나 총 매수금액이 0인 경우:**
       - `avg_price = 0`

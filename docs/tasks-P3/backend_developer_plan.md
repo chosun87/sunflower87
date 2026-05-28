@@ -36,7 +36,7 @@
 *   **역할**: 로컬 저장소 변경 이력을 감지하여 Git 스테이징, 커밋 및 원격 푸시 명령어를 안전하게 프로세스로 실행하고 형상 관리 동기화 결과를 반환하는 서비스 엔진입니다.
 
 #### 3. `be/portfolio.py` (구 `portfolio_service.py` 단수화) — 실시간 종합 금융 연산 엔진
-*   **역할**: 계좌의 자산 가치 연산, 실시간 수익 추적, 영업일 캘린더 생성, OHLCV 주가 동적 캐싱 및 계좌/거래 내역 소급 정산(Self-Healing)을 책임지는 백엔드 핵심 비즈니스 로직 허브입니다.
+*   **역할**: 계좌의 자산 가치 연산, 실시간 수익 추적, 영업일 캘린더 생성, OHLCV 주가 동적 캐싱 및 계좌/매매 내역  소급 정산(Self-Healing)을 책임지는 백엔드 핵심 비즈니스 로직 허브입니다.
 *   **세부 기능**:
     1.  **표준 영업일 캘린더 생성 (`get_exact_trade_date_limits`, `get_market_trade_dates`)**: 한국 거래소(KOSPI 또는 삼성전자 005930 기준) 개장일을 `pykrx`를 통해 조회하여 공휴일과 주말이 정밀하게 제외된 한국 금융 시장 표준 영업일 범위를 실시간으로 획득 및 제공합니다.
     2.  **시고저종 캐싱 및 Gap 정제 (`sync_ohlcv_cache`)**:
@@ -47,7 +47,7 @@
         *   개별 종목에 대한 실시간 평가금액, 평가손익 및 수익률을 동적으로 순회 연산합니다.
         *   각 계좌의 실시간 예수금(`cash_balance`)과 보유 주식 평가총액을 합산하여 계좌별 수익률 및 전 계좌 통합 총자산을 산출하고, 3NF 스키마 설계에 따라 종목 마스터 테이블(`stock_cache`)과 Dynamic JOIN을 맺어 프론트엔드가 즉시 렌더링에 사용할 수 있는 한글 종목명(`stock_name`) 포함 완성형 JSON DTO를 반환합니다.
     5.  **연대기 포트폴리오 역산 복원 및 예수금 정산 (`recalculate_portfolio_for_account`)**: 
-        *   계좌에 속한 모든 거래 기록(매매 거래, CMA 현금 거래)을 최초일 자산 시점부터 역산 순회하면서 최종 보유 수량, 평단가 및 예수금 잔고(`cash_balance`)를 완벽히 가감 역산하여 영구 동기화합니다.
+        *   계좌에 속한 모든 거래 기록(매매, CMA 현금 거래)을 최초일 자산 시점부터 역산 순회하면서 최종 보유 수량, 평단가 및 예수금 잔고(`cash_balance`)를 완벽히 가감 역산하여 영구 동기화합니다.
         *   시뮬레이션 중 잔고나 수량이 마이너스(`minus`)로 떨어지는 회계 장부 불일치 오류가 감지될 시 즉시 예외를 발생시키고 롤백하여 장부 무결성을 확보합니다.
 
 ---
@@ -107,9 +107,9 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 - **`PUT /api/account/reorder`** [Update Priority]: `SortableJS` 드래그앤드롭 리오더링에 따른 계좌 우선순위 배치 동기화
 - **`GET /api/account/{acc_cd}/performance`** [Performance Time Series]: 계좌별 날짜별 잔고 및 누적 수익률 시계열 전송
 
-### 📝 ② 주식 매매 거래 API (`be/routers/transaction.py`) - `transaction` 테이블
-- **`GET /api/transaction`** [Read All]: 전체 또는 조건별(계좌, 종목 등) 매매 거래 목록 조회
-- **`GET /api/transaction/{id}`** [Read One]: 특정 매매 거래 단일 상세 조회
+### 📝 ② 주식 매매 API (`be/routers/transaction.py`) - `transaction` 테이블
+- **`GET /api/transaction`** [Read All]: 전체 또는 조건별(계좌, 종목 등) 매매 목록 조회
+- **`GET /api/transaction/{id}`** [Read One]: 특정 매매 단일 상세 조회
 - **`POST /api/transaction/add`** [Create]: 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 및 일자별 잔고 자동 재정산 호출
 - **`PUT /api/transaction/{id}`** [Update]: 특정 매매 로그 수정 및 이전/신규 계좌 포트폴리오/일자별 잔고 동시 역산 재계산
 - **`DELETE /api/transaction/{id}`** [Delete]: 특정 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 잔고/예수금/일자별 잔고 자동 역산 복원(Rollback)

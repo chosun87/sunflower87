@@ -17,7 +17,7 @@ export interface Transaction {
   status: 'Success' | 'Pending' | 'Failed';
 }
 
-// 거래 내역 자체 보유 Mock Data
+// 매매 내역  자체 보유 Mock Data
 const transactionsData: Transaction[] = [
   {
     id: '1',

@@ -27,11 +27,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3. 최근 거래 내역 및 입출금 내역 그리드 레이아웃 */}
+        {/* 3. 최근 매매 내역  및 입출금 내역 그리드 레이아웃 */}
         <div className="grid">
           {/* 좌측 메인 차트 및 상세 */}
           <div className="col-12 xl:col-6">
-            {/* 최근 거래 내역 Panel */}
+            {/* 최근 매매 내역  Panel */}
             <LatestTrStockList />
           </div>
 

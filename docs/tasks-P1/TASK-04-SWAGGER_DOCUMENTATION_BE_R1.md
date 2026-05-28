@@ -41,7 +41,7 @@ class TransactionCreateSchema(BaseModel):
     price: float = Field(..., description="매매 단가", examples=[71000.0])
 ```
 ### 4. HTTP 예외 처리(HTTPException) 명시화
-- 400 Bad Request (예수금 부족, 과매도 에러) 또는 404 Not Found (존재하지 않는 거래 내역 삭제 시) 발생할 수 있는 에러 템플릿 응답 구조를 responses={400: {"model": ErrorResponse}} 형태로 라우터에 사전 선언하여 Swagger 문서상에 에러 규격이 자동으로 표기되도록 하라.
+- 400 Bad Request (예수금 부족, 과매도 에러) 또는 404 Not Found (존재하지 않는 매매 내역  삭제 시) 발생할 수 있는 에러 템플릿 응답 구조를 responses={400: {"model": ErrorResponse}} 형태로 라우터에 사전 선언하여 Swagger 문서상에 에러 규격이 자동으로 표기되도록 하라.
 
 ## 🏁 완료 조건
 1. http://localhost:8000/docs 접속 시 모든 API가 Account, Transaction, Market Stock 그룹으로 깔끔하게 정렬되어 노출되는가?

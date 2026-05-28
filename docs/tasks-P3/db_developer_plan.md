@@ -19,7 +19,7 @@
 *   `dt_created` (등록 일시, `DATETIME`, Not Null, Default `utcnow`)
 *   `dt_deleted` (삭제 일시, `DATETIME`, Nullable) ➔ 소프트 딜리트 지원
 
-### ② 매매 거래 내역 테이블 (`transaction`)
+### ② 매매 내역  테이블 (`transaction`)
 *기존 `transactions` ➔ `transaction`으로 단수화하며, `date`/`type` 예약어를 탈피하고 중복 `stock_name`을 완전히 제거합니다.*
 *   `id` (일련번호, `INTEGER`, **Primary Key**, Auto-Increment)
 *   `acc_cd` (소속 계좌 코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)
@@ -31,7 +31,7 @@
 *   `tax_fee` (수수료 및 거래세액, `INTEGER`, Not Null, Default `0`)
 *   `dt_deleted` (삭제 일시, `DATETIME`, Nullable) ➔ 소프트 딜리트 지원
 
-### 🚨 ③ 현금 거래 내역 테이블 (`transaction_cash`) [NEW]
+### 🚨 ③ 현금 매매 내역  테이블 (`transaction_cash`) [NEW]
 *예수금 잔고의 입출금, 이자, 배당 흐름을 감사 추적하기 위해 물리 테이블을 신규 신설합니다.*
 *   `id` (일련번호, `INTEGER`, **Primary Key**, Auto-Increment)
 *   `acc_cd` (소속 계좌 코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)

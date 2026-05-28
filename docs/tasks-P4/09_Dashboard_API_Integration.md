@@ -1,7 +1,7 @@
-# 대시보드 최근 거래 내역 API 연동
+# 대시보드 최근 매매 내역  API 연동
 
 ## 변경 내용
-`LatestTrStockList.tsx`에서 하드코딩된 Mock 데이터(`LatestTrStockData.ts`) 대신 실제 백엔드 API인 `/api/transactions`를 호출하여 최신 거래 내역 5건을 가져오도록 수정합니다.
+`LatestTrStockList.tsx`에서 하드코딩된 Mock 데이터(`LatestTrStockData.ts`) 대신 실제 백엔드 API인 `/api/transactions`를 호출하여 최신 매매 내역  5건을 가져오도록 수정합니다.
 
 1. **상태 관리 및 데이터 페칭**:
    - `useState`와 `useEffect`를 도입하여 컴포넌트 마운트 시 `get('/api/transactions')` 호출.

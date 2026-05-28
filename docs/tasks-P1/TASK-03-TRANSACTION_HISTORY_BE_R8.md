@@ -25,7 +25,7 @@
 종목별 일자별 주가 데이터를 누적 적재할 테이블을 신설하라.
 - **`stock_ohlcv_cache` 테이블 정의:**
   - `stock_code`: String (종목/ETF 6자리 고유 코드)
-  - `trade_date`: String (매매 거래일 - 포맷: 'YYYYMMDD')
+  - `trade_date`: String (매매일 - 포맷: 'YYYYMMDD')
   - `open_price`: Integer (시가)
   - `high_price`: Integer (고가)
   - `low_price`: Integer (저가)

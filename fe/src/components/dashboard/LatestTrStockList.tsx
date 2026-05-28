@@ -87,7 +87,7 @@ export default function LatestTrStockList() {
         <div className="p-panel-title">
           <div className="panel-header-title">
             <i className="panel-header-title-icon fa-solid fa-receipt"></i>
-            <span>최근 거래 내역</span>
+            <span>최근 매매 내역 </span>
           </div>
         </div>
         <div className="panel-header-actions">

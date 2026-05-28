@@ -1,4 +1,4 @@
-# TASK-03: 매매 거래일시 커스텀 파싱 및 SQLite 데이터 적재 구현 (_BE_R4)
+# TASK-03: 매매일시 커스텀 파싱 및 SQLite 데이터 적재 구현 (_BE_R4)
 
 - **작성일:** 2026. 05. 17
 - **작성자:** 기획자 MOON(무니)
@@ -39,7 +39,7 @@ async def add_transaction(payload: TransactionSchema, db: Session = Depends(get_
 
 ### 3. SQLite DB 적재 및 정렬 검증
 - 위에서 가공된 transaction_date 변수를 transactions 테이블의 date 컬럼에 바인딩하여 db.add() 처리를 완료하라.
-- 이로 인해 과거 시점의 거래 내역을 수동 입력하더라도, GET /api/transactions 호출 시 SQL의 ORDER BY date DESC 정렬 규칙에 의해 대시보드 타임라인에 실시간 순서대로 알맞게 정렬되는지 최종 데이터 흐름을 검증하라.
+- 이로 인해 과거 시점의 매매 내역 을 수동 입력하더라도, GET /api/transactions 호출 시 SQL의 ORDER BY date DESC 정렬 규칙에 의해 대시보드 타임라인에 실시간 순서대로 알맞게 정렬되는지 최종 데이터 흐름을 검증하라.
 
 ## 🏁 완료 조건
 1. 런트엔드에서 date 필드를 생략하거나 빈 값으로 보냈을 때 백엔드가 오류 없이 현재 시간으로 저장하는가?

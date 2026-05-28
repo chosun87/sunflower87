@@ -29,7 +29,7 @@
   * 문자열을 쉘 환경에 흘려보내는 취약한 프로세스 생성을 원천 차단함으로써 명령어 연결 주입(Command Injection) 등의 해킹 위협을 완벽히 소거했습니다.
 
 ### 4) 데이터 무결성 검증 (Integer Overflow & Invalid Quantity 방어)
-* **현황**: 주식 매매 거래 내역을 수신하는 스키마 및 DB 계층 검증을 확인했습니다.
+* **현황**: 주식 매매 내역 을 수신하는 스키마 및 DB 계층 검증을 확인했습니다.
 * **진단 결과**: **우수 (Secure)**
   * Pydantic 스키마인 [schemas.py](file:///c:/01_Projects/sunflower87/be/schemas.py)의 `TransactionCreate` 객체에서 수량(`quantity`) 및 가격(`price`)이 `GreaterThan` 혹은 `Positive` 타입 제약 조건을 충족하도록 정의되어 정수형 오버플로우나 마이너스(-) 거래 입력 등의 비정상 패킷을 사전에 걸러냅니다.
 

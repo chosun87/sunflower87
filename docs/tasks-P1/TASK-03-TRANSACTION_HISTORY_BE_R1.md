@@ -1,4 +1,4 @@
-# TASK-03: SQLite DB 기반 매수/매도 거래 내역 및 종목코드 자동 검색 API 구현 (_BE_R1)
+# TASK-03: SQLite DB 기반 매수/매도 매매 내역  및 종목코드 자동 검색 API 구현 (_BE_R1)
 
 - **작성일:** 2026. 05. 17
 - **작성자:** 기획자 MOON(무니)
@@ -18,7 +18,7 @@
   - `GET /api/stocks/search?keyword={검색어}` 구현.
   - `pykrx` 라이브러리의 `stock.get_market_ticker_and_name()`를 활용하여 일반 주식 시장 마스터에서 종목명을 부분 일치 검색하여 6자리 코드를 리턴하라.
 - **트랜잭션 API 구현:**
-  - `POST /api/transactions/add` 호출 시 거래 내역을 적재함과 동시에 매수/매도 구분에 따라 `stocks` 테이블의 보유 수량과 평단가를 자동 계산하여 `UPSERT` 하는 비즈니스 로직을 단일 DB 트랜잭션으로 묶어 처리하라.
+  - `POST /api/transactions/add` 호출 시 매매 내역 을 적재함과 동시에 매수/매도 구분에 따라 `stocks` 테이블의 보유 수량과 평단가를 자동 계산하여 `UPSERT` 하는 비즈니스 로직을 단일 DB 트랜잭션으로 묶어 처리하라.
 
 ## 🏁 완료 조건
 1. 매수 기록 등록 시 `transactions`와 `stocks` 테이블의 데이터 정합성이 깨지지 않고 저장되는가?

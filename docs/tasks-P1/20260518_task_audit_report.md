@@ -46,7 +46,7 @@
 *   **백엔드 적용:** 초기 JSON 파일 관리 구조를 넘어서, SQLite 데이터베이스 스키마 (`stocks`, `transactions`, `account` 테이블) 구조로 정밀 리팩토링 및 고도화 완료. `.gitignore`에 `be/sunflower87.db*`를 추가하여 보안 격리 완벽 통제.
 *   **판정:** **정상 반영 완료 (요구사항 초과 고도화 달성)**
 
-### 📌 TASK-03-BE (R1 ~ R9): SQLite 기반 매매 거래 및 자산 평가 시계열 캐싱
+### 📌 TASK-03-BE (R1 ~ R9): SQLite 기반 매매 및 자산 평가 시계열 캐싱
 *   **R1 (SQLite DB 구축 & 자동 검색):** [be/database.py](file:///c:/01_Projects/sunflower87/be/database.py)에 SQLAlchemy ORM 연동 구축 완료.
 *   **R2 (ETF 마스터 병합):** [be/routers/stocks.py L10-L247](file:///c:/01_Projects/sunflower87/be/routers/stocks.py#L10-L247)에서 `get_offline_stocks()`와 `get_stocks_master()`를 통해 KOSPI, KOSDAQ 주식과 TIGER 200, KODEX 200 등 대표 ETF 마스터 데이터를 크로스 오버 병합 완료. 한화오션(042660) 사명 변경 및 최신 종목 완벽 검색 보장.
 *   **R3 (매도 가드 및 0주 삭제):** [be/routers/transactions.py L155-L162](file:///c:/01_Projects/sunflower87/be/routers/transactions.py#L155-L162)에서 과매도 시 `400 Bad Request` 에러를 던지며, 전량 매도 시 `stocks` 테이블에서 해당 종목 레코드 완전히 `DELETE` 처리.

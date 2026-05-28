@@ -41,7 +41,7 @@
    - 페이지 컴포넌트: `StockDetail.jsx` (전체 소유 주식 상세 현황 모니터링 카드 렌더링)
 3. **주식 매매 내역 (Stock Transaction)** (`/stock?tab=trade`)
    - 아이콘: `fa-solid fa-exchange-alt`
-   - 페이지 컴포넌트: `StockDetail.jsx` (전체 매매 거래 로그 이력 조회 카드 렌더링)
+   - 페이지 컴포넌트: `StockDetail.jsx` (전체 매매 로그 이력 조회 카드 렌더링)
 4. **계좌 입출금 내역 (Cash Transaction)** [NEW] (`/stock?tab=cash`)
    - 아이콘: `fa-solid fa-wallet`
    - 페이지 컴포넌트: `StockDetail.jsx` (신설된 `transaction_cash` 테이블의 현금 흐름 변동 이력 조회 카드 렌더링)
@@ -71,7 +71,7 @@
     - `be/routers/stock_ohlcv.py`: 대용량 OHLCV 캔들 차트 주가 데이터 캐싱 및 크롤링 전담
     - `be/routers/transaction_cash.py`: 현금 입출금/이자/배당 원장 데이터 CRUD 전담
     - `be/routers/account.py`: 계좌 마스터 CRUD, 시계열 리오더링 및 일자별 잔고 CRUD 제어 전담
-    - `be/routers/transaction.py`: 주식 매매 거래 내역 CRUD 전담
+    - `be/routers/transaction.py`: 주식 매매 내역  CRUD 전담
     - `be/routers/recommendation.py`: AI 추천 종목 CRUD 및 피드백 전담
     - `be/git/git_task.py` (구 `be/routers/tasks.py` 이동 및 이름 변경): 기획 마크다운 태스크 생성 및 원격 Git 동기화 전담
       - **기능 1**: 지정된 이름과 내용을 기반으로 `docs/tasks` 디렉토리에 마크다운 태스크 파일 물리 작성
@@ -83,7 +83,7 @@
       - **기능 2 (OHLCV 캐싱 & Gap 정제)**: OHLCV 시계열 주가 캐싱 및 Gap 정제 알고리즘에 따른 비동기 캐시 반환/과거·미래 백필 수행
       - **기능 3 (이동평균법 보유고 산정)**: 특정 계좌의 특정 종목 거래 기록을 시간순으로 정밀 순회하며 수량, 이동평균 평단가, 매수총액, 누적 수수료 및 실현 손익 추적
       - **기능 4 (포트폴리오 DTO 조립)**: 각 계좌의 주식 평가 총액과 현금 예수금을 합산하여 계좌별 수익률 및 전체 통합 총자산 DTO를 프론트엔드 규격에 맞춰 가공 조립
-      - **기능 5 (연대기 역산 복원)**: 지정된 계좌의 전체 거래 내역을 최초 자산 시점부터 연대기순으로 완전 역산 시뮬레이션하여 예수금 잔고(`cash_balance`) 및 보유 수량/평단가를 복원하여 DB 영구 동기화
+      - **기능 5 (연대기 역산 복원)**: 지정된 계좌의 전체 매매 내역 을 최초 자산 시점부터 연대기순으로 완전 역산 시뮬레이션하여 예수금 잔고(`cash_balance`) 및 보유 수량/평단가를 복원하여 DB 영구 동기화
 *   **파이썬 모듈/파일명 (단수형 및 파이썬 표준 적용)**: 
     - `account.py`, `transaction.py`, `stock.py`, `recommendation.py`, `portfolio.py`, `stock_ohlcv.py`, `transaction_cash.py`, `git/git_task.py`, `git/git_service.py`
 *   **REST API 엔드포인트 경로 (복수형 유지)**:
@@ -99,7 +99,7 @@
 
 ### 스키마 리팩토링 반영 명세
 1.  **단수형 및 대칭형 명칭 통일**: 모든 테이블명을 단수형으로 통일하며, 거래 장부 테이블 간 완벽한 이름 대칭성을 맞춥니다.
-    - `transaction` (주식 매매 거래 내역 테이블)
+    - `transaction` (주식 매매 내역  테이블)
     - `transaction_cash` (현금 입출금/이자/배당 원장 테이블)
     - `account_daily_balance` (계좌별 일자별 잔고 스냅샷 테이블)
 2.  **🚨 예약어(Reserved Keywords) 원천 탈피 및 `dt_` 일시 접두어 명명 통일**
@@ -133,12 +133,12 @@
 
 ---
 
-### 📝 ② 주식 매매 거래 API 명세 (`/api/transactions`) - `transaction` 테이블 전용
+### 📝 ② 주식 매매 API 명세 (`/api/transactions`) - `transaction` 테이블 전용
 
 | Method | Endpoint | Description | Request Parameters / Body | 내부 연계/영향 API (Internal Calls & Impact) | Response Payload (JSON Summary) |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **`GET`** | `/api/transactions` | 전체 또는 조건별(계좌, 종목 등) 매매 거래 목록 조회 | **Query Params**:<br>- `acc_cd`: 계좌 필터<br>- `stock_code`: 종목 필터 | 자체 테이블 (`transaction`) 조회 전용 (내부적으로 `stock_cache` 조인하여 종목명 동적 반환) | `{"status": "success", "data": [{"id": 1, "trade_type": "BUY", ...}]}` |
-| **`GET`** | `/api/transactions/{id}` | 특정 매매 거래 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
+| **`GET`** | `/api/transactions` | 전체 또는 조건별(계좌, 종목 등) 매매 목록 조회 | **Query Params**:<br>- `acc_cd`: 계좌 필터<br>- `stock_code`: 종목 필터 | 자체 테이블 (`transaction`) 조회 전용 (내부적으로 `stock_cache` 조인하여 종목명 동적 반환) | `{"status": "success", "data": [{"id": 1, "trade_type": "BUY", ...}]}` |
+| **`GET`** | `/api/transactions/{id}` | 특정 매매 단일 상세 조회 | **Path**: `id` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
 | **`POST`** | `/api/transactions/add` | 신규 매수/매도 거래 기록 추가 & 자산 실시간 누적 연대기 정산 | **Body (JSON)**:<br>`{"acc_cd": "A001", "dt_trade": "2026-05-23 22:45:00", ...}` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` *(201 Created)* |
 | **`PUT`** | `/api/transactions/{id}` | 특정 매매 로그 수정 및 이전/신규 계좌 포트폴리오 동시 역산 재계산 | **Path**: `id`<br>**Body (JSON)**: 수정할 거래 개체 데이터 | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/transactions/{id}` | 특정 거래 기록 삭제 및 자산 내역 이전 상태로 정밀 역산 복원(Rollback) | **Path**: `id` | 1. **`portfolio.recalculate_portfolio_for_account`** 실행<br>2. **`POST /api/accounts/{acc_cd}/recalculate-balances`** 자동 호출 | `{"status": "success", "message": "Transaction deleted & portfolio rolled back."}` |

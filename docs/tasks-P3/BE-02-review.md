@@ -15,7 +15,7 @@
 - `PUT /api/accounts/{acc_cd}/daily-balances/{trade_date}` (잔고 스냅샷 수치 수정) - **개설 필요**
 - `DELETE /api/accounts/{acc_cd}/daily-balances/{trade_date}` (잔고 스냅샷 삭제) - **개설 필요**
 
-## 2. `transaction.py` (주식 매매 거래 API)
+## 2. `transaction.py` (주식 매매 API)
 **경로(Path) 차이점:**
 - 기획서에는 생성 엔드포인트가 `POST /api/transactions/add`로 되어 있으나, 실제 코드(`router.post("")`)는 `POST /api/transactions`로 구현되어 있습니다. (설계서에 맞출지, 현재의 완전한 RESTful 패턴을 유지할지 결정 필요)
 

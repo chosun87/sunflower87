@@ -27,7 +27,7 @@
 
 ---
 
-## 📌 2단계. 거래 내역(매매 히스토리) 다중 검색 기능 구현
+## 📌 2단계. 매매 내역 (매매 히스토리) 다중 검색 기능 구현
 - **대상 API:** `GET /api/transactions`
 - **상세 요구사항:**
   - 프런트엔드에서 상단 검색 필터를 통해 요청할 수 있도록 아래 쿼리 파라미터를 추가하십시오.
@@ -35,7 +35,7 @@
     - `stock_code` (종목 코드, Optional)
     - `start_date` / `end_date` (조회 기간, YYYY-MM-DD, Optional)
   - SQLAlchemy를 활용하여 파라미터가 존재할 때만 dynamic `.filter()`를 적용하는 동적 쿼리를 작성하십시오. (참고: 최근 리팩토링으로 비즈니스 로직이 `be/services/transaction_service.py`로 분리되었으므로, 해당 서비스 레이어에 검색 로직을 구현하고 라우터(`be/routers/transactions.py`)에서 호출하는 구조를 유지해야 합니다.)
-  - 파라미터가 누락된 경우 기존의 전체 거래 내역 반환 정책을 유지하되, 무결한 연대기적 정렬(Chronological Order) 상태를 보장하여 송출하십시오.
+  - 파라미터가 누락된 경우 기존의 전체 매매 내역  반환 정책을 유지하되, 무결한 연대기적 정렬(Chronological Order) 상태를 보장하여 송출하십시오.
 
 ---
 

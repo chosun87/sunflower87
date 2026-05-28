@@ -24,7 +24,7 @@
 | **TASK-03-BE-R7** | 어띠베 (BE) | `cache_stocks` 테이블 신설 및 종목 검색 Cache Aside 구현 (_BE_R7) | **완료 (Success)** | DB 캐시 선조회(Cache Hit) 및 pykrx 외부 로딩 후 캐시 충전(Cache Fill) 완비 |
 | **TASK-03-BE-R8** | 어띠베 (BE) | 60일 주가 시계열(OHLCV) 캐시 및 전일 종가 평가 API 구현 (_BE_R8) | **완료 (Success)** | `stock_ohlcv_cache` 구축, GET /api/accounts 호출 시 전일 종가(`current_price`) 매핑 |
 | **TASK-03-BE-R9** | 어띠베 (BE) | pykrx 연동 60일 OHLCV 동적 하이브리드 증분 캐싱 고도화 (_BE_R9) | **완료 (Success)** | KOSPI 영업일 캘린더 Limits 산출, 120일 임계치 기반 Gap Backfill 및 Purge 알고리즘 구현 |
-| **TASK-03-FE-R1** | 어띠페 (FE) | SQLite DB 거래 내역 & 종목코드 자동 검색 UI (_FE_R1) | **완료 (Success)** | TabView 구조화, InputGroup 자동완성 UI, readOnly 코드 제어 규격 준수 |
+| **TASK-03-FE-R1** | 어띠페 (FE) | SQLite DB 매매 내역  & 종목코드 자동 검색 UI (_FE_R1) | **완료 (Success)** | TabView 구조화, InputGroup 자동완성 UI, readOnly 코드 제어 규격 준수 |
 | **TASK-03-FE-R2** | 어띠페 (FE) | ETF 통합 및 사명 변경 크로스체크 완료 (_FE_R2) | **완료 (Success)** | TIGER 200 (102110 / 069500), 한화오션 (042660) 검색 및 매매 연동 완벽 검증 |
 | **TASK-03-FE-R3** | 어띠페 (FE) | 실시간 비동기 연쇄 리프레시 고도화 완료 (_FE_R3) | **완료 (Success)** | 매매 등록 성공 시 loadAccounts/loadTransactions 연쇄 실행 및 계좌 테이블 즉시 동기화 |
 | **TASK-03-FE-R4** | 어띠페 (FE) | 거래일시 Calendar 입력 & 검색 로딩 Spin UI 고도화 (_FE_R4) | **완료 (Success)** | `Calendar` (showTime, hourFormat="24") 연동 및 `isSearching` 로딩 UI 제어 준수 |
@@ -55,7 +55,7 @@
     *   KOSPI 영업일 캘린더Limits 조회용 삼성전자(005930) 시세 인덱싱 로직을 유틸화하여 주말/공휴일 개장일 누락 버그의 근원을 원천 차단.
     *   **Case A/B/C 알고리즘 완벽 작동:** 신규 종목 60거래일 수집(Case A), 120일 이하 Gap 메우기(Case B), 120일 초과 시 Purge 후 신규 수집(Case C) 처리 완료.
 3.  **계좌별 연대기적(Chronological Replay) 포트폴리오 자산 역산 알고리즘:**
-    *   거래 등록/수정/삭제 시 해당 계좌의 전체 거래 내역을 처음부터 끝까지 추적 및 재시뮬레이션하여 보유 주식 잔량, 평단가 및 예수금(Cash Balance)을 정확히 산출하며 마이너스 잔고 발생 시 `400 Bad Request` 즉시 가드.
+    *   거래 등록/수정/삭제 시 해당 계좌의 전체 매매 내역 을 처음부터 끝까지 추적 및 재시뮬레이션하여 보유 주식 잔량, 평단가 및 예수금(Cash Balance)을 정확히 산출하며 마이너스 잔고 발생 시 `400 Bad Request` 즉시 가드.
 
 ---
 

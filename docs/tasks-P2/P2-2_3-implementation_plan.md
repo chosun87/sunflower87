@@ -31,7 +31,7 @@
 ### [Frontend: EARTH-FE]
 
 #### [MODIFY] `fe/src/components/dashboard/TransactionHistoryTab.jsx`
-- **목표:** 2단계 - 거래 내역 검색 UI 구축
+- **목표:** 2단계 - 매매 내역  검색 UI 구축
 - **변경 사항:**
   - 상단에 검색 필터 폼을 구성하며, 컴포넌트 순서를 **[기간(Calendar)] → [계좌(Dropdown)] → [종목(InputText)]** 순서로 배치합니다.
   - 필드 하나만 입력해도 즉각적인 검색이 가능하도록 단일 조건 독립 쿼리를 지원합니다.

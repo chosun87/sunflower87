@@ -36,12 +36,12 @@
 
 ---
 
-## 📌 2단계. 거래 내역(매매 히스토리) 다중 검색 기능 구현
+## 📌 2단계. 매매 내역 (매매 히스토리) 다중 검색 기능 구현
 - **대상 API:** `GET /api/transactions`
 - **상세 요구사항:**
   - 프런트엔드 요구 파라미터 수용: `account_id` (Optional), `stock_code` (Optional), `start_date` / `end_date` (Optional)
   - 최근 리팩토링 구조를 엄수하여, 복잡한 DB 동적 필터링 로직은 라우터가 아닌 분리된 **`be/services/transaction_service.py` 서비스 레이어 내부**에 구현하고 라우터에서는 이를 호출만 하도록 처리하십시오.
-  - 파라미터가 누락된 경우 기존의 전체 거래 내역 반환 및 연대기적 정렬(Chronological Order) 상태를 완벽하게 유지하십시오.
+  - 파라미터가 누락된 경우 기존의 전체 매매 내역  반환 및 연대기적 정렬(Chronological Order) 상태를 완벽하게 유지하십시오.
 
 ---
 
