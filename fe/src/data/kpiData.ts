@@ -4,6 +4,7 @@ export interface KpiDataItem {
   icon: string;
   iconColor: string;
   value: string;
+  subValue?: string;
   change: string;
   bgColor: string;
   borderColor: string;
@@ -43,10 +44,11 @@ export const kpiData: KpiDataItem[] = [
   },
   {
     id: 'total',
-    title: '총 평가 자산',
+    title: '총 평가 수익 <span class="title-sub text-sm ml-1">(총 평가 자산)</span>',
     icon: 'fa-solid fa-trophy',
     iconColor: 'var(--purple-500)',
     value: '0',
+    subValue: '0',
     change: '0.00%',
     bgColor: 'var(--purple-50)',
     borderColor: 'var(--purple-500)',

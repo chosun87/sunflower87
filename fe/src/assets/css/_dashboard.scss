@@ -67,6 +67,7 @@
       font-weight: 700;
       color: var(--highlight-text-color);
     }
+
     .app-version {
       font-size: 0.75rem;
       font-weight: 600;
@@ -475,6 +476,7 @@ main.page {
 
 // Dashboard 페이지 전용 스타일
 .page.dashboard {
+
   // KPI 요약 카드 그리드
   .kpi-grid {
     display: grid;
@@ -484,6 +486,16 @@ main.page {
     .custom-panel {
       .p-panel-header {
         background: transparent;
+      }
+    }
+
+    .value-wrap {
+      position: relative;
+
+      .sub-value {
+        position: absolute;
+        top: -1rem;
+        right: 0;
       }
     }
   }
@@ -497,11 +509,13 @@ main.page {
     .p-dataview-content {
       background-color: transparent;
       padding: 0;
+
       .p-grid.grid {
         margin: 0 !important;
       }
     }
   }
+
   .watchlist-item {
     background-color: transparent;
     display: flex;
@@ -559,7 +573,7 @@ main.page {
 
   // Latest Transactions DataTable 테마 오버라이드
   .transactions-table {
-    .p-datatable-thead > tr > th {
+    .p-datatable-thead>tr>th {
       background-color: var(--surface-100);
       color: var(--text-color-secondary);
       border-color: var(--border-color);
@@ -568,7 +582,7 @@ main.page {
       letter-spacing: 0.05em;
     }
 
-    .p-datatable-tbody > tr {
+    .p-datatable-tbody>tr {
       color: var(--text-color);
       border-color: var(--border-color);
 
@@ -586,6 +600,7 @@ main.page {
 // dark-mode 용
 :root.dark-mode {
   .custom-panel {
+
     .p-panel-header,
     .panel-header-title,
     .p-panel-content {

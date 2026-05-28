@@ -8,17 +8,8 @@ from services.portfolio_service import get_enriched_accounts_data
 
 
 def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
-    today = datetime.now()
-    yesterday = today - timedelta(days=1)
-
-    first_day_this_month = today.replace(day=1)
-    last_month_end = first_day_this_month - timedelta(days=1)
-
-    last_year_end = today.replace(year=today.year - 1, month=12, day=31)
-
-    yesterday_str = yesterday.strftime("%Y-%m-%d")
-    last_month_end_str = last_month_end.strftime("%Y-%m-%d")
-    last_year_end_str = last_year_end.strftime("%Y-%m-%d")
+    unique_dates = db.query(AccountDailyBalance.trade_date).distinct().order_by(AccountDailyBalance.trade_date.desc()).all()
+    unique_dates = [d[0] for d in unique_dates]
 
     enriched = get_enriched_accounts_data(db)
     if acc_cd:
@@ -46,10 +37,31 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
 
         total_principal += amt
 
-    def get_a_start(target_date_str):
-        accounts_to_check = (
-            [acc_cd] if acc_cd else [a.acc_cd for a in db.query(Account).all()]
-        )
+    latest_date = None
+    prev_date = None
+    prev_month_end_date = None
+    prev_year_end_date = None
+
+    if unique_dates:
+        latest_date = unique_dates[0]
+        latest_dt = datetime.strptime(latest_date, "%Y-%m-%d")
+
+        if len(unique_dates) > 1:
+            prev_date = unique_dates[1]
+        
+        for d in unique_dates[1:]:
+            dt = datetime.strptime(d, "%Y-%m-%d")
+            if dt.year < latest_dt.year or (dt.year == latest_dt.year and dt.month < latest_dt.month):
+                if not prev_month_end_date:
+                    prev_month_end_date = d
+            if dt.year < latest_dt.year:
+                if not prev_year_end_date:
+                    prev_year_end_date = d
+
+    def get_balance_for_date(target_date_str):
+        if not target_date_str:
+            return 0
+        accounts_to_check = [acc_cd] if acc_cd else [a.acc_cd for a in db.query(Account).all()]
         total = 0
         for acct in accounts_to_check:
             latest = (
@@ -65,17 +77,36 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
                 total += latest.total_balance
         return total
 
-    a_start_today = get_a_start(yesterday_str)
-    a_start_this_month = get_a_start(last_month_end_str)
-    a_start_this_year = get_a_start(last_year_end_str)
+    latest_balance = get_balance_for_date(latest_date)
+    prev_balance = get_balance_for_date(prev_date)
+    prev_month_balance = get_balance_for_date(prev_month_end_date)
+    prev_year_balance = get_balance_for_date(prev_year_end_date)
 
-    def calc_period(a_start, a_end):
-        if a_start == 0:
-            profit = a_end
+    def get_net_deposit(start_date_str, end_date_str):
+        if not end_date_str:
+            return 0
+        net = 0
+        for tx in all_cash:
+            tx_date = str(tx.dt_cash)[:10] if tx.dt_cash else ""
+            if tx_date <= end_date_str:
+                if not start_date_str or tx_date > start_date_str:
+                    if tx.cash_type in [CashType.DEPOSIT, "DEPOSIT"]:
+                        net += tx.amount
+                    elif tx.cash_type in [CashType.WITHDRAW, "WITHDRAW"]:
+                        net -= tx.amount
+        return net
+
+    net_deposit_today = get_net_deposit(prev_date, latest_date)
+    net_deposit_this_month = get_net_deposit(prev_month_end_date, latest_date)
+    net_deposit_this_year = get_net_deposit(prev_year_end_date, latest_date)
+
+    def calc_period(a_start, a_end, net_deposit):
+        profit = a_end - a_start - net_deposit
+        base_amount = a_start + net_deposit
+        if base_amount <= 0:
             return_rate = 0.0
         else:
-            profit = a_end - a_start
-            return_rate = round((profit / a_start) * 100, 2)
+            return_rate = round((profit / base_amount) * 100, 2)
         return {"profit": int(round(profit)), "return_rate": return_rate}
 
     total_profit = current_total_asset - total_principal
@@ -86,9 +117,9 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
     return {
         "status": "success",
         "data": {
-            "today": calc_period(a_start_today, current_total_asset),
-            "this_month": calc_period(a_start_this_month, current_total_asset),
-            "this_year": calc_period(a_start_this_year, current_total_asset),
+            "today": calc_period(prev_balance, latest_balance, net_deposit_today),
+            "this_month": calc_period(prev_month_balance, latest_balance, net_deposit_this_month),
+            "this_year": calc_period(prev_year_balance, latest_balance, net_deposit_this_year),
             "total": {
                 "total_asset": int(round(current_total_asset)),
                 "total_principal": int(round(total_principal)),

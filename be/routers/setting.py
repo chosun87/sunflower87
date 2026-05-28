@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from database import get_db, Account
+from database import get_db, Account, AccountDailyBalance
 from services.daily_balance_service import sync_daily_balances_for_account
 
 router = APIRouter(prefix="/api/settings", tags=["Setting"])
@@ -10,6 +10,11 @@ router = APIRouter(prefix="/api/settings", tags=["Setting"])
 def manual_sync_daily_balance(db: Session = Depends(get_db)):
     accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
     results = []
+    
+    # Force recalculation by clearing the existing daily balance cache
+    db.query(AccountDailyBalance).delete()
+    db.commit()
+
     for acc in accounts:
         try:
             res = sync_daily_balances_for_account(db, acc.acc_cd)
