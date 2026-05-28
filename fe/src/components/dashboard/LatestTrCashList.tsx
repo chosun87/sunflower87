@@ -9,6 +9,8 @@ import { CASH_TYPE } from '@/assets/ts/constants';
 export interface TransactionCash {
   id: number;
   acc_cd: string;
+  acc_nm: string;
+  acc_company_nm: string;
   dt_cash: string;
   cash_type: string;
   amount: number;
@@ -62,6 +64,16 @@ export default function LatestTrCashList() {
     );
   };
 
+  const accCdBodyTemplate = (rowData: TransactionCash) => {
+    const company = rowData.acc_company_nm || '';
+    const name = rowData.acc_nm || rowData.acc_cd;
+    if (company) {
+      const shortCompany = company.substring(0, 2);
+      return `[${shortCompany}] ${name}`;
+    }
+    return name;
+  };
+
   const amountBodyTemplate = (rowData: TransactionCash) => {
     return <span className="monospace">{Number(rowData.amount).toLocaleString()}</span>;
   };
@@ -102,6 +114,7 @@ export default function LatestTrCashList() {
       >
         <Column field="dt_cash" header="거래일" body={dtCashBodyTemplate}></Column>
         <Column field="cash_type" header="구분" body={cashTypeBodyTemplate}></Column>
+        <Column field="acc_cd" header="거래 계좌" body={accCdBodyTemplate}></Column>
         <Column field="description" header="적요"></Column>
         <Column field="amount" header="금액" align="right" body={amountBodyTemplate}></Column>
       </DataTable>

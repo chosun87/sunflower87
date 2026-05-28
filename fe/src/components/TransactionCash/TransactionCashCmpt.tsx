@@ -172,6 +172,7 @@ export default function TransactionCashCmpt({
         ></Column>
         <Column field="cash_type" header="구분" body={cashTypeBodyTemplate} sortable></Column>
         <Column field="acc_cd" header="거래 계좌" body={accCdBodyTemplate} sortable></Column>
+        <Column field="description" header="적요" body={descriptionBodyTemplate} sortable></Column>
         <Column
           field="amount"
           header="금액 (원)"
@@ -184,7 +185,6 @@ export default function TransactionCashCmpt({
             </span>
           }
         ></Column>
-        <Column field="description" header="적요" body={descriptionBodyTemplate} sortable></Column>
         <Column
           header="수정 &#8226; 삭제"
           body={actionsBodyTemplate}

@@ -152,6 +152,8 @@ class TransactionCashUpdate(BaseModel):
 class TransactionCashResponse(BaseModel):
     id: int
     acc_cd: str
+    acc_nm: Optional[str] = None
+    acc_company_nm: Optional[str] = None
     dt_cash: str
     cash_type: str
     amount: int
