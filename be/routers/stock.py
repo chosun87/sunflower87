@@ -139,7 +139,7 @@ def delete_stock(acc_cd: str, stock_code: str, db: Session = Depends(get_db)):
     return {"status": "success", "message": "Stock holding record deleted."}
 
 
-@router.get("/search", response_model=schemas.ApiResponse)
+@router.get("/search", response_model=schemas.ApiResponse[schemas.StockCacheResponse])
 def search_stocks(keyword: str, db: Session = Depends(get_db)):
     results = (
         db.query(StockCache)
@@ -156,7 +156,7 @@ def search_stocks(keyword: str, db: Session = Depends(get_db)):
     return {"status": "success", "results": results}
 
 
-@router.get("/lookup", response_model=schemas.ApiResponse)
+@router.get("/lookup", response_model=dict)
 def lookup_stock(code: str, db: Session = Depends(get_db)):
     master = (
         db.query(StockCache)

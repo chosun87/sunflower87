@@ -83,12 +83,20 @@ def get_enriched_accounts_data(db: Session) -> dict:
 
     account_stocks_map = {acc.acc_cd: [] for acc in db_accounts}
 
-    for stock in db_stocks:
-        acct_cd = stock.acc_cd or ""
+    traded_set = set()
+    for tx in all_transactions:
+        traded_set.add((tx.acc_cd, tx.stock_code))
+    
+    db_stock_map = {}
+    for st in db_stocks:
+        if st.acc_cd:
+            traded_set.add((st.acc_cd, st.stock_code))
+            db_stock_map[(st.acc_cd, st.stock_code)] = st
+
+    for acct_cd, code in traded_set:
         if acct_cd not in account_stocks_map:
             account_stocks_map[acct_cd] = []
 
-        code = stock.stock_code
         cache = db.query(StockCache).filter(StockCache.stock_code == code).first()
         name = cache.stock_name if cache else code
 
@@ -101,7 +109,9 @@ def get_enriched_accounts_data(db: Session) -> dict:
             all_time_tax_fee,
         ) = calculate_stock_balance(all_transactions, code, acct_cd)
 
-        if qty <= 0 and stock.quantity > 0:
+        stock = db_stock_map.get((acct_cd, code))
+
+        if qty <= 0 and stock and stock.quantity > 0:
             qty = stock.quantity
             purchase_amt = float(stock.purchase_amount or 0.0)
             if purchase_amt <= 0 and stock.avg_price > 0:
@@ -114,11 +124,17 @@ def get_enriched_accounts_data(db: Session) -> dict:
             .order_by(StockOHLCVCache.trade_date.desc())
             .first()
         )
+        
+        current_price = 0
         if latest_cache:
-            stock.current_price = latest_cache.close_price
-            db.add(stock)
+            current_price = latest_cache.close_price
+            if stock:
+                stock.current_price = current_price
+                db.add(stock)
+        elif stock and stock.current_price:
+            current_price = stock.current_price
 
-        current_price = int(round(stock.current_price or 0))
+        current_price = int(round(current_price or 0))
 
         total_purchase_amt_with_tax = purchase_amt
         total_tax_fee_val = total_tax_fee

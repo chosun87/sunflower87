@@ -26,15 +26,15 @@ export default function TransactionStockCmpt({
   const stockOptions = useMemo(() => {
     const stockMap = new Map();
     const addStock = (stock) => {
-      if (!stock || !stock.code) return;
+      if (!stock || !stock.stock_code) return;
       const quantity = Number(stock.quantity || 0);
-      const existing = stockMap.get(stock.code);
+      const existing = stockMap.get(stock.stock_code);
       if (existing) {
         existing.quantity = Math.max(existing.quantity, quantity);
       } else {
-        stockMap.set(stock.code, {
-          value: stock.code,
-          label: stock.name,
+        stockMap.set(stock.stock_code, {
+          value: stock.stock_code,
+          label: stock.stock_name,
           quantity,
         });
       }

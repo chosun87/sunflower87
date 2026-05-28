@@ -66,9 +66,11 @@ export default function StockListCmpt({ accounts }: { accounts: any[] }) {
               value={displayStocks}
               responsiveLayout="stack"
               breakpoint="960px"
-              sortField="total_eval_amt"
-              sortOrder={-1}
-              sortMode="single"
+              sortMode="multiple"
+              multiSortMeta={[
+                { field: 'quantity', order: -1 },
+                { field: 'total_eval_amt', order: -1 }
+              ]}
               stripedRows
               paginator
               rows={10}

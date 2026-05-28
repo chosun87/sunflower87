@@ -91,6 +91,10 @@ def update_cash_transaction(
     if not tx:
         raise HTTPException(status_code=404, detail="TransactionCash not found")
 
+    old_acc_cd = tx.acc_cd
+
+    if tx_data.acc_cd is not None:
+        tx.acc_cd = tx_data.acc_cd
     if tx_data.dt_cash is not None:
         tx.dt_cash = datetime.strptime(tx_data.dt_cash, "%Y-%m-%d %H:%M:%S")
     if tx_data.cash_type is not None:
@@ -101,6 +105,8 @@ def update_cash_transaction(
         tx.description = tx_data.description
 
     db.commit()
-    recalculate_portfolio_for_account(db, tx.acc_cd)
+    recalculate_portfolio_for_account(db, old_acc_cd)
+    if tx_data.acc_cd and tx_data.acc_cd != old_acc_cd:
+        recalculate_portfolio_for_account(db, tx_data.acc_cd)
     db.refresh(tx)
     return {"status": "success", "data": tx}

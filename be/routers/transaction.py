@@ -94,6 +94,12 @@ def update_transaction(
     if not db_tx:
         raise HTTPException(404, "Transaction not found")
 
+    old_acc_cd = db_tx.acc_cd
+
+    if tx_update.acc_cd is not None:
+        db_tx.acc_cd = tx_update.acc_cd
+    if tx_update.stock_code is not None:
+        db_tx.stock_code = tx_update.stock_code
     if tx_update.dt_trade:
         db_tx.dt_trade = datetime.strptime(tx_update.dt_trade, "%Y-%m-%d %H:%M:%S")
     if tx_update.trade_type:
@@ -106,7 +112,9 @@ def update_transaction(
         db_tx.tax_fee = tx_update.tax_fee
 
     db.commit()
-    recalculate_portfolio_for_account(db, db_tx.acc_cd)
+    recalculate_portfolio_for_account(db, old_acc_cd)
+    if tx_update.acc_cd and tx_update.acc_cd != old_acc_cd:
+        recalculate_portfolio_for_account(db, tx_update.acc_cd)
     return {"status": "success", "data": db_tx}
 
 

@@ -98,7 +98,7 @@ export default function TransactionStock() {
         await put(`/api/transactions/${(editingTx as any).tx_id}`, apiPayload);
         showNotice({ header: '수정 완료', message: '매매 내역이 수정되었습니다.' });
       } else {
-        await post('/api/transactions/add', apiPayload);
+        await post('/api/transactions', apiPayload);
         showNotice({ header: '등록 완료', message: '신규 매매 내역이 등록되었습니다.' });
       }
       setDialogVisible(false);
@@ -113,16 +113,22 @@ export default function TransactionStock() {
   // 모달 팝업의 검색 API 연결
   const handleSearchStock = async (keyword: string) => {
     const res = await searchStock(keyword);
-    if (res.status === 'success' && res.data && res.data.length > 0) {
-      return res.data[0]; // 첫 번째 매칭 결과 반환
+    if (res.status === 'success' && res.results && res.results.length > 0) {
+      return {
+        code: res.results[0].stock_code,
+        name: res.results[0].stock_name
+      };
     }
     throw new Error('검색 결과가 없습니다.');
   };
 
   const handleLookupCode = async (code: string) => {
     const res = await getStockNameByCode(code);
-    if (res.status === 'success' && res.data) {
-      return res.data;
+    if (res.status === 'success' && res.code) {
+      if (res.name === '알 수 없음') {
+        throw new Error('조회 결과가 없습니다.');
+      }
+      return { code: res.code, name: res.name };
     }
     throw new Error('조회 결과가 없습니다.');
   };

@@ -107,6 +107,8 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
+    acc_cd: Optional[str] = None
+    stock_code: Optional[str] = None
     dt_trade: Optional[str] = None
     trade_type: Optional[TradeType] = None
     quantity: Optional[int] = None
@@ -148,6 +150,7 @@ class TransactionCashCreate(BaseModel):
 
 
 class TransactionCashUpdate(BaseModel):
+    acc_cd: Optional[str] = None
     dt_cash: Optional[str] = None
     cash_type: Optional[CashType] = None
     amount: Optional[int] = None
