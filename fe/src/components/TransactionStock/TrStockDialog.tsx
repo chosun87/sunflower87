@@ -135,9 +135,8 @@ export default function TrStockDialog({
     // 날짜 표준 ISO 포맷 변환 필터링 가동
     const targetDateStr = txDate
       ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000)
-          .toISOString()
-          .replace('T', ' ')
-          .substring(0, 19)
+        .toISOString()
+        .split('T')[0]
       : '';
 
     const payload = {
@@ -301,12 +300,10 @@ export default function TrStockDialog({
       </div>
 
       <div className="field mb-2">
-        <label className="font-bold mb-2 block">거래 일시</label>
+        <label className="font-bold mb-2 block">거래일</label>
         <Calendar
           value={txDate}
           onChange={(e) => setTxDate(e.value)}
-          showTime
-          hourFormat="24"
           dateFormat="yy-mm-dd"
           locale="ko"
           showIcon

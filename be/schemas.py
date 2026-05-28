@@ -84,26 +84,13 @@ class TransactionCreate(BaseModel):
     @validator("dt_trade", pre=True, always=True)
     def parse_and_normalize_date(cls, v):
         if not v:
-            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return datetime.now().strftime("%Y-%m-%d")
         v_str = str(v).strip()
-        if v_str.endswith("Z"):
-            v_str = v_str[:-1] + "+00:00"
-        try:
-            parsed = datetime.strptime(v_str, "%Y-%m-%d %H:%M:%S")
-            return parsed.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            pass
-        try:
-            parsed = datetime.fromisoformat(v_str)
-            return parsed.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            pass
-        try:
-            parsed = datetime.strptime(v_str, "%Y-%m-%d")
-            return parsed.strftime("%Y-%m-%d 00:00:00")
-        except ValueError:
-            pass
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if "T" in v_str:
+            return v_str.split("T")[0]
+        if " " in v_str:
+            return v_str.split(" ")[0]
+        return v_str
 
 
 class TransactionUpdate(BaseModel):
@@ -119,12 +106,12 @@ class TransactionUpdate(BaseModel):
 class TransactionResponse(BaseModel):
     id: int
     acc_cd: str
-    acc_nm: Optional[str] = None  # 동적 조인용
-    acc_company_nm: Optional[str] = None  # 동적 조인용
-    dt_trade: datetime
+    acc_nm: Optional[str] = None
+    acc_company_nm: Optional[str] = None
+    dt_trade: str
     trade_type: str
     stock_code: str
-    stock_name: Optional[str] = None  # 동적 조인용
+    stock_name: Optional[str] = None
     quantity: int
     price: int
     tax_fee: int
@@ -145,8 +132,13 @@ class TransactionCashCreate(BaseModel):
     @validator("dt_cash", pre=True, always=True)
     def parse_cash_date(cls, v):
         if not v:
-            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return v  # 실제론 정밀 파싱 필요하나 간략화
+            return datetime.now().strftime("%Y-%m-%d")
+        v_str = str(v).strip()
+        if "T" in v_str:
+            return v_str.split("T")[0]
+        if " " in v_str:
+            return v_str.split(" ")[0]
+        return v_str
 
 
 class TransactionCashUpdate(BaseModel):
@@ -160,7 +152,7 @@ class TransactionCashUpdate(BaseModel):
 class TransactionCashResponse(BaseModel):
     id: int
     acc_cd: str
-    dt_cash: datetime
+    dt_cash: str
     cash_type: str
     amount: int
     description: Optional[str] = None

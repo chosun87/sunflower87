@@ -108,7 +108,7 @@ export default function TransactionStockCmpt({
 
   const dtTradeBodyTemplate = (rowData) => {
     return rowData.dt_trade ? (
-      <span className="monospace">{dayjs(rowData.dt_trade).format('YYYY-MM-DD HH:mm')}</span>
+      <span className="monospace">{dayjs(rowData.dt_trade).format('YYYY-MM-DD')}</span>
     ) : (
       ''
     );
