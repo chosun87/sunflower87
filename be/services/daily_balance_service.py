@@ -32,7 +32,7 @@ def sync_daily_balances_for_account(db: Session, acc_cd: str):
         start_date = last_date + timedelta(days=1)
         start_date_str = start_date.strftime("%Y-%m-%d")
 
-    end_date = (datetime.utcnow() - timedelta(days=1)).date()
+    end_date = (datetime.now() - timedelta(days=1)).date()
     end_date_str = end_date.strftime("%Y-%m-%d")
 
     if start_date_str and start_date_str > end_date_str:
@@ -57,15 +57,14 @@ def sync_daily_balances_for_account(db: Session, acc_cd: str):
 
         first_dates = []
         if first_tx:
-            first_dates.append(first_tx[0].date())
+            first_dates.append(first_tx[0])
         if first_ctx:
-            first_dates.append(first_ctx[0].date())
+            first_dates.append(first_ctx[0])
 
         if not first_dates:
             return {"status": "success", "message": "No transactions found."}
 
-        start_date = min(first_dates)
-        start_date_str = start_date.strftime("%Y-%m-%d")
+        start_date_str = min(first_dates)
 
     start_compact = start_date_str.replace("-", "")
     end_compact = end_date_str.replace("-", "")
@@ -157,9 +156,7 @@ def sync_daily_balances_for_account(db: Session, acc_cd: str):
     new_balances = []
 
     for t_date in trading_days:
-        t_datetime_end = datetime.strptime(t_date + " 23:59:59", "%Y-%m-%d %H:%M:%S")
-
-        while event_idx < total_events and events[event_idx]["time"] <= t_datetime_end:
+        while event_idx < total_events and events[event_idx]["time"] <= t_date:
             event = events[event_idx]
             if event["type"] == "CASH":
                 ctx = event["data"]

@@ -55,4 +55,6 @@ export const searchStock = (keyword?: string) =>
 export const getStockNameByCode = (code?: string) =>
   get('/api/stocks/lookup', { code: String(code || '').trim() });
 export const getDashboardKpi = (acc_cd?: string) =>
-  get('/api/dashboard/kpi', acc_cd ? { acc_cd } : undefined);
+  get(`/api/dashboard/kpi${acc_cd ? `?acc_cd=${acc_cd}` : ''}`);
+
+export const syncDailyBalance = () => post('/api/settings/sync-daily-balance', {});

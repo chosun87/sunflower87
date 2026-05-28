@@ -23,6 +23,7 @@ from routers import (  # noqa: E402
     stock_ohlcv,
     transaction,
     transaction_cash,
+    setting,
 )
 from services.daily_balance_service import sync_daily_balances_for_account  # noqa: E402
 
@@ -89,6 +90,7 @@ app.include_router(stock_ohlcv.router)
 app.include_router(recommendation.router)
 app.include_router(dashboard.router)
 app.include_router(git_task.router)
+app.include_router(setting.router)
 
 
 if __name__ == "__main__":

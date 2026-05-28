@@ -54,6 +54,7 @@ export const menuData: MenuSection[] = [
         children: [
           { key: 'recal_stock_cache', label: '종목 최신화', data: '/recal_stock_cache' },
           { key: 'recal_cash_balance', label: '계좌별 예수금 정산', data: '/recal_cash_balance' },
+          { key: 'sync_daily_balance', label: '일일 잔고 동기화', data: '/dataManagement' },
         ],
       },
     ],
