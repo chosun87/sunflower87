@@ -66,10 +66,9 @@ def get_transaction(id: int, db: Session = Depends(get_db)):
     response_model=schemas.ApiResponse[schemas.TransactionResponse],
 )
 def add_transaction(tx: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    dt_trade_obj = datetime.strptime(tx.dt_trade, "%Y-%m-%d %H:%M:%S")
     new_tx = Transaction(
         acc_cd=tx.acc_cd,
-        dt_trade=dt_trade_obj,
+        dt_trade=tx.dt_trade,
         trade_type=tx.trade_type.value,
         stock_code=tx.stock_code,
         quantity=tx.quantity,
@@ -101,7 +100,7 @@ def update_transaction(
     if tx_update.stock_code is not None:
         db_tx.stock_code = tx_update.stock_code
     if tx_update.dt_trade:
-        db_tx.dt_trade = datetime.strptime(tx_update.dt_trade, "%Y-%m-%d %H:%M:%S")
+        db_tx.dt_trade = tx_update.dt_trade
     if tx_update.trade_type:
         db_tx.trade_type = tx_update.trade_type.value
     if tx_update.quantity is not None:

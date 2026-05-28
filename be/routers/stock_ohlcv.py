@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import schemas
-from database import Stock, StockOHLCVCache, get_db
+from database import Stock, StockCache, StockOHLCVCache, get_db
 from services.market_service import sync_ohlcv_cache
 
 router = APIRouter(prefix="/api/stock_ohlcvs", tags=["StockOHLCV"])
@@ -31,7 +31,8 @@ def get_stock_ohlcvs(
     if background_tasks:
         background_tasks.add_task(sync_ohlcv_cache, db, code)
 
-    return {"status": "success", "data": results}
+    stock_name = db.query(StockCache.stock_name).filter(StockCache.stock_code == code).scalar() or ""
+    return {"status": "success", "data": results, "stock_name": stock_name}
 
 
 @router.get(

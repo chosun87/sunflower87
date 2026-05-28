@@ -47,8 +47,7 @@ export default function TrCashDialog({
       return;
     }
 
-    // 백엔드 DATETIME 규격에 맞게 00:00:00 붙임
-    const targetDateStr = txDate ? dayjs(txDate).format('YYYY-MM-DD 00:00:00') : '';
+    const targetDateStr = txDate ? dayjs(txDate).format('YYYY-MM-DD') : '';
 
     const payload = {
       cash_type: txType,

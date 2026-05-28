@@ -30,10 +30,9 @@ def get_transaction_cash(acc_cd: str = None, db: Session = Depends(get_db)):
 def add_cash_transaction(
     tx: schemas.TransactionCashCreate, db: Session = Depends(get_db)
 ):
-    dt_cash_obj = datetime.strptime(tx.dt_cash, "%Y-%m-%d %H:%M:%S")
     new_tx = TransactionCash(
         acc_cd=tx.acc_cd,
-        dt_cash=dt_cash_obj,
+        dt_cash=tx.dt_cash,
         cash_type=tx.cash_type.value,
         amount=tx.amount,
         description=tx.description,
@@ -96,7 +95,7 @@ def update_cash_transaction(
     if tx_data.acc_cd is not None:
         tx.acc_cd = tx_data.acc_cd
     if tx_data.dt_cash is not None:
-        tx.dt_cash = datetime.strptime(tx_data.dt_cash, "%Y-%m-%d %H:%M:%S")
+        tx.dt_cash = tx_data.dt_cash
     if tx_data.cash_type is not None:
         tx.cash_type = tx_data.cash_type.value
     if tx_data.amount is not None:
