@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import dayjs from 'dayjs';
 import { DataTable, Column, Badge, Button, Dropdown, Calendar } from '@/assets/ts/PrimeReact';
 import { CASH_TYPE } from '@/assets/ts/constants';
@@ -12,6 +12,15 @@ export default function TransactionCashCmpt({
   onDeleteClick,
 }) {
   const [dates, setDates] = useState(null);
+  const calendarRef = useRef<any>(null);
+
+  const handleDateChange = (e: any) => {
+    const selectedDates = e.value;
+    setDates(selectedDates);
+    if (selectedDates && selectedDates.length === 2 && selectedDates[1] !== null) {
+      calendarRef.current?.hide();
+    }
+  };
   const [selectedAcc, setSelectedAcc] = useState(null);
 
   const buildSearchFilters = () => {
@@ -111,8 +120,9 @@ export default function TransactionCashCmpt({
               <i className="fa-solid fa-calendar"></i>
             </span>
             <Calendar
+              ref={calendarRef}
               value={dates}
-              onChange={(e) => setDates(e.value)}
+              onChange={handleDateChange}
               selectionMode="range"
               locale="ko"
               dateFormat="yy-mm-dd"

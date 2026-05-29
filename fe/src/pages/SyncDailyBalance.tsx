@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Panel } from 'primereact/panel';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
@@ -6,22 +6,32 @@ import { syncAccountDailyBalance } from '@/api';
 
 export default function SyncDailyBalance() {
   const [isSyncing, setIsSyncing] = useState(false);
+  const calendarRef = useRef<Calendar>(null);
 
   // Default: start_date is 1 month ago, end_date is yesterday
   const defaultStart = new Date();
   defaultStart.setMonth(defaultStart.getMonth() - 1);
-  const [startDate, setStartDate] = useState<Date | null>(defaultStart);
-
   const defaultEnd = new Date();
   defaultEnd.setDate(defaultEnd.getDate() - 1);
-  const [endDate, setEndDate] = useState<Date | null>(defaultEnd);
+
+  const [dates, setDates] = useState<Date[] | null>([defaultStart, defaultEnd]);
+
+  const handleDateChange = (e: any) => {
+    const selectedDates = e.value as Date[];
+    setDates(selectedDates);
+
+    // If both start_date and end_date are selected, close the calendar
+    if (selectedDates && selectedDates.length === 2 && selectedDates[1] !== null) {
+      calendarRef.current?.hide();
+    }
+  };
 
   const handleSyncDailyBalance = async () => {
     setIsSyncing(true);
     try {
       // Format dates to YYYY-MM-DD
-      const start_date = startDate ? startDate.toISOString().split('T')[0] : undefined;
-      const end_date = endDate ? endDate.toISOString().split('T')[0] : undefined;
+      const start_date = dates && dates[0] ? dates[0].toISOString().split('T')[0] : undefined;
+      const end_date = dates && dates[1] ? dates[1].toISOString().split('T')[0] : undefined;
 
       const payload = { start_date, end_date };
 
@@ -56,24 +66,18 @@ export default function SyncDailyBalance() {
 
             <div className="flex flex-column gap-3 mb-4">
               <div className="flex flex-column gap-2">
-                <label htmlFor="start_date">시작일 (기본: 1개월 전)</label>
+                <label htmlFor="sync_dates">동기화 기간 (기본: 1개월 전 ~ 어제)</label>
                 <Calendar
-                  id="start_date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.value as Date)}
+                  ref={calendarRef}
+                  id="sync_dates"
+                  value={dates as any}
+                  onChange={handleDateChange}
+                  selectionMode="range"
                   dateFormat="yy-mm-dd"
-                  showIcon
-                />
-              </div>
-              <div className="flex flex-column gap-2">
-                <label htmlFor="end_date">종료일 (기본: 어제, 최대: 어제)</label>
-                <Calendar
-                  id="end_date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.value as Date)}
-                  dateFormat="yy-mm-dd"
+                  locale="ko"
                   showIcon
                   maxDate={defaultEnd}
+                  readOnlyInput
                 />
               </div>
             </div>

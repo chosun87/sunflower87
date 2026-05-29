@@ -39,6 +39,9 @@ def sync_account_daily_balance(
     else:
         start_date_str = req_start_date
 
+    if account.dt_opened and start_date_str < account.dt_opened:
+        start_date_str = account.dt_opened
+
     if start_date_str > end_date_str:
         return {"status": "success", "message": "Start date cannot be after end date."}
 

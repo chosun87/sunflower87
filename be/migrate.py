@@ -113,6 +113,7 @@ def run_migrations():
                 acc_nm=d["acc_nm"],
                 acc_company_nm=d.get("acc_company_nm", "미래에셋"),
                 acc_order=d.get("acc_order", 1),
+                dt_opened=d.get("dt_opened"),
                 cash_balance=int(d.get("cash_balance", 0)),
                 dt_created=dt_cre,
                 dt_deleted=dt_del,

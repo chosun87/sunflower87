@@ -13,7 +13,11 @@ router = APIRouter(prefix="/api/transactions", tags=["Transaction"])
 
 @router.get("", response_model=schemas.ApiResponse[List[schemas.TransactionResponse]])
 def get_transactions(
-    acc_cd: str = None, stock_code: str = None, db: Session = Depends(get_db)
+    acc_cd: str = None,
+    stock_code: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
 ):
     query = (
         db.query(
@@ -28,6 +32,10 @@ def get_transactions(
         query = query.filter(Transaction.acc_cd == acc_cd)
     if stock_code:
         query = query.filter(Transaction.stock_code == stock_code)
+    if start_date:
+        query = query.filter(Transaction.dt_trade >= start_date)
+    if end_date:
+        query = query.filter(Transaction.dt_trade <= end_date)
 
     results = query.order_by(Transaction.dt_trade.desc()).all()
     data = []

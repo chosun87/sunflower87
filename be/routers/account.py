@@ -47,6 +47,7 @@ def create_account(account: schemas.AccountCreate, db: Session = Depends(get_db)
         acc_nm=account.acc_nm,
         acc_company_nm=account.acc_company_nm,
         acc_order=account.acc_order,
+        dt_opened=account.dt_opened,
         cash_balance=0,
     )
     db.add(new_account)
@@ -70,6 +71,8 @@ def update_account(
         db_account.acc_nm = account.acc_nm
     if account.acc_order is not None:
         db_account.acc_order = account.acc_order
+    if account.dt_opened is not None:
+        db_account.dt_opened = account.dt_opened
     db.commit()
     db.refresh(db_account)
     return {"status": "success", "data": db_account}

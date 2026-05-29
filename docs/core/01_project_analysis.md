@@ -124,8 +124,8 @@
 | :---: | :--- | :--- | :--- | :--- | :--- |
 | **`GET`** | `/api/accounts` | 활성화된 전체 계좌 목록 조회 | None | 자체 테이블 조회 전용 | `{"status": "success", "accounts": [...]}` |
 | **`GET`** | `/api/accounts/{acc_cd}` | 특정 계좌 상세 단일 조회 | **Path**: `acc_cd` | 자체 테이블 조회 전용 | `{"status": "success", "data": {...}}` |
-| **`POST`** | `/api/accounts` | 신규 증권 계좌 등록 (Initial Cash 설정) | **Body (JSON)**:<br>`{"acc_cd": "A003", "acc_nm": "개인연금", "acc_company_nm": "미래에셋", "initial_cash": 10000000, "acc_order": 3}` | 자체 테이블 (`account`) 제어 전용 | `{"status": "success", "data": {...}}` *(201 Created)* |
-| **`PUT`** | `/api/accounts/{acc_cd}` | 계좌 명칭, 투자 원금 및 순서 정보 수정 | **Path**: `acc_cd`<br>**Body (JSON)**:<br>`{"acc_nm": "연금저축(수정)", "initial_cash": 12000000, "acc_order": 2}` | **`recalculate_portfolio_for_account`** 및 **`daily-balances`** 재계산 연쇄 | `{"status": "success", "data": {...}}` |
+| **`POST`** | `/api/accounts` | 신규 증권 계좌 등록 (Initial Cash 설정) | **Body (JSON)**:<br>`{"acc_cd": "A003", "acc_nm": "개인연금", "acc_company_nm": "미래에셋", "initial_cash": 10000000, "acc_order": 3, "dt_opened": "2024-01-01"}` | 자체 테이블 (`account`) 제어 전용 | `{"status": "success", "data": {...}}` *(201 Created)* |
+| **`PUT`** | `/api/accounts/{acc_cd}` | 계좌 명칭, 투자 원금, 순서 및 개설일 정보 수정 | **Path**: `acc_cd`<br>**Body (JSON)**:<br>`{"acc_nm": "연금저축(수정)", "initial_cash": 12000000, "acc_order": 2, "dt_opened": "2024-01-01"}` | **`recalculate_portfolio_for_account`** 및 **`daily-balances`** 재계산 연쇄 | `{"status": "success", "data": {...}}` |
 | **`DELETE`** | `/api/accounts/{acc_cd}` | 증권 계좌 소프트 딜리트 처리 (목록 제외) | **Path**: `acc_cd` | **`GET /api/accounts`** 호출 시 목록 필터링 연계 | `{"status": "success", "message": "Account deleted successfully."}` |
 | **`PUT`** | `/api/accounts/reorder` | `SortableJS` 드래그앤드롭 리오더링에 따른 계좌 우선순위 배치 동기화 | **Body (JSON)**: `acc_orders` 순위 목록 | 자체 테이블 (`account`) 우선순위(`acc_order`) 업데이트 | `{"status": "success", "message": "Account order updated successfully."}` |
 | **`GET`** | `/api/accounts/{acc_cd}/performance` | 계좌별 날짜별 잔고 및 누적 수익률 시계열 전송 (서브 차트 연동용) | **Path**: `acc_cd` | **`account_daily_balance`** 테이블에서 직접 초고속 쿼리하여 반환 | `{"status": "success", "performance": [...]}` |
@@ -254,6 +254,7 @@ erDiagram
         VARCHAR acc_nm
         VARCHAR acc_company_nm
         INTEGER acc_order
+        VARCHAR dt_opened
         INTEGER cash_balance
         INTEGER initial_cash
         DATETIME dt_created

@@ -4,7 +4,9 @@ import { useMemo } from 'react';
 export function useDataTableFoot(accounts: any[]) {
   return useMemo(() => {
     return (accounts || []).map((acc) => {
-      const totalEvalAmount = (acc.stocks || []).reduce((sum, s) => {
+      const activeStocks = (acc.stocks || []).filter((s: any) => s.quantity > 0);
+
+      const totalEvalAmount = activeStocks.reduce((sum, s) => {
         const val =
           s.total_eval_amt !== undefined
             ? s.total_eval_amt
@@ -12,17 +14,17 @@ export function useDataTableFoot(accounts: any[]) {
         return sum + val;
       }, 0);
 
-      const totalPurchaseAmount = (acc.stocks || []).reduce((sum, s) => {
+      const totalPurchaseAmount = activeStocks.reduce((sum, s) => {
         const val =
           s.total_purchase_amt !== undefined ? s.total_purchase_amt : s.purchase_amount || 0;
         return sum + val;
       }, 0);
 
-      const totalTaxFee = (acc.stocks || []).reduce((sum, s) => {
+      const totalTaxFee = activeStocks.reduce((sum, s) => {
         return sum + (s.total_tax_fee || 0);
       }, 0);
 
-      const totalProfit = (acc.stocks || []).reduce((sum, s) => {
+      const totalProfit = activeStocks.reduce((sum, s) => {
         const buy_amount =
           s.total_purchase_amt !== undefined ? s.total_purchase_amt : s.purchase_amount || 0;
         const eval_amount =

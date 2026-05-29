@@ -14,7 +14,12 @@ router = APIRouter(prefix="/api/transactions_cash", tags=["TransactionCash"])
 @router.get(
     "", response_model=schemas.ApiResponse[List[schemas.TransactionCashResponse]]
 )
-def get_transaction_cash(acc_cd: str = None, db: Session = Depends(get_db)):
+def get_transaction_cash(
+    acc_cd: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
+):
     query = (
         db.query(TransactionCash, Account.acc_nm, Account.acc_company_nm)
         .outerjoin(Account, TransactionCash.acc_cd == Account.acc_cd)
@@ -22,6 +27,10 @@ def get_transaction_cash(acc_cd: str = None, db: Session = Depends(get_db)):
     )
     if acc_cd:
         query = query.filter(TransactionCash.acc_cd == acc_cd)
+    if start_date:
+        query = query.filter(TransactionCash.dt_cash >= start_date)
+    if end_date:
+        query = query.filter(TransactionCash.dt_cash <= end_date)
     results = query.order_by(TransactionCash.dt_cash.desc()).all()
 
     data = []

@@ -40,6 +40,7 @@ class Account(Base):
     acc_nm = Column(String, nullable=False)
     acc_company_nm = Column(String, nullable=False)
     acc_order = Column(Integer, nullable=False, default=1)
+    dt_opened = Column(String, nullable=True)
     cash_balance = Column(Integer, nullable=False, default=0)
     dt_created = Column(DateTime, default=datetime.utcnow, nullable=False)
     dt_deleted = Column(DateTime, nullable=True)
