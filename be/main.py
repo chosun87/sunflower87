@@ -19,13 +19,13 @@ from routers import (  # noqa: E402
     account,
     dashboard,
     recommendation,
+    setting,
     stock,
     stock_ohlcv,
     transaction,
     transaction_cash,
-    setting,
 )
-from services.daily_balance_service import sync_daily_balances_for_account  # noqa: E402
+from services.daily_balance_service import sync_account_daily_balance  # noqa: E402
 
 
 def run_midnight_batch():
@@ -35,7 +35,7 @@ def run_midnight_batch():
         accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
         for acc in accounts:
             try:
-                res = sync_daily_balances_for_account(db, acc.acc_cd)
+                res = sync_account_daily_balance(db, acc.acc_cd)
                 print(f"[Batch] Account {acc.acc_cd}: {res.get('message')}")
             except Exception as e:
                 print(f"[Batch] Error syncing account {acc.acc_cd}: {e}")

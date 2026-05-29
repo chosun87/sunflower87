@@ -165,6 +165,11 @@ class TransactionCashResponse(BaseModel):
 
 
 # --- AccountDailyBalance ---
+class SyncAccountDailyBalanceRequest(BaseModel):
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
 class AccountDailyBalanceCreate(BaseModel):
     trade_date: str
     cash_balance: int = 0

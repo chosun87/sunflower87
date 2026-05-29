@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import schemas
-from database import TransactionCash, Account, get_db
+from database import Account, TransactionCash, get_db
 from services.portfolio_service import recalculate_portfolio_for_account
 
 router = APIRouter(prefix="/api/transactions_cash", tags=["TransactionCash"])
@@ -23,14 +23,14 @@ def get_transaction_cash(acc_cd: str = None, db: Session = Depends(get_db)):
     if acc_cd:
         query = query.filter(TransactionCash.acc_cd == acc_cd)
     results = query.order_by(TransactionCash.dt_cash.desc()).all()
-    
+
     data = []
     for tx, acc_nm, acc_company_nm in results:
         t_dict = {c.name: getattr(tx, c.name) for c in tx.__table__.columns}
         t_dict["acc_nm"] = acc_nm
         t_dict["acc_company_nm"] = acc_company_nm
         data.append(t_dict)
-        
+
     return {"status": "success", "data": data}
 
 

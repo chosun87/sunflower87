@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,12 @@ from services.portfolio_service import get_enriched_accounts_data
 
 
 def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
-    unique_dates = db.query(AccountDailyBalance.trade_date).distinct().order_by(AccountDailyBalance.trade_date.desc()).all()
+    unique_dates = (
+        db.query(AccountDailyBalance.trade_date)
+        .distinct()
+        .order_by(AccountDailyBalance.trade_date.desc())
+        .all()
+    )
     unique_dates = [d[0] for d in unique_dates]
 
     enriched = get_enriched_accounts_data(db)
@@ -48,10 +53,12 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
 
         if len(unique_dates) > 1:
             prev_date = unique_dates[1]
-        
+
         for d in unique_dates[1:]:
             dt = datetime.strptime(d, "%Y-%m-%d")
-            if dt.year < latest_dt.year or (dt.year == latest_dt.year and dt.month < latest_dt.month):
+            if dt.year < latest_dt.year or (
+                dt.year == latest_dt.year and dt.month < latest_dt.month
+            ):
                 if not prev_month_end_date:
                     prev_month_end_date = d
             if dt.year < latest_dt.year:
@@ -61,7 +68,9 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
     def get_balance_for_date(target_date_str):
         if not target_date_str:
             return 0
-        accounts_to_check = [acc_cd] if acc_cd else [a.acc_cd for a in db.query(Account).all()]
+        accounts_to_check = (
+            [acc_cd] if acc_cd else [a.acc_cd for a in db.query(Account).all()]
+        )
         total = 0
         for acct in accounts_to_check:
             latest = (
@@ -118,8 +127,12 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
         "status": "success",
         "data": {
             "today": calc_period(prev_balance, latest_balance, net_deposit_today),
-            "this_month": calc_period(prev_month_balance, latest_balance, net_deposit_this_month),
-            "this_year": calc_period(prev_year_balance, latest_balance, net_deposit_this_year),
+            "this_month": calc_period(
+                prev_month_balance, latest_balance, net_deposit_this_month
+            ),
+            "this_year": calc_period(
+                prev_year_balance, latest_balance, net_deposit_this_year
+            ),
             "total": {
                 "total_asset": int(round(current_total_asset)),
                 "total_principal": int(round(total_principal)),

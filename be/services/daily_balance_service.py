@@ -14,57 +14,45 @@ from database import (
 )
 
 
-def sync_daily_balances_for_account(db: Session, acc_cd: str):
+def sync_account_daily_balance(
+    db: Session,
+    acc_cd: str,
+    req_start_date: str = None,
+    req_end_date: str = None,
+):
     account = db.query(Account).filter(Account.acc_cd == acc_cd).first()
     if not account:
         raise HTTPException(status_code=404, detail=f"Account '{acc_cd}' not found.")
 
-    last_balance = (
-        db.query(AccountDailyBalance)
-        .filter(AccountDailyBalance.acc_cd == acc_cd)
-        .order_by(AccountDailyBalance.trade_date.desc())
-        .first()
-    )
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    start_date_str = None
-    if last_balance:
-        last_date = datetime.strptime(last_balance.trade_date, "%Y-%m-%d").date()
-        start_date = last_date + timedelta(days=1)
-        start_date_str = start_date.strftime("%Y-%m-%d")
+    if not req_end_date:
+        end_date_str = yesterday
+    else:
+        if req_end_date > yesterday:
+            end_date_str = yesterday
+        else:
+            end_date_str = req_end_date
 
-    end_date = (datetime.now() - timedelta(days=1)).date()
-    end_date_str = end_date.strftime("%Y-%m-%d")
+    if not req_start_date:
+        start_date_str = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    else:
+        start_date_str = req_start_date
 
-    if start_date_str and start_date_str > end_date_str:
-        return {"status": "success", "message": "Already up to date."}
+    if start_date_str > end_date_str:
+        return {"status": "success", "message": "Start date cannot be after end date."}
 
-    if not start_date_str:
-        # Start from the first transaction
-        first_tx = (
-            db.query(Transaction.dt_trade)
-            .filter(Transaction.acc_cd == acc_cd, Transaction.dt_deleted.is_(None))
-            .order_by(Transaction.dt_trade.asc())
-            .first()
-        )
-        first_ctx = (
-            db.query(TransactionCash.dt_cash)
-            .filter(
-                TransactionCash.acc_cd == acc_cd, TransactionCash.dt_deleted.is_(None)
-            )
-            .order_by(TransactionCash.dt_cash.asc())
-            .first()
-        )
+    # Delete existing records in the range before recalculating
+    db.query(AccountDailyBalance).filter(
+        AccountDailyBalance.acc_cd == acc_cd,
+        AccountDailyBalance.trade_date >= start_date_str,
+        AccountDailyBalance.trade_date <= end_date_str,
+    ).delete(synchronize_session=False)
+    db.commit()
 
-        first_dates = []
-        if first_tx:
-            first_dates.append(first_tx[0])
-        if first_ctx:
-            first_dates.append(first_ctx[0])
-
-        if not first_dates:
-            return {"status": "success", "message": "No transactions found."}
-
-        start_date_str = min(first_dates)
+    # Note: We still fetch all transactions from the beginning to calculate
+    # the correct balance and holdings for the target period.
+    # We do not use 'start_date_str' to filter transactions.
 
     start_compact = start_date_str.replace("-", "")
     end_compact = end_date_str.replace("-", "")

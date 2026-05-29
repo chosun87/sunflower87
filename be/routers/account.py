@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import Account, AccountDailyBalance, get_db
-from services.daily_balance_service import sync_daily_balances_for_account
+from services.daily_balance_service import sync_account_daily_balance
 from services.portfolio_service import recalculate_portfolio_for_account
 
 router = APIRouter(prefix="/api/accounts", tags=["Account"])
@@ -105,19 +105,30 @@ def recalculate_balances(acc_cd: str, db: Session = Depends(get_db)):
     return {"status": "success", "message": "Daily balances recalculated successfully."}
 
 
-@router.post("/sync-all-daily-balances")
-def sync_all_daily_balances(db: Session = Depends(get_db)):
+@router.post("/sync_account_daily_balance")
+def sync_all_daily_balances(
+    request: schemas.SyncAccountDailyBalanceRequest = None,
+    db: Session = Depends(get_db),
+):
     accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
     results = []
+    req_start = request.start_date if request else None
+    req_end = request.end_date if request else None
     for acc in accounts:
-        res = sync_daily_balances_for_account(db, acc.acc_cd)
+        res = sync_account_daily_balance(db, acc.acc_cd, req_start, req_end)
         results.append({"acc_cd": acc.acc_cd, "result": res})
     return {"status": "success", "data": results}
 
 
-@router.post("/{acc_cd}/sync-daily-balances")
-def sync_account_daily_balances(acc_cd: str, db: Session = Depends(get_db)):
-    res = sync_daily_balances_for_account(db, acc_cd)
+@router.post("/{acc_cd}/sync_account_daily_balance")
+def sync_specific_account_daily_balance(
+    acc_cd: str,
+    request: schemas.SyncAccountDailyBalanceRequest = None,
+    db: Session = Depends(get_db),
+):
+    req_start = request.start_date if request else None
+    req_end = request.end_date if request else None
+    res = sync_account_daily_balance(db, acc_cd, req_start, req_end)
     return res
 
 

@@ -86,7 +86,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
     traded_set = set()
     for tx in all_transactions:
         traded_set.add((tx.acc_cd, tx.stock_code))
-    
+
     db_stock_map = {}
     for st in db_stocks:
         if st.acc_cd:
@@ -124,7 +124,7 @@ def get_enriched_accounts_data(db: Session) -> dict:
             .order_by(StockOHLCVCache.trade_date.desc())
             .first()
         )
-        
+
         current_price = 0
         if latest_cache:
             current_price = latest_cache.close_price

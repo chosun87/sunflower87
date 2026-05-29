@@ -14,7 +14,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard')); //Dashboard
 const StockList = lazy(() => import('@/pages/StockList')); //보유 자산
 const TransactionStock = lazy(() => import('@/pages/TransactionStock')); //주식 매매 내역
 const TransactionCash = lazy(() => import('@/pages/TransactionCash')); //계좌 입출금 내역
-const DataManagement = lazy(() => import('@/pages/DataManagement')); //데이터 관리
+const SyncDailyBalance = lazy(() => import('@/pages/SyncDailyBalance')); //일일 잔고 동기화
 
 const TemplateBlank = lazy(() => import('@/templates/Blank'));
 const TemplateDataTable = lazy(() => import('@/templates/DataTable'));
@@ -77,8 +77,8 @@ function AppContent() {
           <Route path="/transactionStock" element={<TransactionStock />} />
           {/* 계좌 입출금 내역 */}
           <Route path="/transactionCash" element={<TransactionCash />} />
-          {/* 데이터 관리 */}
-          <Route path="/dataManagement" element={<DataManagement />} />
+          {/* 일일 잔고 동기화 */}
+          <Route path="/sync_account_daily_balance" element={<SyncDailyBalance />} />
         </Route>
 
         {/* Template Pages */}

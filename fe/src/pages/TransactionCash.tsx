@@ -21,7 +21,7 @@ export default function TransactionCash() {
     if (filters !== undefined) {
       setCurrentFilters(filters);
     }
-    
+
     try {
       const res = await get('/api/transactions_cash', activeFilters);
       if (res.status === 'success') {

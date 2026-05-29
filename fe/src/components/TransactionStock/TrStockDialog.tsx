@@ -69,10 +69,7 @@ export default function TrStockDialog({
   const heldStocks = Array.from(
     new Set(
       (accounts || [])
-        .flatMap((acc) => (acc.stocks || [])
-          .filter((s) => s.quantity > 0)
-          .map((s) => s.stock_name)
-        )
+        .flatMap((acc) => (acc.stocks || []).filter((s) => s.quantity > 0).map((s) => s.stock_name))
         .filter(Boolean)
     )
   );
@@ -147,9 +144,7 @@ export default function TrStockDialog({
 
     // 날짜 표준 ISO 포맷 변환 필터링 가동
     const targetDateStr = txDate
-      ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000)
-        .toISOString()
-        .split('T')[0]
+      ? new Date(txDate.getTime() - txDate.getTimezoneOffset() * 60000).toISOString().split('T')[0]
       : '';
 
     const payload = {

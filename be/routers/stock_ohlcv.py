@@ -31,7 +31,10 @@ def get_stock_ohlcvs(
     if background_tasks:
         background_tasks.add_task(sync_ohlcv_cache, db, code)
 
-    stock_name = db.query(StockCache.stock_name).filter(StockCache.stock_code == code).scalar() or ""
+    stock_name = (
+        db.query(StockCache.stock_name).filter(StockCache.stock_code == code).scalar()
+        or ""
+    )
     return {"status": "success", "data": results, "stock_name": stock_name}
 
 

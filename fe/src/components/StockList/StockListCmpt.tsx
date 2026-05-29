@@ -69,7 +69,7 @@ export default function StockListCmpt({ accounts }: { accounts: any[] }) {
               sortMode="multiple"
               multiSortMeta={[
                 { field: 'quantity', order: -1 },
-                { field: 'total_eval_amt', order: -1 }
+                { field: 'total_eval_amt', order: -1 },
               ]}
               stripedRows
               paginator

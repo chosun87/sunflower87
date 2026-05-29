@@ -52,7 +52,9 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     acc_cd = Column(String, ForeignKey("account.acc_cd"), nullable=False)
-    dt_trade = Column(String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False)
+    dt_trade = Column(
+        String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False
+    )
     trade_type = Column(String, nullable=False)  # BUY / SELL
     stock_code = Column(String, ForeignKey("stock_cache.stock_code"), nullable=False)
     quantity = Column(Integer, nullable=False)
@@ -68,7 +70,9 @@ class TransactionCash(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     acc_cd = Column(String, ForeignKey("account.acc_cd"), nullable=False)
-    dt_cash = Column(String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False)
+    dt_cash = Column(
+        String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False
+    )
     cash_type = Column(
         String, nullable=False
     )  # DEPOSIT / WITHDRAW / INTEREST / DIVIDEND / FEE

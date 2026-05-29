@@ -77,34 +77,39 @@ export default function KpiCards() {
         >
           <div className="flex align-items-center justify-content-end gap-3">
             <div className="value-wrap">
-              {card.subValue && <span className="sub-value text-sm font-bold mr-2">({card.subValue})</span>}
+              {card.subValue && (
+                <span className="sub-value text-sm font-bold mr-2">({card.subValue})</span>
+              )}
               <span
-                className={`text-3xl font-bold mb-2 ${isZero(card.value)
-                  ? ''
-                  : card.id === 'total' || !String(card.value).includes('-')
-                    ? 'text-up'
-                    : 'text-down'
-                  }`}
+                className={`text-3xl font-bold mb-2 ${
+                  isZero(card.value)
+                    ? ''
+                    : card.id === 'total' || !String(card.value).includes('-')
+                      ? 'text-up'
+                      : 'text-down'
+                }`}
               >
                 {card.value}
               </span>
             </div>
 
             <span
-              className={`font-semibold ${isZero(card.change)
-                ? ''
-                : String(card.change).includes('-')
-                  ? 'text-down'
-                  : 'text-up'
-                }`}
-            >
-              <i
-                className={`${isZero(card.change)
+              className={`font-semibold ${
+                isZero(card.change)
                   ? ''
                   : String(card.change).includes('-')
-                    ? 'fa-solid fa-arrow-trend-down'
-                    : 'fa-solid fa-arrow-trend-up'
-                  } mr-1`}
+                    ? 'text-down'
+                    : 'text-up'
+              }`}
+            >
+              <i
+                className={`${
+                  isZero(card.change)
+                    ? ''
+                    : String(card.change).includes('-')
+                      ? 'fa-solid fa-arrow-trend-down'
+                      : 'fa-solid fa-arrow-trend-up'
+                } mr-1`}
               ></i>
               {card.change}
             </span>

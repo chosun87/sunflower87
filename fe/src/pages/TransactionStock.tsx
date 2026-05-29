@@ -21,7 +21,7 @@ export default function TransactionStock() {
     if (filters !== undefined) {
       setCurrentFilters(filters);
     }
-    
+
     try {
       const res = await get('/api/transactions', activeFilters);
       if (res.status === 'success') {
@@ -116,7 +116,7 @@ export default function TransactionStock() {
     if (res.status === 'success' && res.results && res.results.length > 0) {
       return {
         code: res.results[0].stock_code,
-        name: res.results[0].stock_name
+        name: res.results[0].stock_name,
       };
     }
     throw new Error('검색 결과가 없습니다.');
