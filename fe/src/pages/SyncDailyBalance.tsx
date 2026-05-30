@@ -74,10 +74,10 @@ export default function SyncDailyBalance() {
                   onChange={handleDateChange}
                   selectionMode="range"
                   dateFormat="yy-mm-dd"
+                  mask="9999-99-99 - 9999-99-99"
                   locale="ko"
                   showIcon
                   maxDate={defaultEnd}
-                  readOnlyInput
                 />
               </div>
             </div>

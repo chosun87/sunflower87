@@ -105,7 +105,7 @@ export default function AccountDialog({
     >
       <div className="field mb-4">
         <label className="font-bold mb-2 block">
-          계좌 코드 (영문/숫자 고유값) <span className="text-red-500">*</span>
+          계좌 코드 (고유값) <span className="text-red-500">*</span>
         </label>
         <InputText
           value={accCd}
@@ -145,6 +145,7 @@ export default function AccountDialog({
           value={dtOpened}
           onChange={(e) => setDtOpened(e.value as Date)}
           dateFormat="yy-mm-dd"
+          mask="9999-99-99"
           locale="ko"
           showIcon
           disabled={isSubmitting}

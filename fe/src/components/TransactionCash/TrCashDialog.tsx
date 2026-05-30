@@ -100,7 +100,7 @@ export default function TrCashDialog({
       onHide={onHide}
     >
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">거래 구분</label>
+        <label className="font-bold mb-2 block">거래 구분 <span className="text-red-500">*</span></label>
         <Dropdown
           value={txType}
           options={CASH_TYPE_OPTIONS}
@@ -111,7 +111,7 @@ export default function TrCashDialog({
       </div>
 
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">대상 귀속 계좌</label>
+        <label className="font-bold mb-2 block">대상 귀속 계좌 <span className="text-red-500">*</span></label>
         <Dropdown
           value={txAccount}
           options={dropdownAccounts}
@@ -122,7 +122,7 @@ export default function TrCashDialog({
       </div>
 
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">금액 (원)</label>
+        <label className="font-bold mb-2 block">금액 (원) <span className="text-red-500">*</span></label>
         <InputNumber
           value={txAmount}
           onValueChange={(e) => setTxAmount(e.value)}
@@ -144,11 +144,12 @@ export default function TrCashDialog({
       </div>
 
       <div className="field mb-2">
-        <label className="font-bold mb-2 block">거래일</label>
+        <label className="font-bold mb-2 block">거래일 <span className="text-red-500">*</span></label>
         <Calendar
           value={txDate}
           onChange={(e) => setTxDate(e.value)}
           dateFormat="yy-mm-dd"
+          mask="9999-99-99"
           locale="ko"
           showIcon
           disabled={isSubmitting}

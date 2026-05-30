@@ -224,7 +224,7 @@ export default function TransactionStockCmpt({
               selectionMode="range"
               locale="ko"
               dateFormat="yy-mm-dd"
-              readOnlyInput
+              mask="9999-99-99 - 9999-99-99"
               placeholder="기간 선택"
               className="w-full"
               showButtonBar
