@@ -25,7 +25,7 @@ export const menuData: MenuSection[] = [
       },
       {
         key: 'stockList',
-        label: '보유 자산',
+        label: '보유 주식 현황',
         icon: 'fa-solid fa-book',
         data: '/stockList',
       },
@@ -41,6 +41,12 @@ export const menuData: MenuSection[] = [
         label: '계좌 입출금 내역',
         icon: 'fa-solid fa-coins',
         data: '/transactionCash',
+      },
+      {
+        key: 'account',
+        label: '계좌 관리',
+        icon: 'fa-solid fa-wallet',
+        data: '/account',
       },
     ],
   },

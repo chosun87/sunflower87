@@ -59,6 +59,7 @@ class AccountCreate(AccountBase):
 
 class AccountUpdate(BaseModel):
     acc_nm: Optional[str] = None
+    acc_company_nm: Optional[str] = None
     acc_order: Optional[int] = None
     dt_opened: Optional[str] = None
 

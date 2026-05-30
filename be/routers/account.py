@@ -13,13 +13,11 @@ router = APIRouter(prefix="/api/accounts", tags=["Account"])
 
 
 @router.get("", response_model=schemas.ApiResponse[List[schemas.AccountResponse]])
-def get_accounts(db: Session = Depends(get_db)):
-    accounts = (
-        db.query(Account)
-        .filter(Account.dt_deleted.is_(None))
-        .order_by(Account.acc_order.asc())
-        .all()
-    )
+def get_accounts(include_deleted: bool = False, db: Session = Depends(get_db)):
+    query = db.query(Account)
+    if not include_deleted:
+        query = query.filter(Account.dt_deleted.is_(None))
+    accounts = query.order_by(Account.acc_order.asc()).all()
     return {"status": "success", "data": accounts}
 
 
@@ -69,6 +67,8 @@ def update_account(
         raise HTTPException(status_code=404, detail="Account not found")
     if account.acc_nm is not None:
         db_account.acc_nm = account.acc_nm
+    if account.acc_company_nm is not None:
+        db_account.acc_company_nm = account.acc_company_nm
     if account.acc_order is not None:
         db_account.acc_order = account.acc_order
     if account.dt_opened is not None:
