@@ -99,8 +99,10 @@ export default function TrStockDialog({
           icon: 'fa-solid fa-check-circle',
           message: (
             <>
-              종목 : '{match.name}'의<br />
-              종목코드 : '{match.code}'<br />
+              종목 : '{match.name}'의
+              <br />
+              종목코드 : '{match.code}'
+              <br />
               조회가 완료되었습니다.
             </>
           ),
@@ -131,8 +133,11 @@ export default function TrStockDialog({
           icon: 'fa-solid fa-check-circle',
           message: (
             <>
-              종목코드 : '{match.code}'의<br />
-              종목명 : '{match.name}'<br /> 조회가 완료되었습니다.
+              종목코드 : '{match.code}'의
+              <br />
+              종목명 : '{match.name}'
+              <br />
+              조회가 완료되었습니다.
             </>
           ),
           acceptClassName: 'p-button-success',

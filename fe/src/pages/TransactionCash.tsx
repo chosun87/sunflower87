@@ -67,7 +67,8 @@ export default function TransactionCash() {
     showConfirm({
       message: (
         <>
-          정말로 이 입출금 내역을 삭제하시겠습니까?<br />
+          정말로 이 입출금 내역을 삭제하시겠습니까?
+          <br />
           삭제 시 계좌 예수금이 재정산됩니다.
         </>
       ),

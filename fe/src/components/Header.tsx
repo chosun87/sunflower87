@@ -35,14 +35,14 @@ export default function Header({ isDarkMode, toggleTheme, toggleSidebar }: Heade
   const profileMenuItems: MenuItem[] = [
     ...(authRemainingTime !== '00:00'
       ? [
-        {
-          label: `인증 연장`,
-          icon: 'fa-solid fa-clock-rotate-left',
-          command: () => {
-            extendLogin();
+          {
+            label: `인증 연장`,
+            icon: 'fa-solid fa-clock-rotate-left',
+            command: () => {
+              extendLogin();
+            },
           },
-        },
-      ]
+        ]
       : []),
     {
       label: '로그아웃',

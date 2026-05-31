@@ -66,8 +66,9 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
     if df is None or df.empty:
         return
 
-    import pandas as pd
     import math
+
+    import pandas as pd
 
     # 컬럼 이름의 공백 등 변동성에 대비해 실제 컬럼명을 탐색
     col_trading_value = next((c for c in df.columns if "거래대금" in str(c)), None)
@@ -91,10 +92,10 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
                 raw_t_val = row.get(col_trading_value)
                 if pd.notna(raw_t_val):
                     t_val = int(raw_t_val)
-            
+
             close_p = int(row.get("종가", 0) if pd.notna(row.get("종가", 0)) else 0)
             vol = int(row.get("거래량", 0) if pd.notna(row.get("거래량", 0)) else 0)
-            
+
             if t_val == 0:
                 t_val = close_p * vol
 
@@ -110,9 +111,15 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
             cache_entry = StockOHLCVCache(
                 stock_code=stock_code,
                 trade_date=trade_date,
-                open_price=int(row.get("시가", 0) if pd.notna(row.get("시가", 0)) else 0),
-                high_price=int(row.get("고가", 0) if pd.notna(row.get("고가", 0)) else 0),
-                low_price=int(row.get("저가", 0) if pd.notna(row.get("저가", 0)) else 0),
+                open_price=int(
+                    row.get("시가", 0) if pd.notna(row.get("시가", 0)) else 0
+                ),
+                high_price=int(
+                    row.get("고가", 0) if pd.notna(row.get("고가", 0)) else 0
+                ),
+                low_price=int(
+                    row.get("저가", 0) if pd.notna(row.get("저가", 0)) else 0
+                ),
                 close_price=close_p,
                 volume=vol,
                 trading_value=t_val,

@@ -46,7 +46,8 @@ export default function AccountList() {
       icon: 'fa-solid fa-exclamation-triangle',
       message: (
         <>
-          정말로 이 계좌를 비활성화(삭제)하시겠습니까?<br />
+          정말로 이 계좌를 비활성화(삭제)하시겠습니까?
+          <br />
           계좌가 비활성화되어도 기존 거래 내역은 유지됩니다.
         </>
       ),

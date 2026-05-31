@@ -32,7 +32,7 @@ def get_transaction_cash(
         query = query.filter(TransactionCash.dt_cash >= start_date)
     if end_date:
         query = query.filter(TransactionCash.dt_cash <= end_date)
-        
+
     query = query.order_by(TransactionCash.dt_cash.desc())
     if limit is not None:
         query = query.limit(limit)

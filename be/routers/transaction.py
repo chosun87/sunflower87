@@ -41,7 +41,7 @@ def get_transactions(
     query = query.order_by(Transaction.dt_trade.desc())
     if limit is not None:
         query = query.limit(limit)
-    
+
     results = query.all()
     data = []
     for tx, name, acc_nm, acc_company_nm in results:
