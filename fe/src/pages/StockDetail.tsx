@@ -57,7 +57,7 @@ export default function StockDetail() {
   // 주가 API 비동기 조회 및 상태 매핑 (20ms 마운트 가드 레이어 탑재)
   useEffect(() => {
     if (!stockCode) {
-      showError('종목 코드가 지정되지 않았습니다.');
+      showError('종목코드가 지정되지 않았습니다.');
       navigate('/dashboard');
       return;
     }

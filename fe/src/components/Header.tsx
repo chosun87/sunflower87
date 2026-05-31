@@ -35,14 +35,14 @@ export default function Header({ isDarkMode, toggleTheme, toggleSidebar }: Heade
   const profileMenuItems: MenuItem[] = [
     ...(authRemainingTime !== '00:00'
       ? [
-          {
-            label: `인증 연장`,
-            icon: 'fa-solid fa-clock-rotate-left',
-            command: () => {
-              extendLogin();
-            },
+        {
+          label: `인증 연장`,
+          icon: 'fa-solid fa-clock-rotate-left',
+          command: () => {
+            extendLogin();
           },
-        ]
+        },
+      ]
       : []),
     {
       label: '로그아웃',
@@ -83,7 +83,7 @@ export default function Header({ isDarkMode, toggleTheme, toggleSidebar }: Heade
         aria-label="Toggle Sidebar"
       />
       <div className="p-inputgroup flex-1 ml-2">
-        <InputText placeholder="종목 코드, 자산 검색..." />
+        <InputText placeholder="종목코드, 자산 검색..." />
         <Button icon="fa-solid fa-search" className="p-button-primary" />
       </div>
     </div>

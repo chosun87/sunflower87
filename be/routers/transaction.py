@@ -17,6 +17,7 @@ def get_transactions(
     stock_code: str = None,
     start_date: str = None,
     end_date: str = None,
+    limit: int = None,
     db: Session = Depends(get_db),
 ):
     query = (
@@ -37,7 +38,11 @@ def get_transactions(
     if end_date:
         query = query.filter(Transaction.dt_trade <= end_date)
 
-    results = query.order_by(Transaction.dt_trade.desc()).all()
+    query = query.order_by(Transaction.dt_trade.desc())
+    if limit is not None:
+        query = query.limit(limit)
+    
+    results = query.all()
     data = []
     for tx, name, acc_nm, acc_company_nm in results:
         t_dict = {c.name: getattr(tx, c.name) for c in tx.__table__.columns}

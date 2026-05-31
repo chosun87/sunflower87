@@ -29,7 +29,7 @@
   ```javascript
   const chartOptions = {
     chart: { type: 'candlestick', height: 400, toolbar: { show: true } },
-    title: { text: `종목 코드 [${stockCode}] 60거래일 추세 분석`, align: 'left' },
+    title: { text: `종목코드 [${stockCode}] 60거래일 추세 분석`, align: 'left' },
     xaxis: { type: 'category', labels: { style: { cssClass: 'monospace' } } }, // 날짜 폰트 고정폭 적용
     yaxis: { tooltip: { enabled: true }, labels: { style: { cssClass: 'monospace' } } },
     plotOptions: {

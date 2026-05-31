@@ -65,7 +65,12 @@ export default function TransactionCash() {
 
   const handleDeleteClick = (tx: any) => {
     showConfirm({
-      message: '정말로 이 입출금 내역을 삭제하시겠습니까?\n삭제 시 계좌 예수금이 재정산됩니다.',
+      message: (
+        <>
+          정말로 이 입출금 내역을 삭제하시겠습니까?<br />
+          삭제 시 계좌 예수금이 재정산됩니다.
+        </>
+      ),
       header: '삭제 확인',
       icon: 'fa-solid fa-exclamation-triangle',
       accept: async () => {

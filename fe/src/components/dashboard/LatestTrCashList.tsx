@@ -26,7 +26,7 @@ export default function LatestTrCashList() {
   useEffect(() => {
     const fetchLatestCash = async () => {
       try {
-        const res = await get('/api/transactions_cash');
+        const res = await get('/api/transactions_cash', { limit: MAXROW });
         if (res.status === 'success') {
           const mapped = (res.data || [])
             .map((tx: any) => ({

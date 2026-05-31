@@ -97,7 +97,13 @@ export default function TrStockDialog({
         showNotice({
           header: '검색 완료',
           icon: 'fa-solid fa-check-circle',
-          message: `종목 '${match.name}' (${match.code})의 정보가 성공적으로 조회되었습니다.`,
+          message: (
+            <>
+              종목 : '{match.name}'의<br />
+              종목코드 : '{match.code}'<br />
+              조회가 완료되었습니다.
+            </>
+          ),
           acceptClassName: 'p-button-success',
         });
       })
@@ -112,7 +118,7 @@ export default function TrStockDialog({
   const handleLookupCode = () => {
     const code = txCode.trim();
     if (!/^\d{6}$/.test(code)) {
-      showError('유효한 6자리 종목 코드를 입력해주세요.');
+      showError('유효한 6자리 종목코드를 입력해주세요.');
       return;
     }
 
@@ -123,7 +129,12 @@ export default function TrStockDialog({
         showNotice({
           header: '코드 조회 성공',
           icon: 'fa-solid fa-check-circle',
-          message: `종목 코드 '${match.code}'에 대한 종목명 '${match.name}' 조회가 완료되었습니다.`,
+          message: (
+            <>
+              종목코드 : '{match.code}'의<br />
+              종목명 : '{match.name}'<br /> 조회가 완료되었습니다.
+            </>
+          ),
           acceptClassName: 'p-button-success',
         });
       })
@@ -201,7 +212,9 @@ export default function TrStockDialog({
       onHide={onHide}
     >
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">거래 구분 <span className="text-red-500">*</span></label>
+        <label className="font-bold mb-2 block">
+          거래 구분 <span className="text-red-500">*</span>
+        </label>
         <SelectButton
           value={txType}
           options={typeOptions}
@@ -211,7 +224,9 @@ export default function TrStockDialog({
       </div>
 
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">대상 귀속 계좌 <span className="text-red-500">*</span></label>
+        <label className="font-bold mb-2 block">
+          대상 귀속 계좌 <span className="text-red-500">*</span>
+        </label>
         <Dropdown
           value={txAccount}
           options={dropdownAccounts}
@@ -222,7 +237,9 @@ export default function TrStockDialog({
       </div>
 
       <div className="stock-nm field mb-4">
-        <label className="font-bold mb-2 block">종목명 검색 <span className="text-red-500">*</span></label>
+        <label className="font-bold mb-2 block">
+          종목명 검색 <span className="text-red-500">*</span>
+        </label>
         <div className="p-inputgroup">
           <AutoComplete
             value={txName}
@@ -253,7 +270,9 @@ export default function TrStockDialog({
       </div>
 
       <div className="field mb-4">
-        <label className="font-bold mb-2 block">확정 종목코드 <span className="text-red-500">*</span></label>
+        <label className="font-bold mb-2 block">
+          확정 종목코드 <span className="text-red-500">*</span>
+        </label>
         <div className="p-inputgroup">
           <InputText
             value={txCode}
@@ -272,7 +291,9 @@ export default function TrStockDialog({
 
       <div className="grid">
         <div className="col-6 field mb-4">
-          <label className="font-bold mb-2 block">거래 수량 (주) <span className="text-red-500">*</span></label>
+          <label className="font-bold mb-2 block">
+            거래 수량 (주) <span className="text-red-500">*</span>
+          </label>
           <InputNumber
             value={txQuantity}
             onValueChange={(e) => setTxQuantity(e.value)}
@@ -282,7 +303,9 @@ export default function TrStockDialog({
           />
         </div>
         <div className="col-6 field mb-4">
-          <label className="font-bold mb-2 block">거래 단가 (원) <span className="text-red-500">*</span></label>
+          <label className="font-bold mb-2 block">
+            거래 단가 (원) <span className="text-red-500">*</span>
+          </label>
           <InputNumber
             value={txPrice}
             onValueChange={(e) => setTxPrice(e.value)}
@@ -306,7 +329,9 @@ export default function TrStockDialog({
         </div>
 
         <div className="col-6 field mb-4">
-          <label className="font-bold mb-2 block">거래일 <span className="text-red-500">*</span></label>
+          <label className="font-bold mb-2 block">
+            거래일 <span className="text-red-500">*</span>
+          </label>
           <Calendar
             value={txDate}
             onChange={(e) => setTxDate(e.value)}

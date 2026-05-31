@@ -42,9 +42,14 @@ export default function AccountList() {
 
   const handleDeleteClick = (account: any) => {
     showConfirm({
-      message: '정말로 이 계좌를 비활성화(삭제)하시겠습니까?\n계좌가 비활성화되어도 기존 거래 내역은 유지됩니다.',
       header: '계좌 삭제 확인',
       icon: 'fa-solid fa-exclamation-triangle',
+      message: (
+        <>
+          정말로 이 계좌를 비활성화(삭제)하시겠습니까?<br />
+          계좌가 비활성화되어도 기존 거래 내역은 유지됩니다.
+        </>
+      ),
       accept: async () => {
         try {
           const res = await deleteAccount(account.acc_cd);

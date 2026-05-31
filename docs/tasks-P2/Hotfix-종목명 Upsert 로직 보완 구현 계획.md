@@ -7,7 +7,7 @@
 문서에서 제시한 두 가지 조치 사항(Upsert 적용 및 오염 데이터 초기화)을 다음과 같은 아키텍처로 구현하고자 합니다. 
 
 1. **Upsert(업데이트) 로직 강제 적용:** 
-   현재 `be/services/cache_stocks.py` 내부 코드는 이미 존재하는 종목 코드에 대해 `stock_name`을 업데이트하지 않는 구조(Ignore)입니다. 이를 개선하여, 기존 종목이 조회되면 무조건 새롭게 크롤링한 `stock_name`과 `market`으로 값을 덮어쓰고(Update) `is_active=1`로 갱신하는 정석적인 ORM Upsert 로직으로 전부 교체하겠습니다.
+   현재 `be/services/cache_stocks.py` 내부 코드는 이미 존재하는 종목코드에 대해 `stock_name`을 업데이트하지 않는 구조(Ignore)입니다. 이를 개선하여, 기존 종목이 조회되면 무조건 새롭게 크롤링한 `stock_name`과 `market`으로 값을 덮어쓰고(Update) `is_active=1`로 갱신하는 정석적인 ORM Upsert 로직으로 전부 교체하겠습니다.
 
 2. **오염 데이터 초기화 방안 (동기화 직전 전체 삭제):**
    더미 데이터(`396500` 등)가 얼마나 꼬여있는지 확실치 않으므로, 지시서의 권장 방향대로 `sync_cache_stocks()` 함수 호출 서두에 **`db.query(CacheStock).delete()`** 구문을 삽입해 **테이블을 완전히 비우고 무결한 새 데이터베이스로 다시 채우는 방식**을 채택하려고 합니다. 매매 원장(`transactions`)에는 FK 종속성이 느슨하므로 문제없습니다.

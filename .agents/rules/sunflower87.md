@@ -11,6 +11,7 @@ trigger: always_on
   6) QA테스터 agent
 
 2. UI Framework
-  * PrimeReact + PrimeFlex
+  * PrimeReact + PrimeFlex (Not Tailwind)
   * 기본 html tag를 사용하기 보단 PrimeReact의 컴포넌트를 최대한 적용할 것.
   * locale="ko"를 적용할 것.
+  * Calendar에 dateFormat="yy-mm-dd" mask="9999-99-99" 적용

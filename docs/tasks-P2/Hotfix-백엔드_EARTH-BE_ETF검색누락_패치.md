@@ -14,7 +14,7 @@
 ## 🛠️ 조치 지시 사항 (Action Items)
 1. **종목 마스터 시딩 로직 확장:**
    - 종목 데이터를 수집하여 `cache_stocks` 테이블에 밀어 넣는 초기화 로직에 ETF 수집 로직을 추가하십시오.
-   - *pykrx 호출 참고:* `stock.get_etf_ticker_list(date)`를 호출하여 ETF 종목 코드 리스트를 확보하십시오.
+   - *pykrx 호출 참고:* `stock.get_etf_ticker_list(date)`를 호출하여 ETF 종목코드 리스트를 확보하십시오.
 2. **데이터 병합 및 적재 (Upsert):**
    - 기존 KOSPI, KOSDAQ 리스트와 신규로 수집한 ETF 리스트를 병합(Merge)하여 `cache_stocks`에 적재하십시오.
    - P1 원장에 명시된 '마켓 정보(KOSPI/KOSDAQ/ETF) 자동 식별' 로직을 보강하여, 병합된 종목이 ETF일 경우 `market` 컬럼에 'ETF' 값이 정확히 기입되도록 자가 치유(Self-Healing)를 수행하십시오.

@@ -18,6 +18,7 @@ def get_transaction_cash(
     acc_cd: str = None,
     start_date: str = None,
     end_date: str = None,
+    limit: int = None,
     db: Session = Depends(get_db),
 ):
     query = (
@@ -31,7 +32,12 @@ def get_transaction_cash(
         query = query.filter(TransactionCash.dt_cash >= start_date)
     if end_date:
         query = query.filter(TransactionCash.dt_cash <= end_date)
-    results = query.order_by(TransactionCash.dt_cash.desc()).all()
+        
+    query = query.order_by(TransactionCash.dt_cash.desc())
+    if limit is not None:
+        query = query.limit(limit)
+
+    results = query.all()
 
     data = []
     for tx, acc_nm, acc_company_nm in results:

@@ -20,7 +20,7 @@
 * **Method:** `POST`
 * **URI:** `/api/accounts/{acc_cd}/sync_account_daily_balance`
 * **파라미터:**
-  * Path: `acc_cd` (계좌 코드)
+  * Path: `acc_cd` (계좌코드)
   * Body - JSON:
     ```json
     {
@@ -43,7 +43,7 @@
 * **Method:** `GET`
 * **URI:** `/api/accounts/{acc_cd}`
 * **파라미터:** 
-  * Path: `acc_cd` (계좌 코드)
+  * Path: `acc_cd` (계좌코드)
 * **테스트 결과:** ✅ **PASS** (2026.05.30 완료)
 
 ### 5. 계좌 등록
@@ -67,7 +67,7 @@
 * **Method:** `PUT`
 * **URI:** `/api/accounts/{acc_cd}`
 * **파라미터:**
-  * Path: `acc_cd` (계좌 코드)
+  * Path: `acc_cd` (계좌코드)
   * Body - JSON:
     ```json
     {
@@ -84,7 +84,7 @@
 * **Method:** `DELETE`
 * **URI:** `/api/accounts/{acc_cd}`
 * **파라미터:**
-  * Path: `acc_cd` (계좌 코드)
+  * Path: `acc_cd` (계좌코드)
 * **테스트 결과:** ✅ **PASS** (2026.05.30 완료)
 
 ## 외부 API

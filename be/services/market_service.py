@@ -66,8 +66,12 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
     if df is None or df.empty:
         return
 
-    has_trading_value = "거래대금" in df.columns
-    has_fluctuation = "등락률" in df.columns
+    import pandas as pd
+    import math
+
+    # 컬럼 이름의 공백 등 변동성에 대비해 실제 컬럼명을 탐색
+    col_trading_value = next((c for c in df.columns if "거래대금" in str(c)), None)
+    col_fluctuation = next((c for c in df.columns if "등락률" in str(c)), None)
 
     for date, row in df.iterrows():
         trade_date = date.strftime("%Y-%m-%d")
@@ -81,18 +85,38 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
         )
 
         if not existing:
+            # 거래대금: 값이 없거나 NaN이면 종가 * 거래량으로 근사치 계산
+            t_val = 0
+            if col_trading_value:
+                raw_t_val = row.get(col_trading_value)
+                if pd.notna(raw_t_val):
+                    t_val = int(raw_t_val)
+            
+            close_p = int(row.get("종가", 0) if pd.notna(row.get("종가", 0)) else 0)
+            vol = int(row.get("거래량", 0) if pd.notna(row.get("거래량", 0)) else 0)
+            
+            if t_val == 0:
+                t_val = close_p * vol
+
+            # 등락률: 값이 없거나 NaN이면 0.0
+            f_rate = 0.0
+            if col_fluctuation:
+                raw_f_rate = row.get(col_fluctuation)
+                if pd.notna(raw_f_rate):
+                    f_rate = float(raw_f_rate)
+                    if math.isnan(f_rate):
+                        f_rate = 0.0
+
             cache_entry = StockOHLCVCache(
                 stock_code=stock_code,
                 trade_date=trade_date,
-                open_price=int(row.get("시가", 0)),
-                high_price=int(row.get("고가", 0)),
-                low_price=int(row.get("저가", 0)),
-                close_price=int(row.get("종가", 0)),
-                volume=int(row.get("거래량", 0)),
-                trading_value=int(row.get("거래대금", 0)) if has_trading_value else 0,
-                fluctuation_rate=(
-                    float(row.get("등락률", 0.0)) if has_fluctuation else 0.0
-                ),
+                open_price=int(row.get("시가", 0) if pd.notna(row.get("시가", 0)) else 0),
+                high_price=int(row.get("고가", 0) if pd.notna(row.get("고가", 0)) else 0),
+                low_price=int(row.get("저가", 0) if pd.notna(row.get("저가", 0)) else 0),
+                close_price=close_p,
+                volume=vol,
+                trading_value=t_val,
+                fluctuation_rate=f_rate,
             )
             db.add(cache_entry)
     db.commit()

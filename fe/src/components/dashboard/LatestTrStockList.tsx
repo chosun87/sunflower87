@@ -27,7 +27,7 @@ export default function LatestTrStockList() {
   useEffect(() => {
     const fetchLatestTransactions = async () => {
       try {
-        const res = await get('/api/transactions');
+        const res = await get('/api/transactions', { limit: MAXROW });
         if (res.status === 'success') {
           const mapped = (res.data || [])
             .map((tx: any) => ({

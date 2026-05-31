@@ -10,7 +10,7 @@
 
 ### ① 계좌 테이블 (`account`)
 개인보유 증권 계좌 정보를 관리합니다.
-*   `acc_cd` (계좌 코드, `VARCHAR`, **Primary Key**)
+*   `acc_cd` (계좌코드, `VARCHAR`, **Primary Key**)
 *   `acc_nm` (계좌명, `VARCHAR`, Not Null)
 *   `acc_company_nm` (증권사명, `VARCHAR`, Not Null)
 *   `acc_order` (출력 우선순위, `INTEGER`, Not Null, Default `1`)
@@ -22,10 +22,10 @@
 ### ② 매매 내역  테이블 (`transaction`)
 *기존 `transactions` ➔ `transaction`으로 단수화하며, `date`/`type` 예약어를 탈피하고 중복 `stock_name`을 완전히 제거합니다.*
 *   `id` (일련번호, `INTEGER`, **Primary Key**, Auto-Increment)
-*   `acc_cd` (소속 계좌 코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)
+*   `acc_cd` (소속 계좌코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)
 *   `dt_trade` (거래 일시, `DATETIME`, Not Null, Default `utcnow`) ➔ 기존 `date` 변환
 *   `trade_type` (매매 구분, `VARCHAR`, Not Null) ➔ 기존 `type` 변환 (`BUY`/`SELL`)
-*   `stock_code` (종목 코드, `VARCHAR`, **Foreign Key** `stock_cache.stock_code`, Not Null) ➔ 기존 `code` 변환
+*   `stock_code` (종목코드, `VARCHAR`, **Foreign Key** `stock_cache.stock_code`, Not Null) ➔ 기존 `code` 변환
 *   `quantity` (매매 수량, `INTEGER`, Not Null)
 *   `price` (매매 단가, `INTEGER`, Not Null)
 *   `tax_fee` (수수료 및 거래세액, `INTEGER`, Not Null, Default `0`)
@@ -34,7 +34,7 @@
 ### 🚨 ③ 현금 매매 내역  테이블 (`transaction_cash`) [NEW]
 *예수금 잔고의 입출금, 이자, 배당 흐름을 감사 추적하기 위해 물리 테이블을 신규 신설합니다.*
 *   `id` (일련번호, `INTEGER`, **Primary Key**, Auto-Increment)
-*   `acc_cd` (소속 계좌 코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)
+*   `acc_cd` (소속 계좌코드, `VARCHAR`, **Foreign Key** `account.acc_cd`, Not Null)
 *   `dt_cash` (발생 일시, `DATETIME`, Not Null, Default `utcnow`)
 *   `cash_type` (현금 유형, `VARCHAR`, Not Null) ➔ `DEPOSIT`/`WITHDRAW`/`INTEREST`/`DIVIDEND`/`FEE`
 *   `amount` (거래 금액, `INTEGER`, Not Null)
@@ -43,8 +43,8 @@
 
 ### ④ 현재 보유 잔고 테이블 (`stock`)
 *기존 `stocks` ➔ `stock`으로 단수화하며, KRW 원화 특성에 알맞도록 평단가와 매수액의 소수점 단위를 완전히 제거하고 `INTEGER`로 정수화 설계합니다.*
-*   `stock_code` (종목 코드, `VARCHAR`, **Composite Primary Key 1**, **Foreign Key** `stock_cache.stock_code`)
-*   `acc_cd` (보유 계좌 코드, `VARCHAR`, **Composite Primary Key 2**, **Foreign Key** `account.acc_cd`)
+*   `stock_code` (종목코드, `VARCHAR`, **Composite Primary Key 1**, **Foreign Key** `stock_cache.stock_code`)
+*   `acc_cd` (보유 계좌코드, `VARCHAR`, **Composite Primary Key 2**, **Foreign Key** `account.acc_cd`)
 *   `quantity` (보유 수량, `INTEGER`, Not Null)
 *   `avg_price` (보유 평단가, `INTEGER`, Not Null) ➔ 기존 `REAL`에서 `INTEGER`로 변경 (소수점 절사 정수화)
 *   `current_price` (최근 종가, `INTEGER`, Not Null, Default `0`)
@@ -52,15 +52,15 @@
 
 ### ⑤ 종목 마스터 캐시 테이블 (`stock_cache`)
 *기존 `cache_stocks` ➔ `stock_cache`로 단수화하며, 한글 종목명 `stock_name` 정보를 보관하는 유일한 SSOT(Single Source of Truth)로 사용합니다.*
-*   `stock_code` (종목 코드, `VARCHAR`, **Primary Key**)
+*   `stock_code` (종목코드, `VARCHAR`, **Primary Key**)
 *   `stock_name` (한글 종목명, `VARCHAR`, Not Null) ➔ **데이터베이스 전체에서 한글명이 보관되는 유일한 필드**
 *   `market` (상장 시장 구분, `VARCHAR`, Nullable) ➔ `KOSPI`, `KOSDAQ`, `KONEX`, `ETF`
 *   `dt_cached` (캐싱 일시, `DATETIME`, Not Null, Default `utcnow`)
 *   `dt_deleted` (삭제/상폐 일시, `DATETIME`, Nullable) ➔ 기존 `is_active` 플래그 제거 후 도입
 
 ### ⑥ 주가 OHLCV 캐시 테이블 (`stock_ohlcv_cache`)
-*   `stock_code` (종목 코드, `VARCHAR`, **Composite Primary Key 1**, **Foreign Key** `stock_cache.stock_code`)
-*   `trade_date` (거래 일자, `VARCHAR`, **Composite Primary Key 2`) ➔ 형식: `YYYY-MM-DD`
+*   `stock_code` (종목코드, `VARCHAR`, **Composite Primary Key 1**, **Foreign Key** `stock_cache.stock_code`)
+*   `trade_date` (거래일자, `VARCHAR`, **Composite Primary Key 2`) ➔ 형식: `YYYY-MM-DD`
 *   `open_price` (시가, `INTEGER`, Not Null)
 *   `high_price` (고가, `INTEGER`, Not Null)
 *   `low_price` (저가, `INTEGER`, Not Null)
@@ -71,7 +71,7 @@
 
 ### ⑦ AI 추천 종목 테이블 (`recommendation`)
 *기존 `recommendations` ➔ `recommendation`으로 단수화하며, AI 추천 기능 확장성에 대비해 맨 하단으로 배치 설계했습니다.*
-*   `stock_code` (추천 종목 코드, `VARCHAR`, **Primary Key**, **Foreign Key** `stock_cache.stock_code`)
+*   `stock_code` (추천 종목코드, `VARCHAR`, **Primary Key**, **Foreign Key** `stock_cache.stock_code`)
 *   `tag` (추천 그룹 태그, `VARCHAR`, Not Null) ➔ 예: `가치주`, `성장주`, `배당주`
 *   `reason` (추천 사유, `VARCHAR`, Not Null)
 *   `score` (AI 추천 점수, `INTEGER`, Not Null)

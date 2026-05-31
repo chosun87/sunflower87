@@ -116,10 +116,6 @@ body {
   font-family: var(--font-family);
 }
 
-.p-inputwrapper {
-  height: calc(var(--input-height) + 2px);
-}
-
 .p-inputtext {
   padding: 0 1rem;
   height: var(--input-height);
@@ -127,7 +123,17 @@ body {
   align-items: center;
 }
 
+.p-dropdown.p-inputwrapper {
+  height: calc(var(--input-height));
+
+  .p-inputtext {
+    height: calc(var(--input-height) - 2px);
+  }
+}
+
 .p-inputgroup {
+
+  .p-inputgroup-addon,
   .p-button {
     height: var(--input-height);
 
@@ -148,10 +154,10 @@ body {
     background-color: var(--surface-0);
   }
 
-  .p-datatable-thead > tr > th,
-  .p-datatable-thead > tr > td,
-  .p-datatable-tfoot > tr > th,
-  .p-datatable-tfoot > tr > td {
+  .p-datatable-thead>tr>th,
+  .p-datatable-thead>tr>td,
+  .p-datatable-tfoot>tr>th,
+  .p-datatable-tfoot>tr>td {
     background: var(--highlight-bg);
     color: var(--highlight-text-color);
     font-weight: 700;

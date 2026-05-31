@@ -91,9 +91,7 @@ export default function AccountDialog({
           <i
             className={`fa-solid ${isEdit ? 'fa-pen-to-square' : 'fa-plus-circle'} text-primary text-xl`}
           ></i>
-          <span className="font-bold text-xl">
-            {isEdit ? '계좌 수정' : '새 계좌 등록'}
-          </span>
+          <span className="font-bold text-xl">{isEdit ? '계좌 수정' : '새 계좌 등록'}</span>
         </div>
       }
       visible={visible}
@@ -105,7 +103,7 @@ export default function AccountDialog({
     >
       <div className="field mb-4">
         <label className="font-bold mb-2 block">
-          계좌 코드 (고유값) <span className="text-red-500">*</span>
+          계좌코드 (고유값) <span className="text-red-500">*</span>
         </label>
         <InputText
           value={accCd}

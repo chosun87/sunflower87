@@ -17,9 +17,6 @@ export default function AccountListCmpt({
   onEditClick,
   onDeleteClick,
 }: AccountListCmptProps) {
-  
-
-
   const actionBodyTemplate = (rowData: any) => {
     const isDeleted = !!rowData.dt_deleted;
     return (
@@ -61,7 +58,9 @@ export default function AccountListCmpt({
             checked={includeDeleted}
             onChange={(e) => onIncludeDeletedChange(e.checked || false)}
           />
-          <label htmlFor="includeDeleted" className="ml-2 cursor-pointer">삭제 계좌 포함</label>
+          <label htmlFor="includeDeleted" className="ml-2 cursor-pointer">
+            삭제 계좌 포함
+          </label>
         </div>
 
         <Button
@@ -87,12 +86,18 @@ export default function AccountListCmpt({
         className="mt-2"
         emptyMessage="등록된 계좌가 없습니다."
       >
-        <Column field="acc_cd" header="계좌 코드" sortable />
+        <Column field="acc_cd" header="계좌코드" sortable />
         <Column field="acc_nm" header="계좌명" sortable />
         <Column field="acc_company_nm" header="금융사명" sortable />
         <Column field="dt_opened" header="계좌 개설일" sortable />
         <Column header="상태" body={statusBodyTemplate} sortable align="center" />
-        <Column header="수정·삭제" body={actionBodyTemplate} exportable={false} align="center" style={{ minWidth: '6rem' }} />
+        <Column
+          header="수정·삭제"
+          body={actionBodyTemplate}
+          exportable={false}
+          align="center"
+          style={{ minWidth: '6rem' }}
+        />
       </DataTable>
     </div>
   );
