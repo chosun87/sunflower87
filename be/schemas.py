@@ -67,8 +67,8 @@ class AccountUpdate(BaseModel):
 class AccountResponse(AccountBase):
     acc_cd: str
     cash_balance: int
-    dt_created: datetime
-    dt_deleted: Optional[datetime] = None
+    dt_created: str
+    dt_deleted: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -118,7 +118,7 @@ class TransactionResponse(BaseModel):
     quantity: int
     price: int
     tax_fee: int
-    dt_deleted: Optional[datetime] = None
+    dt_deleted: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -161,7 +161,7 @@ class TransactionCashResponse(BaseModel):
     cash_type: str
     amount: int
     description: Optional[str] = None
-    dt_deleted: Optional[datetime] = None
+    dt_deleted: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -316,8 +316,8 @@ class RecommendationResponse(BaseModel):
     tag: str
     reason: str
     score: int
-    dt_recommended: datetime
-    dt_deleted: Optional[datetime] = None
+    dt_recommended: str
+    dt_deleted: Optional[str] = None
     investor_score: Optional[int] = None
 
     class Config:

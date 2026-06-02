@@ -10,9 +10,12 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
     create_engine,
+    event,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.hybrid import hybrid_property
 
 # 전역 SQLite 쓰기 잠금 (동시성 데드락 방지용)
 db_write_lock = threading.Lock()
@@ -34,6 +37,16 @@ engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 15}
 )
 
+# Foreign Key 제약 활성화 + WAL 모드 (성능 개선)
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_conn, connection_record):
+    """SQLite 초기화: FK 제약, WAL 모드, 성능 튜닝"""
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -43,14 +56,35 @@ class Account(Base):
 
     __tablename__ = "account"
 
-    acc_cd = Column(String, primary_key=True)
-    acc_nm = Column(String, nullable=False)
-    acc_company_nm = Column(String, nullable=False)
+    acc_cd = Column(String(20), primary_key=True)
+    acc_nm = Column(String(50), nullable=False)
+    acc_company_nm = Column(String(100), nullable=False)
     acc_order = Column(Integer, nullable=False, default=1)
     dt_opened = Column(String, nullable=True)
     cash_balance = Column(Integer, nullable=False, default=0)
-    dt_created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    dt_deleted = Column(DateTime, nullable=True)
+    dt_created = Column(String, default=lambda: datetime.utcnow().isoformat(), nullable=False)
+    dt_deleted = Column(String, nullable=True)
+    
+    # Phase 2: Soft Delete 패턴 강화
+    @hybrid_property
+    def is_active(self):
+        """Python: 활성 여부"""
+        return self.dt_deleted is None
+    
+    @is_active.expression
+    def is_active(cls):
+        """SQL: 활성 여부"""
+        return cls.dt_deleted.is_(None)
+    
+    @hybrid_property
+    def is_deleted(self):
+        """Python: 삭제 여부"""
+        return self.dt_deleted is not None
+    
+    @is_deleted.expression
+    def is_deleted(cls):
+        """SQL: 삭제 여부"""
+        return cls.dt_deleted.isnot(None)
 
 
 class Transaction(Base):
@@ -59,16 +93,16 @@ class Transaction(Base):
     __tablename__ = "transaction"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    acc_cd = Column(String, ForeignKey("account.acc_cd"), nullable=False)
+    acc_cd = Column(String(20), ForeignKey("account.acc_cd"), nullable=False)
     dt_trade = Column(
         String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False
     )
-    trade_type = Column(String, nullable=False)  # BUY / SELL
-    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), nullable=False)
+    trade_type = Column(String(10), nullable=False)  # BUY / SELL
+    stock_code = Column(String(6), ForeignKey("stock_cache.stock_code"), nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Integer, nullable=False)
     tax_fee = Column(Integer, nullable=False, default=0)
-    dt_deleted = Column(DateTime, nullable=True)
+    dt_deleted = Column(String, nullable=True)
 
 
 class TransactionCash(Base):
@@ -77,16 +111,16 @@ class TransactionCash(Base):
     __tablename__ = "transaction_cash"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    acc_cd = Column(String, ForeignKey("account.acc_cd"), nullable=False)
+    acc_cd = Column(String(20), ForeignKey("account.acc_cd"), nullable=False)
     dt_cash = Column(
         String, default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=False
     )
     cash_type = Column(
-        String, nullable=False
+        String(10), nullable=False
     )  # DEPOSIT / WITHDRAW / INTEREST / DIVIDEND / FEE
     amount = Column(Integer, nullable=False)
-    description = Column(String, nullable=True)
-    dt_deleted = Column(DateTime, nullable=True)
+    description = Column(String(200), nullable=True)
+    dt_deleted = Column(String, nullable=True)
 
 
 class AccountBalanceDaily(Base):
@@ -94,12 +128,19 @@ class AccountBalanceDaily(Base):
 
     __tablename__ = "account_balance_daily"
 
-    acc_cd = Column(String, ForeignKey("account.acc_cd"), primary_key=True)
-    trade_date = Column(String, primary_key=True)  # YYYY-MM-DD
+    # Phase 2: Surrogate Key 도입
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    acc_cd = Column(String(20), ForeignKey("account.acc_cd"), nullable=False)
+    trade_date = Column(String(10), nullable=False)  # YYYY-MM-DD
     cash_balance = Column(Integer, nullable=False, default=0)
     stock_eval_balance = Column(Integer, nullable=False, default=0)
     total_balance = Column(Integer, nullable=False, default=0)
     return_rate = Column(Float, nullable=False, default=0.0)
+    
+    # Unique Constraint: 비즈니스 키 보존
+    __table_args__ = (
+        UniqueConstraint('acc_cd', 'trade_date', name='uq_account_balance_daily_acc_trade'),
+    )
 
 
 class Stock(Base):
@@ -107,12 +148,19 @@ class Stock(Base):
 
     __tablename__ = "stock"
 
-    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
-    acc_cd = Column(String, ForeignKey("account.acc_cd"), primary_key=True)
+    # Phase 2: Surrogate Key 도입
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_code = Column(String(6), ForeignKey("stock_cache.stock_code"), nullable=False)
+    acc_cd = Column(String(20), ForeignKey("account.acc_cd"), nullable=False)
     quantity = Column(Integer, nullable=False)
     avg_price = Column(Integer, nullable=False)  # INTEGER 캐스팅 적용
     current_price = Column(Integer, nullable=False, default=0)
     purchase_amount = Column(Integer, nullable=False, default=0)  # INTEGER 캐스팅 적용
+    
+    # Unique Constraint: 비즈니스 키 보존
+    __table_args__ = (
+        UniqueConstraint('stock_code', 'acc_cd', name='uq_stock_stock_code_acc'),
+    )
 
 
 class StockCache(Base):
@@ -120,11 +168,32 @@ class StockCache(Base):
 
     __tablename__ = "stock_cache"
 
-    stock_code = Column(String, primary_key=True)
-    stock_name = Column(String, nullable=False)
-    market = Column(String, nullable=True)  # KOSPI, KOSDAQ, KONEX, ETF
-    dt_cached = Column(DateTime, default=datetime.utcnow, nullable=False)
-    dt_deleted = Column(DateTime, nullable=True)
+    stock_code = Column(String(6), primary_key=True)
+    stock_name = Column(String(100), nullable=False)
+    market = Column(String(10), nullable=False)  # KOSPI, KOSDAQ, KONEX, ETF
+    dt_cached = Column(String, default=lambda: datetime.utcnow().isoformat(), nullable=False)
+    dt_deleted = Column(String, nullable=True)
+    
+    # Phase 2: Soft Delete 패턴 강화
+    @hybrid_property
+    def is_active(self):
+        """Python: 활성 여부"""
+        return self.dt_deleted is None
+    
+    @is_active.expression
+    def is_active(cls):
+        """SQL: 활성 여부"""
+        return cls.dt_deleted.is_(None)
+    
+    @hybrid_property
+    def is_deleted(self):
+        """Python: 삭제 여부"""
+        return self.dt_deleted is not None
+    
+    @is_deleted.expression
+    def is_deleted(cls):
+        """SQL: 삭제 여부"""
+        return cls.dt_deleted.isnot(None)
 
 
 class StockOHLCVDaily(Base):
@@ -132,8 +201,10 @@ class StockOHLCVDaily(Base):
 
     __tablename__ = "stock_ohlcv_daily"
 
-    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
-    trade_date = Column(String, primary_key=True)  # YYYY-MM-DD
+    # Phase 2: Surrogate Key 도입 (테이블 분리)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_code = Column(String(6), ForeignKey("stock_cache.stock_code"), nullable=False)
+    trade_date = Column(String(10), nullable=False)  # YYYY-MM-DD
     open_price = Column(Integer, nullable=False)
     high_price = Column(Integer, nullable=False)
     low_price = Column(Integer, nullable=False)
@@ -142,8 +213,15 @@ class StockOHLCVDaily(Base):
     trading_value = Column(Integer, nullable=False, default=0)
     fluctuation_rate = Column(Float, nullable=False, default=0.0)
     change_price = Column(Integer, nullable=False, default=0)
-    change_price_code = Column(String, nullable=True)
-    dt_updated = Column(DateTime, default=datetime.utcnow, nullable=False)
+    change_price_code = Column(
+        String(1), nullable=True
+    )  # 1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락
+    dt_updated = Column(String, default=lambda: datetime.utcnow().isoformat(), nullable=False)
+    
+    # Unique Constraint: 같은 종목, 날짜는 1개만
+    __table_args__ = (
+        UniqueConstraint('stock_code', 'trade_date', name='uq_stock_ohlcv_daily_stock_date'),
+    )
 
 
 class StockOHLCVCurrent(Base):
@@ -151,8 +229,10 @@ class StockOHLCVCurrent(Base):
 
     __tablename__ = "stock_ohlcv_current"
 
-    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
-    trade_date = Column(String, primary_key=True)  # YYYY-MM-DD (보통 오늘 날짜)
+    # Phase 2: Surrogate Key 도입 (테이블 분리)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_code = Column(String(6), ForeignKey("stock_cache.stock_code"), nullable=False)
+    trade_date = Column(String(10), nullable=False)  # YYYY-MM-DD (보통 오늘 날짜)
     open_price = Column(Integer, nullable=False)
     high_price = Column(Integer, nullable=False)
     low_price = Column(Integer, nullable=False)
@@ -162,9 +242,14 @@ class StockOHLCVCurrent(Base):
     fluctuation_rate = Column(Float, nullable=False, default=0.0)  # cr (등락률)
     change_price = Column(Integer, nullable=False, default=0)  # cv (대비/전일비)
     change_price_code = Column(
-        String, nullable=True
+        String(1), nullable=True
     )  # 1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락
-    dt_updated = Column(DateTime, default=datetime.utcnow, nullable=False)
+    dt_updated = Column(String, default=lambda: datetime.utcnow().isoformat(), nullable=False)
+    
+    # Unique Constraint: 같은 종목, 날짜는 1개만
+    __table_args__ = (
+        UniqueConstraint('stock_code', 'trade_date', name='uq_stock_ohlcv_current_stock_date'),
+    )
 
 
 class Recommendation(Base):
@@ -172,13 +257,34 @@ class Recommendation(Base):
 
     __tablename__ = "recommendation"
 
-    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
-    tag = Column(String, nullable=False)
-    reason = Column(String, nullable=False)
+    stock_code = Column(String(6), ForeignKey("stock_cache.stock_code"), primary_key=True)
+    tag = Column(String(50), nullable=False)
+    reason = Column(String(500), nullable=False)
     score = Column(Integer, nullable=False)
-    dt_recommended = Column(DateTime, default=datetime.utcnow, nullable=False)
-    dt_deleted = Column(DateTime, nullable=True)
+    dt_recommended = Column(String, default=lambda: datetime.utcnow().isoformat(), nullable=False)
+    dt_deleted = Column(String, nullable=True)
     investor_score = Column(Integer, nullable=True)  # 0~5
+    
+    # Phase 2: Soft Delete 패턴 강화
+    @hybrid_property
+    def is_active(self):
+        """Python: 활성 여부"""
+        return self.dt_deleted is None
+    
+    @is_active.expression
+    def is_active(cls):
+        """SQL: 활성 여부"""
+        return cls.dt_deleted.is_(None)
+    
+    @hybrid_property
+    def is_deleted(self):
+        """Python: 삭제 여부"""
+        return self.dt_deleted is not None
+    
+    @is_deleted.expression
+    def is_deleted(cls):
+        """SQL: 삭제 여부"""
+        return cls.dt_deleted.isnot(None)
 
 
 def init_db():

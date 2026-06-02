@@ -93,7 +93,7 @@ def _extract_naver_realtime_fields(item: dict) -> dict:
         "low_price": low_p,
         "close_price": close_p,
         "volume": vol,
-    	"trading_value": trading_v,
+        "trading_value": trading_v,
         "fluctuation_rate": f_rate,
         "change_price": change_p,
         "change_price_code": compare_code,

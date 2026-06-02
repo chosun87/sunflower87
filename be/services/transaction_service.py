@@ -141,7 +141,7 @@ def delete_transaction(db: Session, id: int) -> str:
         raise NotFoundException("Transaction not found")
 
     acc_cd = db_tx.acc_cd
-    db_tx.dt_deleted = datetime.utcnow()
+    db_tx.dt_deleted = datetime.utcnow().isoformat()
     db.commit()
     return acc_cd
 
@@ -244,6 +244,6 @@ def update_cash_transaction(
 def delete_cash_transaction(db: Session, id: int) -> str:
     tx = get_cash_transaction(db, id)
     acc_cd = tx.acc_cd
-    tx.dt_deleted = datetime.utcnow()
+    tx.dt_deleted = datetime.utcnow().isoformat()
     db.commit()
     return acc_cd

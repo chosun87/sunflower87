@@ -24,7 +24,7 @@ def _save_ohlcv_to_db(db: Session, stock_code: str, df):
     )
     col_fluctuation = next((c for c in df.columns if "등락률" in str(c)), "등락률")
 
-    now = datetime.utcnow()
+    now = datetime.utcnow().isoformat()
 
     for idx, row in df.iterrows():
         trade_date = idx.strftime("%Y-%m-%d")
@@ -158,7 +158,7 @@ def _upsert_stock_ohlcv_current(db: Session, code: str, today_str: str, fields: 
         .first()
     )
 
-    now = datetime.utcnow()
+    now = datetime.utcnow().isoformat()
     if current_ohlcv:
         for k, v in fields.items():
             setattr(current_ohlcv, k, v)

@@ -183,5 +183,5 @@ def delete_master(db: Session, stock_code: str):
     )
     if not master:
         raise NotFoundException("Master not found")
-    master.dt_deleted = datetime.utcnow()
+    master.dt_deleted = datetime.utcnow().isoformat()
     db.commit()

@@ -92,7 +92,7 @@ def delete_recommendation(stock_code: str, db: Session = Depends(get_db)):
     )
     if not db_rec:
         raise HTTPException(404, "Recommendation not found")
-    db_rec.dt_deleted = datetime.utcnow()
+    db_rec.dt_deleted = datetime.utcnow().isoformat()
     db.commit()
     return {"status": "success", "message": "Deleted."}
 
@@ -137,7 +137,7 @@ def update_feedback(
 
     db_rec.investor_score = feedback.investor_score
     if feedback.investor_score == 0:
-        db_rec.dt_deleted = datetime.utcnow()
+        db_rec.dt_deleted = datetime.utcnow().isoformat()
 
     db.commit()
     return {"status": "success", "message": "Feedback submitted."}

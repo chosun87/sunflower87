@@ -74,7 +74,7 @@ def update_account(
 
 def delete_account(db: Session, acc_cd: str):
     db_account = get_account(db, acc_cd)
-    db_account.dt_deleted = datetime.utcnow()
+    db_account.dt_deleted = datetime.utcnow().isoformat()
     db.commit()
 
 
