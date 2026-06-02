@@ -158,8 +158,9 @@ class StockOHLCVCurrent(Base):
     low_price = Column(Integer, nullable=False)
     close_price = Column(Integer, nullable=False)
     volume = Column(Integer, nullable=False)
-    change_rate = Column(Float, nullable=False, default=0.0)  # cr (등락률)
-    change_value = Column(Integer, nullable=False, default=0)  # cv (대비/전일비)
+    trading_value = Column(Integer, nullable=False, default=0)
+    fluctuation_rate = Column(Float, nullable=False, default=0.0)  # cr (등락률)
+    change_price = Column(Integer, nullable=False, default=0)  # cv (대비/전일비)
     change_price_code = Column(
         String, nullable=True
     )  # 1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락

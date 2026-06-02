@@ -93,8 +93,8 @@ def get_stock_ohlcvs(
                     low_price=current_data.low_price,
                     close_price=current_data.close_price,
                     volume=current_data.volume,
-                    trading_value=0,
-                    fluctuation_rate=current_data.change_rate,
+                    trading_value=current_data.trading_value,
+                    fluctuation_rate=current_data.fluctuation_rate,
                     change_price=current_data.change_value,
                     change_price_code=current_data.change_price_code,
                 )
@@ -125,7 +125,7 @@ def get_stock_ohlcv(stock_code: str, trade_date: str, db: Session = Depends(get_
         # fallback to current if trade_date is today
         today_str = datetime.now().strftime("%Y-%m-%d")
         if trade_date == today_str:
-            curr = (
+            current_data = (
                 db.query(StockOHLCVCurrent)
                 .filter(
                     StockOHLCVCurrent.stock_code == stock_code,
@@ -133,19 +133,19 @@ def get_stock_ohlcv(stock_code: str, trade_date: str, db: Session = Depends(get_
                 )
                 .first()
             )
-            if curr:
+            if current_data:
                 mapped_current = schemas.StockOHLCVResponse(
-                    stock_code=curr.stock_code,
-                    trade_date=curr.trade_date,
-                    open_price=curr.open_price,
-                    high_price=curr.high_price,
-                    low_price=curr.low_price,
-                    close_price=curr.close_price,
-                    volume=curr.volume,
-                    trading_value=0,
-                    fluctuation_rate=curr.change_rate,
-                    change_price=curr.change_value,
-                    change_price_code=curr.change_price_code,
+                    stock_code=current_data.stock_code,
+                    trade_date=current_data.trade_date,
+                    open_price=current_data.open_price,
+                    high_price=current_data.high_price,
+                    low_price=current_data.low_price,
+                    close_price=current_data.close_price,
+                    volume=current_data.volume,
+                    trading_value=current_data.trading_value,
+                    fluctuation_rate=current_data.fluctuation_rate,
+                    change_price=current_data.change_value,
+                    change_price_code=current_data.change_price_code,
                 )
                 return {"status": "success", "data": mapped_current}
 

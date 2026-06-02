@@ -277,8 +277,8 @@ class StockOHLCVCurrentResponse(BaseModel):
     low_price: int
     close_price: int
     volume: int
-    change_rate: float
-    change_value: int
+    fluctuation_rate: float
+    change_price: int
     change_price_code: Optional[str] = None
 
     class Config:

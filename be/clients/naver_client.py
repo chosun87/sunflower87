@@ -34,11 +34,15 @@ def _extract_naver_realtime_fields(item: dict) -> dict:
                 "accumulatedTradingVolumeRaw", item.get("accumulatedTradingVolume", 0)
             )
         )
-
-        cr_str = str(
+        trading_v = _parse_naver_int(
+            item.get(
+                "accumulatedTradingValueRaw", item.get("accumulatedTradingValue", 0)
+            )
+        )
+        fr_str = str(
             item.get("fluctuationsRatioRaw", item.get("fluctuationsRatio", 0.0))
         ).replace(",", "")
-        cv_str = str(
+        cp_str = str(
             item.get(
                 "compareToPreviousClosePriceRaw",
                 item.get("compareToPreviousClosePrice", 0),
@@ -56,10 +60,15 @@ def _extract_naver_realtime_fields(item: dict) -> dict:
                 "accumulatedTradingVolume", item.get("accumulatedTradingVolume", 0)
             )
         )
-        cr_str = str(
+        trading_v = _parse_naver_int(
+            source.get(
+                "accumulatedTradingValue", item.get("accumulatedTradingValue", 0)
+            )
+        )
+        fr_str = str(
             source.get("fluctuationsRatio", item.get("fluctuationsRatio", 0.0))
         ).replace(",", "")
-        cv_str = str(
+        cp_str = str(
             source.get(
                 "compareToPreviousClosePrice",
                 item.get("compareToPreviousClosePrice", 0),
@@ -71,12 +80,12 @@ def _extract_naver_realtime_fields(item: dict) -> dict:
             ).get("code", "3")
         )
 
-    c_rate = float(cr_str)
-    c_val = int(float(cv_str))
+    f_rate = float(fr_str)
+    change_p = int(float(cp_str))
 
     if compare_code in ["4", "5"]:
-        c_rate = -abs(c_rate)
-        c_val = -abs(c_val)
+        f_rate = -abs(f_rate)
+        change_p = -abs(change_p)
 
     return {
         "open_price": open_p,
@@ -84,8 +93,9 @@ def _extract_naver_realtime_fields(item: dict) -> dict:
         "low_price": low_p,
         "close_price": close_p,
         "volume": vol,
-        "change_rate": c_rate,
-        "change_value": c_val,
+    	"trading_value": trading_v,
+        "fluctuation_rate": f_rate,
+        "change_price": change_p,
         "change_price_code": compare_code,
     }
 

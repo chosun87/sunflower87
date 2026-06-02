@@ -97,7 +97,7 @@
   * Query: `code` (string, 필수) - 종목코드
   * Query: `start_date` (string, Optional) - 조회 시작일 (YYYY-MM-DD)
   * Query: `end_date` (string, Optional) - 조회 종료일 (YYYY-MM-DD)
-* **특징:** 오늘 날짜가 조회 기간에 포함될 경우 `stock_ohlcv_current` 데이터가 UNION 되어 반환됨. (change_rate -> fluctuation_rate 로 매핑됨)
+* **특징:** 오늘 날짜가 조회 기간에 포함될 경우 `stock_ohlcv_current` 데이터가 UNION 되어 반환됨. (fluctuation_rate -> fluctuation_rate 로 매핑됨)
 
 ### 9. 실시간 현재가 수집 및 갱신
 * **API명:** 실시간 OHLCV 갱신
