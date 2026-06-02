@@ -6,7 +6,8 @@ from database import (
     Account,
     Stock,
     StockCache,
-    StockOHLCVCache,
+    StockOHLCVCurrent,
+    StockOHLCVDaily,
     Transaction,
     TransactionCash,
 )
@@ -118,21 +119,30 @@ def get_enriched_accounts_data(db: Session) -> dict:
                 purchase_amt = qty * float(stock.avg_price)
             total_tax_fee = 0.0
 
+        current_cache = (
+            db.query(StockOHLCVCurrent)
+            .filter(StockOHLCVCurrent.stock_code == code)
+            .order_by(StockOHLCVCurrent.trade_date.desc())
+            .first()
+        )
         latest_cache = (
-            db.query(StockOHLCVCache)
-            .filter(StockOHLCVCache.stock_code == code)
-            .order_by(StockOHLCVCache.trade_date.desc())
+            db.query(StockOHLCVDaily)
+            .filter(StockOHLCVDaily.stock_code == code)
+            .order_by(StockOHLCVDaily.trade_date.desc())
             .first()
         )
 
         current_price = 0
-        if latest_cache:
+        if current_cache:
+            current_price = current_cache.close_price
+        elif latest_cache:
             current_price = latest_cache.close_price
-            if stock:
-                stock.current_price = current_price
-                db.add(stock)
         elif stock and stock.current_price:
             current_price = stock.current_price
+
+        if stock and stock.current_price != current_price:
+            stock.current_price = current_price
+            db.add(stock)
 
         current_price = int(round(current_price or 0))
 
@@ -309,15 +319,25 @@ def recalculate_portfolio_for_account(db: Session, acc_cd: str):
         if info["quantity"] <= 0:
             continue
 
-        latest_cache = (
-            db.query(StockOHLCVCache)
-            .filter(StockOHLCVCache.stock_code == code)
-            .order_by(StockOHLCVCache.trade_date.desc())
+        current_cache = (
+            db.query(StockOHLCVCurrent)
+            .filter(StockOHLCVCurrent.stock_code == code)
+            .order_by(StockOHLCVCurrent.trade_date.desc())
             .first()
         )
-        current_p = (
-            latest_cache.close_price if latest_cache else int(round(info["avg_price"]))
+        latest_cache = (
+            db.query(StockOHLCVDaily)
+            .filter(StockOHLCVDaily.stock_code == code)
+            .order_by(StockOHLCVDaily.trade_date.desc())
+            .first()
         )
+
+        if current_cache:
+            current_p = current_cache.close_price
+        elif latest_cache:
+            current_p = latest_cache.close_price
+        else:
+            current_p = int(round(info["avg_price"]))
 
         new_stock = Stock(
             stock_code=code,

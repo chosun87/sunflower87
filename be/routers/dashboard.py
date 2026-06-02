@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import Account, SessionLocal, get_db
-from services.daily_balance_service import sync_account_daily_balance
+from services.account_balance_daily_service import sync_account_balance_daily
 from services.dashboard_service import get_dashboard_kpi
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
@@ -14,7 +14,7 @@ def run_daily_sync_bg():
     try:
         accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
         for acc in accounts:
-            sync_account_daily_balance(db, acc.acc_cd)
+            sync_account_balance_daily(db, acc.acc_cd)
     except Exception as e:
         print(f"Background daily sync failed: {e}")
     finally:

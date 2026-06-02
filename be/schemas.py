@@ -262,6 +262,24 @@ class StockOHLCVResponse(BaseModel):
     volume: int
     trading_value: int
     fluctuation_rate: float
+    change_price: int
+    change_price_code: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class StockOHLCVCurrentResponse(BaseModel):
+    stock_code: str
+    trade_date: str
+    open_price: int
+    high_price: int
+    low_price: int
+    close_price: int
+    volume: int
+    change_rate: float
+    change_value: int
+    change_price_code: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -277,6 +295,8 @@ class StockOHLCVCreate(BaseModel):
     volume: int
     trading_value: int = 0
     fluctuation_rate: float = 0.0
+    change_price: int = 0
+    change_price_code: Optional[str] = None
 
 
 class StockOHLCVUpdate(BaseModel):

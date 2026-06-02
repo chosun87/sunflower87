@@ -1,11 +1,10 @@
-from datetime import datetime
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 import schemas
-from database import Stock, StockCache, get_db
+import services.stock_service as stock_service
+from core.responses import success_response
+from database import get_db
 from services.portfolio_service import get_enriched_accounts_data
 
 router = APIRouter(prefix="/api/stocks", tags=["Stock"])
@@ -20,18 +19,13 @@ def get_portfolio(db: Session = Depends(get_db)):
     "/masters", response_model=schemas.ApiResponse[list[schemas.StockCacheResponse]]
 )
 def get_stock_masters(db: Session = Depends(get_db)):
-    masters = db.query(StockCache).filter(StockCache.dt_deleted.is_(None)).all()
-    return {"status": "success", "data": masters}
+    masters = stock_service.get_stock_masters(db)
+    return success_response(masters)
 
 
 @router.get("", response_model=schemas.ApiResponse[list[schemas.StockResponse]])
 def get_stocks(acc_cd: str = None, db: Session = Depends(get_db)):
-    query = db.query(Stock, StockCache.stock_name).outerjoin(
-        StockCache, Stock.stock_code == StockCache.stock_code
-    )
-    if acc_cd:
-        query = query.filter(Stock.acc_cd == acc_cd)
-    results = query.all()
+    results = stock_service.get_stocks(db, acc_cd)
     data = []
     for stock_rec, stock_name in results:
         data.append(
@@ -45,22 +39,14 @@ def get_stocks(acc_cd: str = None, db: Session = Depends(get_db)):
                 purchase_amount=stock_rec.purchase_amount,
             )
         )
-    return {"status": "success", "data": data}
+    return success_response(data)
 
 
 @router.get(
     "/{acc_cd}/{stock_code}", response_model=schemas.ApiResponse[schemas.StockResponse]
 )
 def get_stock(acc_cd: str, stock_code: str, db: Session = Depends(get_db)):
-    result = (
-        db.query(Stock, StockCache.stock_name)
-        .outerjoin(StockCache, Stock.stock_code == StockCache.stock_code)
-        .filter(Stock.acc_cd == acc_cd, Stock.stock_code == stock_code)
-        .first()
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Stock holding not found")
-    stock_rec, stock_name = result
+    stock_rec, stock_name = stock_service.get_stock(db, acc_cd, stock_code)
     data = schemas.StockResponse(
         stock_code=stock_rec.stock_code,
         acc_cd=stock_rec.acc_cd,
@@ -70,32 +56,23 @@ def get_stock(acc_cd: str, stock_code: str, db: Session = Depends(get_db)):
         current_price=stock_rec.current_price,
         purchase_amount=stock_rec.purchase_amount,
     )
-    return {"status": "success", "data": data}
+    return success_response(data)
 
 
 @router.post(
     "", status_code=201, response_model=schemas.ApiResponse[schemas.StockResponse]
 )
 def create_stock(stock: schemas.StockCreate, db: Session = Depends(get_db)):
-    existing = (
-        db.query(Stock)
-        .filter(Stock.acc_cd == stock.acc_cd, Stock.stock_code == stock.stock_code)
-        .first()
+    new_stock = stock_service.create_stock(
+        db,
+        stock.acc_cd,
+        stock.stock_code,
+        stock.quantity,
+        stock.avg_price,
+        stock.current_price,
+        stock.purchase_amount,
     )
-    if existing:
-        raise HTTPException(status_code=400, detail="Stock holding already exists")
-    new_stock = Stock(
-        acc_cd=stock.acc_cd,
-        stock_code=stock.stock_code,
-        quantity=stock.quantity,
-        avg_price=stock.avg_price,
-        current_price=stock.current_price,
-        purchase_amount=stock.purchase_amount,
-    )
-    db.add(new_stock)
-    db.commit()
-    db.refresh(new_stock)
-    return {"status": "success", "data": new_stock}
+    return success_response(new_stock)
 
 
 @router.put("/{acc_cd}/{stock_code}")
@@ -105,72 +82,41 @@ def update_stock(
     stock_data: schemas.StockUpdate,
     db: Session = Depends(get_db),
 ):
-    stock_rec = (
-        db.query(Stock)
-        .filter(Stock.acc_cd == acc_cd, Stock.stock_code == stock_code)
-        .first()
+    updated = stock_service.update_stock(
+        db,
+        acc_cd,
+        stock_code,
+        stock_data.quantity,
+        stock_data.avg_price,
+        stock_data.current_price,
+        stock_data.purchase_amount,
     )
-    if not stock_rec:
-        raise HTTPException(status_code=404, detail="Stock holding not found")
-    if stock_data.quantity is not None:
-        stock_rec.quantity = stock_data.quantity
-    if stock_data.avg_price is not None:
-        stock_rec.avg_price = stock_data.avg_price
-    if stock_data.current_price is not None:
-        stock_rec.current_price = stock_data.current_price
-    if stock_data.purchase_amount is not None:
-        stock_rec.purchase_amount = stock_data.purchase_amount
-    db.commit()
-    db.refresh(stock_rec)
-    return {"status": "success", "data": stock_rec}
+    return success_response(updated)
 
 
 @router.delete("/{acc_cd}/{stock_code}")
 def delete_stock(acc_cd: str, stock_code: str, db: Session = Depends(get_db)):
-    stock_rec = (
-        db.query(Stock)
-        .filter(Stock.acc_cd == acc_cd, Stock.stock_code == stock_code)
-        .first()
-    )
-    if not stock_rec:
-        raise HTTPException(status_code=404, detail="Stock holding not found")
-    db.delete(stock_rec)
-    db.commit()
-    return {"status": "success", "message": "Stock holding record deleted."}
+    stock_service.delete_stock(db, acc_cd, stock_code)
+    return success_response(message="Stock holding record deleted.")
 
 
 @router.get("/search", response_model=schemas.ApiResponse[schemas.StockCacheResponse])
 def search_stocks(keyword: str, db: Session = Depends(get_db)):
-    results = (
-        db.query(StockCache)
-        .filter(
-            StockCache.dt_deleted.is_(None),
-            or_(
-                StockCache.stock_name.like(f"%{keyword}%"),
-                StockCache.stock_code.like(f"%{keyword}%"),
-            ),
-        )
-        .limit(20)
-        .all()
-    )
+    results = stock_service.search_stocks(db, keyword)
+    # The original router wrapped this in {"status": "success", "results": results}
+    # To keep exact backward compatibility with the frontend format:
     return {"status": "success", "results": results}
 
 
 @router.get("/lookup", response_model=dict)
 def lookup_stock(code: str, db: Session = Depends(get_db)):
-    master = (
-        db.query(StockCache)
-        .filter(StockCache.stock_code == code, StockCache.dt_deleted.is_(None))
-        .first()
-    )
-    if master:
-        return {"status": "success", "code": code, "name": master.stock_name}
-    return {"status": "success", "code": code, "name": "알 수 없음"}
+    name = stock_service.lookup_stock(db, code)
+    return {"status": "success", "code": code, "name": name}
 
 
-@router.post("/sync-master")
+@router.post("/sync_master")
 def sync_master(db: Session = Depends(get_db)):
-    return {"status": "success", "message": "종목 마스터 수집이 완료되었습니다."}
+    return success_response(message="종목 마스터 수집이 완료되었습니다.")
 
 
 @router.post(
@@ -179,22 +125,10 @@ def sync_master(db: Session = Depends(get_db)):
     response_model=schemas.ApiResponse[schemas.StockCacheResponse],
 )
 def create_master(master_data: schemas.StockCacheCreate, db: Session = Depends(get_db)):
-    existing = (
-        db.query(StockCache)
-        .filter(StockCache.stock_code == master_data.stock_code)
-        .first()
+    new_master = stock_service.create_master(
+        db, master_data.stock_code, master_data.stock_name, master_data.market
     )
-    if existing:
-        raise HTTPException(status_code=400, detail="Master already exists")
-    new_master = StockCache(
-        stock_code=master_data.stock_code,
-        stock_name=master_data.stock_name,
-        market=master_data.market,
-    )
-    db.add(new_master)
-    db.commit()
-    db.refresh(new_master)
-    return {"status": "success", "data": new_master}
+    return success_response(new_master)
 
 
 @router.put(
@@ -206,31 +140,13 @@ def update_master(
     master_data: schemas.StockCacheUpdate,
     db: Session = Depends(get_db),
 ):
-    master = (
-        db.query(StockCache)
-        .filter(StockCache.stock_code == stock_code, StockCache.dt_deleted.is_(None))
-        .first()
+    updated = stock_service.update_master(
+        db, stock_code, master_data.stock_name, master_data.market
     )
-    if not master:
-        raise HTTPException(status_code=404, detail="Master not found")
-    if master_data.stock_name is not None:
-        master.stock_name = master_data.stock_name
-    if master_data.market is not None:
-        master.market = master_data.market
-    db.commit()
-    db.refresh(master)
-    return {"status": "success", "data": master}
+    return success_response(updated)
 
 
 @router.delete("/master/{stock_code}")
 def delete_master(stock_code: str, db: Session = Depends(get_db)):
-    master = (
-        db.query(StockCache)
-        .filter(StockCache.stock_code == stock_code, StockCache.dt_deleted.is_(None))
-        .first()
-    )
-    if not master:
-        raise HTTPException(status_code=404, detail="Master not found")
-    master.dt_deleted = datetime.utcnow()
-    db.commit()
-    return {"status": "success", "message": "Master stock deleted."}
+    stock_service.delete_master(db, stock_code)
+    return success_response(message="Master stock deleted.")

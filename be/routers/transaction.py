@@ -1,11 +1,12 @@
-from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 import schemas
-from database import Account, StockCache, Transaction, get_db
+import services.transaction_service as transaction_service
+from core.responses import success_response
+from database import get_db
 from services.portfolio_service import recalculate_portfolio_for_account
 
 router = APIRouter(prefix="/api/transactions", tags=["Transaction"])
@@ -20,131 +21,61 @@ def get_transactions(
     limit: int = None,
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(
-            Transaction, StockCache.stock_name, Account.acc_nm, Account.acc_company_nm
-        )
-        .outerjoin(StockCache, Transaction.stock_code == StockCache.stock_code)
-        .outerjoin(Account, Transaction.acc_cd == Account.acc_cd)
-        .filter(Transaction.dt_deleted.is_(None))
+    data = transaction_service.get_transactions(
+        db, acc_cd, stock_code, start_date, end_date, limit
     )
-
-    if acc_cd:
-        query = query.filter(Transaction.acc_cd == acc_cd)
-    if stock_code:
-        query = query.filter(Transaction.stock_code == stock_code)
-    if start_date:
-        query = query.filter(Transaction.dt_trade >= start_date)
-    if end_date:
-        query = query.filter(Transaction.dt_trade <= end_date)
-
-    query = query.order_by(Transaction.dt_trade.desc())
-    if limit is not None:
-        query = query.limit(limit)
-
-    results = query.all()
-    data = []
-    for tx, name, acc_nm, acc_company_nm in results:
-        t_dict = {c.name: getattr(tx, c.name) for c in tx.__table__.columns}
-        t_dict["stock_name"] = name
-        t_dict["acc_nm"] = acc_nm
-        t_dict["acc_company_nm"] = acc_company_nm
-        t_dict["trade_type"] = tx.trade_type
-        data.append(t_dict)
-    return {"status": "success", "data": data}
+    return success_response(data)
 
 
 @router.get("/{id}", response_model=schemas.ApiResponse[schemas.TransactionResponse])
 def get_transaction(id: int, db: Session = Depends(get_db)):
-    tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == id, Transaction.dt_deleted.is_(None))
-        .first()
-    )
-    if not tx:
-        raise HTTPException(404, "Transaction not found")
-    name = (
-        db.query(StockCache.stock_name)
-        .filter(StockCache.stock_code == tx.stock_code)
-        .scalar()
-    )
-    t_dict = {c.name: getattr(tx, c.name) for c in tx.__table__.columns}
-    t_dict["stock_name"] = name
-    return {"status": "success", "data": t_dict}
+    t_dict = transaction_service.get_transaction(db, id)
+    return success_response(t_dict)
 
 
 @router.post(
-    "",
-    status_code=201,
-    response_model=schemas.ApiResponse[schemas.TransactionResponse],
+    "", status_code=201, response_model=schemas.ApiResponse[schemas.TransactionResponse]
 )
 def add_transaction(tx: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    new_tx = Transaction(
-        acc_cd=tx.acc_cd,
-        dt_trade=tx.dt_trade,
-        trade_type=tx.trade_type.value,
-        stock_code=tx.stock_code,
-        quantity=tx.quantity,
-        price=tx.price,
-        tax_fee=tx.tax_fee,
+    new_tx = transaction_service.create_transaction(
+        db,
+        tx.acc_cd,
+        tx.dt_trade,
+        tx.trade_type.value,
+        tx.stock_code,
+        tx.quantity,
+        tx.price,
+        tx.tax_fee,
     )
-    db.add(new_tx)
-    db.commit()
     recalculate_portfolio_for_account(db, tx.acc_cd)
-    return {"status": "success", "data": new_tx}
+    return success_response(new_tx)
 
 
 @router.put("/{id}")
 def update_transaction(
     id: int, tx_update: schemas.TransactionUpdate, db: Session = Depends(get_db)
 ):
-    db_tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == id, Transaction.dt_deleted.is_(None))
-        .first()
+    db_tx, old_acc_cd, new_acc_cd = transaction_service.update_transaction(
+        db,
+        id,
+        tx_update.acc_cd,
+        tx_update.stock_code,
+        tx_update.dt_trade,
+        tx_update.trade_type.value if tx_update.trade_type else None,
+        tx_update.quantity,
+        tx_update.price,
+        tx_update.tax_fee,
     )
-    if not db_tx:
-        raise HTTPException(404, "Transaction not found")
 
-    old_acc_cd = db_tx.acc_cd
-
-    if tx_update.acc_cd is not None:
-        db_tx.acc_cd = tx_update.acc_cd
-    if tx_update.stock_code is not None:
-        db_tx.stock_code = tx_update.stock_code
-    if tx_update.dt_trade:
-        db_tx.dt_trade = tx_update.dt_trade
-    if tx_update.trade_type:
-        db_tx.trade_type = tx_update.trade_type.value
-    if tx_update.quantity is not None:
-        db_tx.quantity = tx_update.quantity
-    if tx_update.price is not None:
-        db_tx.price = tx_update.price
-    if tx_update.tax_fee is not None:
-        db_tx.tax_fee = tx_update.tax_fee
-
-    db.commit()
     recalculate_portfolio_for_account(db, old_acc_cd)
-    if tx_update.acc_cd and tx_update.acc_cd != old_acc_cd:
-        recalculate_portfolio_for_account(db, tx_update.acc_cd)
-    return {"status": "success", "data": db_tx}
+    if new_acc_cd and new_acc_cd != old_acc_cd:
+        recalculate_portfolio_for_account(db, new_acc_cd)
+
+    return success_response(db_tx)
 
 
 @router.delete("/{id}")
 def delete_transaction(id: int, db: Session = Depends(get_db)):
-    db_tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == id, Transaction.dt_deleted.is_(None))
-        .first()
-    )
-    if not db_tx:
-        raise HTTPException(404, "Transaction not found")
-
-    acc_cd = db_tx.acc_cd
-    db_tx.dt_deleted = datetime.utcnow()
-    db.commit()
+    acc_cd = transaction_service.delete_transaction(db, id)
     recalculate_portfolio_for_account(db, acc_cd)
-    return {
-        "status": "success",
-        "message": "Transaction deleted & portfolio rolled back.",
-    }
+    return success_response(message="Transaction deleted & portfolio rolled back.")

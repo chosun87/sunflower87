@@ -10,8 +10,8 @@
 ### 2.1. 데이터베이스 및 백엔드 (BE)
 * **스키마 변경:** `account` 테이블에 계좌 개설일(`dt_opened`) 컬럼 추가 (적용 완료 경로: `db/sunflower87.db`)
 * **마이그레이션 방어:** `migrate.py` 스크립트 실행 시 기존 계좌의 `dt_opened` 데이터가 초기화되지 않고 안전하게 백업 및 복원되도록 패치 적용.
-* **잔고 동기화 API (`/api/accounts/sync_account_daily_balance`):**
-  * 지정된 기간(`start_date`, `end_date`) 내의 기존 `account_daily_balance` 레코드를 삭제 후 거래내역 기반으로 재계산하여 `INSERT`하는 최적화 로직 구현.
+* **잔고 동기화 API (`/api/accounts/sync_balance_daily`):**
+  * 지정된 기간(`start_date`, `end_date`) 내의 기존 `account_balance_daily` 레코드를 삭제 후 거래내역 기반으로 재계산하여 `INSERT`하는 최적화 로직 구현.
   * **하한/상한 방어 로직:** `start_date`가 계좌개설일 이전일 경우 개설일로 보정하고, `end_date`가 오늘/미래일 경우 어제 날짜로 강제 치환하여 데이터 오염을 완벽히 방지함.
 * **내역 조회 API 필터링 버그 수정:**
   * 주식 매매 내역 및 계좌 입출금 내역 조회 시 프론트엔드의 날짜 필터(`start_date`, `end_date`)가 무시되던 버그를 수정하여 정상 필터링 되도록 조치.

@@ -2,10 +2,12 @@ import { useState, useRef } from 'react';
 import { Panel } from 'primereact/panel';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
-import { syncAccountDailyBalance } from '@/api';
+import { Checkbox } from 'primereact/checkbox';
+import { syncAccountBalanceDaily, syncAccountBalanceDailyAll } from '@/api';
 
-export default function SyncDailyBalance() {
+export default function SyncAccountBalanceDaily() {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isAllTime, setIsAllTime] = useState(false);
   const calendarRef = useRef<Calendar>(null);
 
   // Default: start_date is 1 month ago, end_date is yesterday
@@ -29,13 +31,15 @@ export default function SyncDailyBalance() {
   const handleSyncDailyBalance = async () => {
     setIsSyncing(true);
     try {
-      // Format dates to YYYY-MM-DD
-      const start_date = dates && dates[0] ? dates[0].toISOString().split('T')[0] : undefined;
-      const end_date = dates && dates[1] ? dates[1].toISOString().split('T')[0] : undefined;
-
-      const payload = { start_date, end_date };
-
-      const res = await syncAccountDailyBalance(payload);
+      let res;
+      if (isAllTime) {
+        res = await syncAccountBalanceDailyAll();
+      } else {
+        const start_date = dates && dates[0] ? dates[0].toISOString().split('T')[0] : undefined;
+        const end_date = dates && dates[1] ? dates[1].toISOString().split('T')[0] : undefined;
+        const payload = { start_date, end_date };
+        res = await syncAccountBalanceDaily(payload);
+      }
       if (res.status === 'success') {
         alert('모든 계좌의 일일 잔고 동기화가 완료되었습니다.');
         window.dispatchEvent(new Event('market-data-updated'));
@@ -65,9 +69,22 @@ export default function SyncDailyBalance() {
             </p>
 
             <div className="flex flex-column gap-3 mb-4">
+              <div className="flex align-items-center">
+                <Checkbox
+                  inputId="is_all_time"
+                  onChange={(e) => setIsAllTime(e.checked || false)}
+                  checked={isAllTime}
+                ></Checkbox>
+                <label htmlFor="is_all_time" className="ml-2 font-bold cursor-pointer">
+                  전체 기간 동기화
+                </label>
+              </div>
               <div className="flex flex-column gap-2">
-                <label htmlFor="sync_dates">동기화 기간 (기본: 1개월 전 ~ 어제)</label>
+                <label htmlFor="sync_dates" className={isAllTime ? 'text-500' : ''}>
+                  동기화 기간 (기본: 1개월 전 ~ 어제)
+                </label>
                 <Calendar
+                  disabled={isAllTime}
                   ref={calendarRef}
                   id="sync_dates"
                   value={dates as any}

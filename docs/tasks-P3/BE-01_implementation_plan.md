@@ -10,7 +10,7 @@
 
 ### 1단계: DB 모델 전면 개편 (`database.py`)
 - 모든 테이블 단수형 이름(table_name)으로 변경: `account`, `transaction`, `stock`, `stock_cache`, `stock_ohlcv_cache`, `recommendation`.
-- 신규 테이블 추가: `transaction_cash`, `account_daily_balance`.
+- 신규 테이블 추가: `transaction_cash`, `account_balance_daily`.
 - 예약어 필드 `dt_` 접두어로 통합 (e.g. `date` -> `dt_trade`, `type` -> `trade_type`).
 - 3NF 적용: `stock_name`을 `stock_cache`에만 남기고 나머지에서 참조 제거.
 - `stock_ohlcv_cache`에 `trading_value`, `fluctuation_rate` 추가.

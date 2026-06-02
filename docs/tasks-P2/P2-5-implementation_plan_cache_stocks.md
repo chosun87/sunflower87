@@ -13,7 +13,7 @@
 - 기존 `init_db()`는 단순히 세션을 열어 `sync_cache_stocks(db)`를 호출하고 끝내도록 깔끔하게 리팩토링합니다.
 
 #### [MODIFY] be/routers/stocks.py
-- 신규 엔드포인트 **`POST /api/stocks/sync-master`** 를 생성합니다.
+- 신규 엔드포인트 **`POST /api/stocks/sync_master`** 를 생성합니다.
 - 라우터 내부에서 앞서 분리한 `database.sync_stock_masters(db)` 함수를 호출하여 수동 동기화를 즉시 실행하고 결과를 반환하도록 연결합니다.
 
 ### 프런트엔드 (어씨페)
@@ -25,5 +25,5 @@
 
 ## Verification Plan
 1. **백엔드 분리 무결성 검증:** 서버를 껐다 켤 때(`Lifespan` 동작), 이전과 동일하게 마스터 수집 로그(`[sunflower87] Successfully seeded complete KRX stock masters...`)가 정상적으로 콘솔에 출력되는지 확인합니다.
-2. **API 수동 트리거 검증:** Swagger UI 또는 프런트엔드 버튼을 통해 `POST /api/stocks/sync-master`를 호출하고, 200 OK와 함께 백엔드 로그 상에 수집 프로세스가 돌아가는지 확인합니다.
+2. **API 수동 트리거 검증:** Swagger UI 또는 프런트엔드 버튼을 통해 `POST /api/stocks/sync_master`를 호출하고, 200 OK와 함께 백엔드 로그 상에 수집 프로세스가 돌아가는지 확인합니다.
 3. **UX 록(Lock) 검증:** 프런트엔드 버튼 클릭 시 팽글팽글 도는 로딩 애니메이션이 걸리면서 연속 클릭이 막히는지, 그리고 작업 완료 후 Toast 메시지가 잘 노출되는지 시각적으로 테스트합니다.

@@ -2,7 +2,7 @@
 
 본 계획서는 **sunflower87** 프로젝트 리팩토링 중 비즈니스 로직 개편, 파이썬 파일 단수화, 공통 상수 모듈 정의, 비동기 캐싱 성능 개선, 대용량 거래일 버퍼 서빙 및 역할 도메인이 완벽히 격리된 REST API 엔드포인트 세트를 구현하는 백엔드 개발자 전용 명세서입니다.
 
-추가 요건인 **실시간 주가 수집(1분 간격 폴링)**, **계좌별 일자별 잔고 원장(`account_daily_balance`) 정산 공식**, **과거 데이터 변동 시 시계열 전체 강제 재계산(Self-Healing)**, 그리고 **데이터베이스 8개 전체 테이블에 대한 완전한 1:1 대칭형 RESTful CRUD API 명세**가 보강 탑재되었습니다.
+추가 요건인 **실시간 주가 수집(1분 간격 폴링)**, **계좌별 일자별 잔고 원장(`account_balance_daily`) 정산 공식**, **과거 데이터 변동 시 시계열 전체 강제 재계산(Self-Healing)**, 그리고 **데이터베이스 8개 전체 테이블에 대한 완전한 1:1 대칭형 RESTful CRUD API 명세**가 보강 탑재되었습니다.
 
 ---
 
@@ -121,7 +121,7 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 - **`PUT /api/transaction_cash/{id}`** [Update]: 특정 현금 거래 명세 및 금액 수정 및 예수금/일자별 잔고 실시간 재연산
 - **`DELETE /api/transaction_cash/{id}`** [Delete]: 특정 현금 거래 기록 소프트 딜리트 처리 (`dt_deleted` 마킹) 및 예수금/일자별 잔고 실시간 역산 복원
 
-### 🚨 ④ 계좌 일자별 잔고 API (`be/routers/account.py`) - `account_daily_balance` 테이블
+### 🚨 ④ 계좌 일자별 잔고 API (`be/routers/account.py`) - `account_balance_daily` 테이블
 - **`GET /api/account/{acc_cd}/daily-balance`** [Read All]: 계좌별 날짜별 잔고 목록 시계열 조회
 - **`GET /api/account/{acc_cd}/daily-balance/{trade_date}`** [Read One]: 계좌별 특정 날짜의 단일 잔고 스냅샷 조회
 - **`POST /api/account/{acc_cd}/daily-balance`** [Create]: 계좌별 특정 날짜의 커스텀 잔고 스냅샷 강제 생성/주입
@@ -139,7 +139,7 @@ $$\text{예수금} = \text{초기원금} + \sum \text{현금거래(입금/이자
 ### 🏷️ ⑥ 종목 마스터 API (`be/routers/stock.py`) - `stock_cache` 테이블
 - **`GET /api/stock/search`** [Search]: 부분 검색 키워드 기반 동적 종목 초고속 인메모리식 자동완성 검색
 - **`GET /api/stock/lookup`** [Lookup]: 6자리 주식 코드로 한글 종목명 매핑 조회
-- **`POST /api/stock/sync-master`** [Sync]: 수동 종목 마스터 강제 재크롤링 및 로컬 마스터 캐시 최신화
+- **`POST /api/stock/sync_master`** [Sync]: 수동 종목 마스터 강제 재크롤링 및 로컬 마스터 캐시 최신화
 - **`POST /api/stock/master`** [Create]: 커스텀 종목 마스터 레코드 수동 생성
 - **`PUT /api/stock/master/{stock_code}`** [Update]: 커스텀 종목 마스터 정보 수정
 - **`DELETE /api/stock/master/{stock_code}`** [Delete]: 종목 마스터 레코드 소프트 딜리트 (`dt_deleted` 마킹)

@@ -1,20 +1,21 @@
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from pykrx import stock as pykrx_stock
 from sqlalchemy.orm import Session
 
+from clients.krx_client import fetch_market_ohlcv_by_date
 from constants import CashType, TradeType
 from database import (
     Account,
-    AccountDailyBalance,
-    StockOHLCVCache,
+    AccountBalanceDaily,
+    StockOHLCVDaily,
     Transaction,
     TransactionCash,
+    db_write_lock,
 )
 
 
-def sync_account_daily_balance(
+def sync_account_balance_daily(
     db: Session,
     acc_cd: str,
     req_start_date: str = None,
@@ -45,13 +46,14 @@ def sync_account_daily_balance(
     if start_date_str > end_date_str:
         return {"status": "success", "message": "Start date cannot be after end date."}
 
-    # Delete existing records in the range before recalculating
-    db.query(AccountDailyBalance).filter(
-        AccountDailyBalance.acc_cd == acc_cd,
-        AccountDailyBalance.trade_date >= start_date_str,
-        AccountDailyBalance.trade_date <= end_date_str,
-    ).delete(synchronize_session=False)
-    db.commit()
+    with db_write_lock:
+        # Delete existing records in the range before recalculating
+        db.query(AccountBalanceDaily).filter(
+            AccountBalanceDaily.acc_cd == acc_cd,
+            AccountBalanceDaily.trade_date >= start_date_str,
+            AccountBalanceDaily.trade_date <= end_date_str,
+        ).delete(synchronize_session=False)
+        db.commit()
 
     # Note: We still fetch all transactions from the beginning to calculate
     # the correct balance and holdings for the target period.
@@ -62,7 +64,7 @@ def sync_account_daily_balance(
 
     try:
         # Use Samsung Electronics (005930) to get standard KRX trading days
-        df_ref = pykrx_stock.get_market_ohlcv(start_compact, end_compact, "005930")
+        df_ref = fetch_market_ohlcv_by_date(start_compact, end_compact, "005930")
         trading_days = [ts.strftime("%Y-%m-%d") for ts in df_ref.index]
     except Exception as e:
         print(f"Error fetching trading days: {e}")
@@ -95,27 +97,25 @@ def sync_account_daily_balance(
         try:
             # Check if we have prices for this date range
             count = (
-                db.query(StockOHLCVCache)
+                db.query(StockOHLCVDaily)
                 .filter(
-                    StockOHLCVCache.stock_code == code,
-                    StockOHLCVCache.trade_date >= start_date_str,
-                    StockOHLCVCache.trade_date <= end_date_str,
+                    StockOHLCVDaily.stock_code == code,
+                    StockOHLCVDaily.trade_date >= start_date_str,
+                    StockOHLCVDaily.trade_date <= end_date_str,
                 )
                 .count()
             )
             if count < len(trading_days):
-                df_stock = pykrx_stock.get_market_ohlcv(
-                    start_compact, end_compact, code
-                )
+                df_stock = fetch_market_ohlcv_by_date(start_compact, end_compact, code)
                 for ts, row in df_stock.iterrows():
                     t_date_str = ts.strftime("%Y-%m-%d")
                     close_p = int(row["종가"])
                     if close_p > 0:
                         existing = (
-                            db.query(StockOHLCVCache)
+                            db.query(StockOHLCVDaily)
                             .filter(
-                                StockOHLCVCache.stock_code == code,
-                                StockOHLCVCache.trade_date == t_date_str,
+                                StockOHLCVDaily.stock_code == code,
+                                StockOHLCVDaily.trade_date == t_date_str,
                             )
                             .first()
                         )
@@ -123,7 +123,7 @@ def sync_account_daily_balance(
                             existing.close_price = close_p
                         else:
                             db.add(
-                                StockOHLCVCache(
+                                StockOHLCVDaily(
                                     stock_code=code,
                                     trade_date=t_date_str,
                                     close_price=close_p,
@@ -131,9 +131,14 @@ def sync_account_daily_balance(
                                     high_price=int(row["고가"]),
                                     low_price=int(row["저가"]),
                                     volume=int(row["거래량"]),
+                                    trading_value=0,
+                                    fluctuation_rate=float(row.get("등락률", 0.0)),
+                                    change_price=0,
+                                    change_price_code="3",
                                 )
                             )
-                db.commit()
+                with db_write_lock:
+                    db.commit()
         except Exception as e:
             print(f"Failed OHLCV for {code}: {e}")
             db.rollback()
@@ -189,12 +194,12 @@ def sync_account_daily_balance(
             if info["quantity"] <= 0:
                 continue
             latest_cache = (
-                db.query(StockOHLCVCache)
+                db.query(StockOHLCVDaily)
                 .filter(
-                    StockOHLCVCache.stock_code == code,
-                    StockOHLCVCache.trade_date <= t_date,
+                    StockOHLCVDaily.stock_code == code,
+                    StockOHLCVDaily.trade_date <= t_date,
                 )
-                .order_by(StockOHLCVCache.trade_date.desc())
+                .order_by(StockOHLCVDaily.trade_date.desc())
                 .first()
             )
             current_price = latest_cache.close_price if latest_cache else 0
@@ -208,7 +213,7 @@ def sync_account_daily_balance(
             )
 
         new_balances.append(
-            AccountDailyBalance(
+            AccountBalanceDaily(
                 acc_cd=acc_cd,
                 trade_date=t_date,
                 cash_balance=int(round(cash_balance)),
@@ -219,9 +224,10 @@ def sync_account_daily_balance(
         )
 
     if new_balances:
-        for nb in new_balances:
-            db.merge(nb)
-        db.commit()
+        with db_write_lock:
+            for nb in new_balances:
+                db.merge(nb)
+            db.commit()
 
     return {
         "status": "success",

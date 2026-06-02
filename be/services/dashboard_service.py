@@ -3,15 +3,15 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from constants import CashType
-from database import Account, AccountDailyBalance, TransactionCash
+from database import Account, AccountBalanceDaily, TransactionCash
 from services.portfolio_service import get_enriched_accounts_data
 
 
 def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
     unique_dates = (
-        db.query(AccountDailyBalance.trade_date)
+        db.query(AccountBalanceDaily.trade_date)
         .distinct()
-        .order_by(AccountDailyBalance.trade_date.desc())
+        .order_by(AccountBalanceDaily.trade_date.desc())
         .all()
     )
     unique_dates = [d[0] for d in unique_dates]
@@ -42,28 +42,28 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
 
         total_principal += amt
 
-    latest_date = None
-    prev_date = None
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_dt = datetime.now()
+
+    yesterday_date = None
+    for d in unique_dates:
+        if d < today_str:
+            yesterday_date = d
+            break
+
+    first_of_this_month = today_dt.replace(day=1).strftime("%Y-%m-%d")
     prev_month_end_date = None
+    for d in unique_dates:
+        if d < first_of_this_month:
+            prev_month_end_date = d
+            break
+
+    first_of_this_year = today_dt.replace(month=1, day=1).strftime("%Y-%m-%d")
     prev_year_end_date = None
-
-    if unique_dates:
-        latest_date = unique_dates[0]
-        latest_dt = datetime.strptime(latest_date, "%Y-%m-%d")
-
-        if len(unique_dates) > 1:
-            prev_date = unique_dates[1]
-
-        for d in unique_dates[1:]:
-            dt = datetime.strptime(d, "%Y-%m-%d")
-            if dt.year < latest_dt.year or (
-                dt.year == latest_dt.year and dt.month < latest_dt.month
-            ):
-                if not prev_month_end_date:
-                    prev_month_end_date = d
-            if dt.year < latest_dt.year:
-                if not prev_year_end_date:
-                    prev_year_end_date = d
+    for d in unique_dates:
+        if d < first_of_this_year:
+            prev_year_end_date = d
+            break
 
     def get_balance_for_date(target_date_str):
         if not target_date_str:
@@ -74,20 +74,19 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
         total = 0
         for acct in accounts_to_check:
             latest = (
-                db.query(AccountDailyBalance)
+                db.query(AccountBalanceDaily)
                 .filter(
-                    AccountDailyBalance.acc_cd == acct,
-                    AccountDailyBalance.trade_date <= target_date_str,
+                    AccountBalanceDaily.acc_cd == acct,
+                    AccountBalanceDaily.trade_date <= target_date_str,
                 )
-                .order_by(AccountDailyBalance.trade_date.desc())
+                .order_by(AccountBalanceDaily.trade_date.desc())
                 .first()
             )
             if latest:
                 total += latest.total_balance
         return total
 
-    latest_balance = get_balance_for_date(latest_date)
-    prev_balance = get_balance_for_date(prev_date)
+    yesterday_balance = get_balance_for_date(yesterday_date)
     prev_month_balance = get_balance_for_date(prev_month_end_date)
     prev_year_balance = get_balance_for_date(prev_year_end_date)
 
@@ -105,9 +104,11 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
                         net -= tx.amount
         return net
 
-    net_deposit_today = get_net_deposit(prev_date, latest_date)
-    net_deposit_this_month = get_net_deposit(prev_month_end_date, latest_date)
-    net_deposit_this_year = get_net_deposit(prev_year_end_date, latest_date)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    net_deposit_today = get_net_deposit(yesterday_date, today_str)
+    net_deposit_this_month = get_net_deposit(prev_month_end_date, today_str)
+    net_deposit_this_year = get_net_deposit(prev_year_end_date, today_str)
 
     def calc_period(a_start, a_end, net_deposit):
         profit = a_end - a_start - net_deposit
@@ -126,12 +127,14 @@ def get_dashboard_kpi(db: Session, acc_cd: str = None) -> dict:
     return {
         "status": "success",
         "data": {
-            "today": calc_period(prev_balance, latest_balance, net_deposit_today),
+            "today": calc_period(
+                yesterday_balance, current_total_asset, net_deposit_today
+            ),
             "this_month": calc_period(
-                prev_month_balance, latest_balance, net_deposit_this_month
+                prev_month_balance, current_total_asset, net_deposit_this_month
             ),
             "this_year": calc_period(
-                prev_year_balance, latest_balance, net_deposit_this_year
+                prev_year_balance, current_total_asset, net_deposit_this_year
             ),
             "total": {
                 "total_asset": int(round(current_total_asset)),

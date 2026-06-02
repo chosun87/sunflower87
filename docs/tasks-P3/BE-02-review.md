@@ -37,7 +37,7 @@
 - `DELETE /api/stocks/{acc_cd}/{stock_code}` (특정 보유 잔고 삭제) - **개설 필요**
 - `GET /api/stocks/search` (종목명 초고속 인메모리 검색) - **개설 필요**
 - `GET /api/stocks/lookup` (코드로 한글명 조회) - **개설 필요**
-- `POST /api/stocks/sync-master` (수동 마스터 강제 재크롤링) - **개설 필요**
+- `POST /api/stocks/sync_master` (수동 마스터 강제 재크롤링) - **개설 필요**
 - `POST /api/stocks/master` (커스텀 종목 마스터 생성) - **개설 필요**
 - `PUT /api/stocks/master/{stock_code}` (커스텀 마스터 수정) - **개설 필요**
 - `DELETE /api/stocks/master/{stock_code}` (마스터 소프트 딜리트) - **개설 필요**

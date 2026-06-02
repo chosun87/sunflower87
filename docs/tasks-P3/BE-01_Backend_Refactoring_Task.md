@@ -2,7 +2,7 @@
 
 ## 1단계: DB 모델 전면 개편 (`database.py`) - 완료 ✅
 - [x] `database.py` 모델 단수형 명칭 변경 및 컬럼 규격 통일
-- [x] 신규 원장 모델 (`transaction_cash`, `account_daily_balance`) 신설
+- [x] 신규 원장 모델 (`transaction_cash`, `account_balance_daily`) 신설
 - [x] `stock_ohlcv_cache`에 `trading_value`, `fluctuation_rate` 추가 적용
 
 ## 2단계: 안전한 데이터 마이그레이션 (`migrate.py`) - 완료 ✅

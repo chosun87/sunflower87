@@ -19,3 +19,11 @@ class MarketType(str, Enum):
     KOSDAQ = "KOSDAQ"
     KONEX = "KONEX"
     ETF = "ETF"
+
+
+class ChangePriceCode(str, Enum):
+    상한 = "1"
+    상승 = "2"
+    보합 = "3"
+    하한 = "4"
+    하락 = "5"

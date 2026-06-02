@@ -4,8 +4,12 @@ from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from core.exceptions import AppException
+from core.responses import error_response
 
 # 보안 지침: 프로젝트 환경변수 로드
 load_dotenv()
@@ -25,7 +29,9 @@ from routers import (  # noqa: E402
     transaction,
     transaction_cash,
 )
-from services.daily_balance_service import sync_account_daily_balance  # noqa: E402
+from services.account_balance_daily_service import (  # noqa: E402
+    sync_account_balance_daily,
+)
 
 
 def run_midnight_batch():
@@ -35,7 +41,7 @@ def run_midnight_batch():
         accounts = db.query(Account).filter(Account.dt_deleted.is_(None)).all()
         for acc in accounts:
             try:
-                res = sync_account_daily_balance(db, acc.acc_cd)
+                res = sync_account_balance_daily(db, acc.acc_cd)
                 print(f"[Batch] Account {acc.acc_cd}: {res.get('message')}")
             except Exception as e:
                 print(f"[Batch] Error syncing account {acc.acc_cd}: {e}")
@@ -91,6 +97,23 @@ app.include_router(recommendation.router)
 app.include_router(dashboard.router)
 app.include_router(git_task.router)
 app.include_router(setting.router)
+
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response(exc.detail),
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # 로깅 추가 가능
+    return JSONResponse(
+        status_code=500,
+        content=error_response(str(exc)),
+    )
 
 
 if __name__ == "__main__":

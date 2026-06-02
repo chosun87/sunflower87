@@ -57,5 +57,7 @@ export const getStockNameByCode = (code?: string) =>
 export const getDashboardKpi = (acc_cd?: string) =>
   get(`/api/dashboard/kpi${acc_cd ? `?acc_cd=${acc_cd}` : ''}`);
 
-export const syncAccountDailyBalance = (body?: any) =>
-  post('/api/accounts/sync_account_daily_balance', body);
+export const syncAccountBalanceDaily = (body?: any) =>
+  post('/api/accounts/sync_balance_daily', body);
+
+export const syncAccountBalanceDailyAll = () => post('/api/settings/sync_account_balance_daily');

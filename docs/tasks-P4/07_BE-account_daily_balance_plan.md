@@ -1,6 +1,6 @@
 # Account Daily Balance 산출 및 백필(Backfill) 제안
 
-과거부터 현재까지 계좌의 일자별 잔고(`account_daily_balance`)를 생성하고 유지하기 위한 계산 방법 및 아키텍처 제안입니다. 
+과거부터 현재까지 계좌의 일자별 잔고(`account_balance_daily`)를 생성하고 유지하기 위한 계산 방법 및 아키텍처 제안입니다. 
 
 ## 1. 산출 로직 설계 (이벤트 소싱 기반)
 
@@ -23,7 +23,7 @@
     *   `stock_eval_balance` (주식 평가금) = $\sum (\text{보유 수량} \times \text{당일 기준 종가})$
     *   `total_balance` (총 자산) = `current_cash_balance` + `stock_eval_balance`
     *   `return_rate` (수익률) = `(total_balance - total_principal) / total_principal * 100`
-5.  **DB 저장**: 계산된 지표를 `account_daily_balance` 테이블에 `trade_date = D` 로 INSERT/UPDATE 합니다.
+5.  **DB 저장**: 계산된 지표를 `account_balance_daily` 테이블에 `trade_date = D` 로 INSERT/UPDATE 합니다.
 
 ---
 
@@ -33,7 +33,7 @@
 
 *   **배치 스케줄러 (Daily Batch)**: 매일 장 마감 이후 또는 자정(00:00)에 스케줄러(예: APScheduler)가 동작하여 전일자 잔고 스냅샷을 자동으로 생성합니다.
 *   **과거 내역 수정 시 자동 연쇄 계산 (Cascading Recalculation)**: 사용자가 과거의 주식 거래나 입출금 내역을 추가/수정/삭제하는 경우, **해당 거래일자부터 오늘까지의 일간 잔고 스냅샷을 모두 다시 계산(Overwrite)**하도록 이벤트 핸들러를 추가합니다.
-*   **Lazy Loading (접속 시 검증)**: 대시보드 진입 시, 어제 일자의 `account_daily_balance` 레코드가 없다면 즉시 어제까지의 계산 로직을 백그라운드로 돌리거나 동기적으로 돌려 누락을 방지합니다.
+*   **Lazy Loading (접속 시 검증)**: 대시보드 진입 시, 어제 일자의 `account_balance_daily` 레코드가 없다면 즉시 어제까지의 계산 로직을 백그라운드로 돌리거나 동기적으로 돌려 누락을 방지합니다.
 
 ---
 

@@ -37,7 +37,7 @@
 - `DELETE /api/stocks/{acc_cd}/{stock_code}` - **개설 필요**
 - `GET /api/stocks/search` - **개설 필요**
 - `GET /api/stocks/lookup` - **개설 필요**
-- `POST /api/stocks/sync-master` - **개설 필요**
+- `POST /api/stocks/sync_master` - **개설 필요**
 - `POST /api/stocks/master` - **개설 필요**
 - `PUT /api/stocks/master/{stock_code}` - **개설 필요**
 - `DELETE /api/stocks/master/{stock_code}` - **개설 필요**

@@ -1,246 +1,209 @@
 from datetime import datetime, timedelta
 
+import pandas as pd
 from sqlalchemy.orm import Session
 
-from config import DATA_GAP_THRESHOLD, TRADE_DATE_PERIOD
-from database import StockOHLCVCache
-
-
-def get_exact_trade_date_limits(target_period=60):
-    now = datetime.today()
-    current_hour = now.hour
-
-    if current_hour >= 16:
-        target_end_str = now.strftime("%Y%m%d")
-    else:
-        target_end_str = (now - timedelta(days=1)).strftime("%Y%m%d")
-
-    safe_start_str = (now - timedelta(days=120)).strftime("%Y%m%d")
-    actual_trade_dates = []
-
-    try:
-        from pykrx import stock as krx_stock
-
-        df_market = krx_stock.get_market_ohlcv_by_date(
-            safe_start_str, target_end_str, "KOSPI"
-        )
-        if df_market is None or df_market.empty:
-            raise ValueError("Empty df")
-        actual_trade_dates = df_market.index.strftime("%Y%m%d").tolist()
-    except Exception:
-        try:
-            df_market = krx_stock.get_market_ohlcv_by_date(
-                safe_start_str, target_end_str, "005930"
-            )
-            if df_market is not None and not df_market.empty:
-                actual_trade_dates = df_market.index.strftime("%Y%m%d").tolist()
-        except Exception as e:
-            print(f"[WARNING] Failed to fetch market limits: {e}")
-
-    if actual_trade_dates:
-        valid_dates = actual_trade_dates[-target_period:]
-        if valid_dates:
-            return valid_dates[0], valid_dates[-1]
-
-    safe_fallback_start = (now - timedelta(days=int(target_period * 1.5))).strftime(
-        "%Y%m%d"
-    )
-    return safe_fallback_start, target_end_str
-
-
-def get_market_trade_dates(start_date_str: str, end_date_str: str) -> list:
-    try:
-        from pykrx import stock as krx_stock
-
-        df_market = krx_stock.get_market_ohlcv_by_date(
-            start_date_str, end_date_str, "005930"
-        )
-        if df_market is not None and not df_market.empty:
-            return df_market.index.strftime("%Y%m%d").tolist()
-    except Exception as e:
-        print(f"[WARNING] Failed to fetch market calendar dates: {e}")
-    return []
+import config
+from clients.krx_client import fetch_market_ohlcv_by_date, get_exact_trade_dates
+from clients.naver_client import fetch_realtime_price
+from constants import ChangePriceCode
+from database import StockOHLCVCurrent, StockOHLCVDaily, db_write_lock
 
 
 def _save_ohlcv_to_db(db: Session, stock_code: str, df):
     if df is None or df.empty:
         return
 
-    import math
+    col_open = next((c for c in df.columns if "시가" in str(c)), "시가")
+    col_high = next((c for c in df.columns if "고가" in str(c)), "고가")
+    col_low = next((c for c in df.columns if "저가" in str(c)), "저가")
+    col_close = next((c for c in df.columns if "종가" in str(c)), "종가")
+    col_volume = next((c for c in df.columns if "거래량" in str(c)), "거래량")
+    col_trading_value = next(
+        (c for c in df.columns if "거래대금" in str(c)), "거래대금"
+    )
+    col_fluctuation = next((c for c in df.columns if "등락률" in str(c)), "등락률")
 
-    import pandas as pd
+    now = datetime.utcnow()
 
-    # 컬럼 이름의 공백 등 변동성에 대비해 실제 컬럼명을 탐색
-    col_trading_value = next((c for c in df.columns if "거래대금" in str(c)), None)
-    col_fluctuation = next((c for c in df.columns if "등락률" in str(c)), None)
-
-    for date, row in df.iterrows():
-        trade_date = date.strftime("%Y-%m-%d")
-        existing = (
-            db.query(StockOHLCVCache)
-            .filter(
-                StockOHLCVCache.stock_code == stock_code,
-                StockOHLCVCache.trade_date == trade_date,
-            )
-            .first()
+    for idx, row in df.iterrows():
+        trade_date = idx.strftime("%Y-%m-%d")
+        f_rate = float(
+            row.get(col_fluctuation, 0.0)
+            if pd.notna(row.get(col_fluctuation, 0.0))
+            else 0.0
         )
 
-        if not existing:
-            # 거래대금: 값이 없거나 NaN이면 종가 * 거래량으로 근사치 계산
-            t_val = 0
-            if col_trading_value:
-                raw_t_val = row.get(col_trading_value)
-                if pd.notna(raw_t_val):
-                    t_val = int(raw_t_val)
-
-            close_p = int(row.get("종가", 0) if pd.notna(row.get("종가", 0)) else 0)
-            vol = int(row.get("거래량", 0) if pd.notna(row.get("거래량", 0)) else 0)
-
-            if t_val == 0:
-                t_val = close_p * vol
-
-            # 등락률: 값이 없거나 NaN이면 0.0
-            f_rate = 0.0
-            if col_fluctuation:
-                raw_f_rate = row.get(col_fluctuation)
-                if pd.notna(raw_f_rate):
-                    f_rate = float(raw_f_rate)
-                    if math.isnan(f_rate):
-                        f_rate = 0.0
-
-            cache_entry = StockOHLCVCache(
-                stock_code=stock_code,
-                trade_date=trade_date,
-                open_price=int(
-                    row.get("시가", 0) if pd.notna(row.get("시가", 0)) else 0
-                ),
-                high_price=int(
-                    row.get("고가", 0) if pd.notna(row.get("고가", 0)) else 0
-                ),
-                low_price=int(
-                    row.get("저가", 0) if pd.notna(row.get("저가", 0)) else 0
-                ),
-                close_price=close_p,
-                volume=vol,
-                trading_value=t_val,
-                fluctuation_rate=f_rate,
+        if f_rate > 0:
+            c_p_code = (
+                ChangePriceCode.상한.value
+                if f_rate >= 29.5
+                else ChangePriceCode.상승.value
             )
-            db.add(cache_entry)
+        elif f_rate < 0:
+            c_p_code = (
+                ChangePriceCode.하한.value
+                if f_rate <= -29.5
+                else ChangePriceCode.하락.value
+            )
+        else:
+            c_p_code = ChangePriceCode.보합.value
+
+        ohlcv = StockOHLCVDaily(
+            stock_code=stock_code,
+            trade_date=trade_date,
+            open_price=int(
+                row.get(col_open, 0) if pd.notna(row.get(col_open, 0)) else 0
+            ),
+            high_price=int(
+                row.get(col_high, 0) if pd.notna(row.get(col_high, 0)) else 0
+            ),
+            low_price=int(row.get(col_low, 0) if pd.notna(row.get(col_low, 0)) else 0),
+            close_price=int(
+                row.get(col_close, 0) if pd.notna(row.get(col_close, 0)) else 0
+            ),
+            volume=int(
+                row.get(col_volume, 0) if pd.notna(row.get(col_volume, 0)) else 0
+            ),
+            trading_value=int(
+                row.get(col_trading_value, 0)
+                if pd.notna(row.get(col_trading_value, 0))
+                else 0
+            ),
+            fluctuation_rate=f_rate,
+            change_price=0,
+            change_price_code=c_p_code,
+            dt_updated=now,
+        )
+        db.merge(ohlcv)
     db.commit()
 
 
-def _fetch_and_save_initial_ohlcv(db: Session, stock_code: str):
-    start_str, end_str = get_exact_trade_date_limits(TRADE_DATE_PERIOD)
-    from pykrx import stock as krx_stock
-
-    df = krx_stock.get_market_ohlcv_by_date(start_str, end_str, stock_code)
-    if df is not None and not df.empty:
-        _save_ohlcv_to_db(db, stock_code, df)
-
-
-def sync_ohlcv_cache(
-    db: Session, stock_code: str, start_date: str = None, end_date: str = None
+def fetch_and_fill_ohlcv_gap(
+    db: Session, stock_code: str, start_date_str: str, end_date_str: str
 ):
-    today = datetime.now()
-    current_hour = today.hour
-
-    if not end_date:
-        if current_hour >= 16:
-            target_end_str = today.strftime("%Y%m%d")
-        else:
-            target_end_str = (today - timedelta(days=1)).strftime("%Y%m%d")
-    else:
-        target_end_str = end_date.replace("-", "")
-
+    """지정된 기간 동안의 pykrx 데이터를 가져와 DB에 채웁니다."""
     try:
-        last_cache = (
-            db.query(StockOHLCVCache)
-            .filter(StockOHLCVCache.stock_code == stock_code)
-            .order_by(StockOHLCVCache.trade_date.desc())
-            .first()
-        )
-        first_cache = (
-            db.query(StockOHLCVCache)
-            .filter(StockOHLCVCache.stock_code == stock_code)
-            .order_by(StockOHLCVCache.trade_date.asc())
-            .first()
-        )
-
-        if not last_cache or not first_cache:
-            if start_date:
-                req_start_obj = datetime.strptime(start_date.replace("-", ""), "%Y%m%d")
-                safe_start_str = (req_start_obj - timedelta(days=120)).strftime(
-                    "%Y%m%d"
-                )
-                from pykrx import stock as krx_stock
-
-                df_init = krx_stock.get_market_ohlcv_by_date(
-                    safe_start_str, target_end_str, stock_code
-                )
-                if df_init is not None and not df_init.empty:
-                    _save_ohlcv_to_db(db, stock_code, df_init)
-            else:
-                _fetch_and_save_initial_ohlcv(db, stock_code)
-            return
-
-        last_date_str = last_cache.trade_date.replace("-", "")
-        first_date_str = first_cache.trade_date.replace("-", "")
-
-        if start_date:
-            req_start_str = start_date.replace("-", "")
-            req_start_obj = datetime.strptime(req_start_str, "%Y%m%d")
-            safe_start_str = (req_start_obj - timedelta(days=120)).strftime("%Y%m%d")
-
-            if safe_start_str < first_date_str:
-                from pykrx import stock as krx_stock
-
-                h_end_obj = datetime.strptime(first_date_str, "%Y%m%d") - timedelta(
-                    days=1
-                )
-                h_end_str = h_end_obj.strftime("%Y%m%d")
-                if safe_start_str <= h_end_str:
-                    df_hist = krx_stock.get_market_ohlcv_by_date(
-                        safe_start_str, h_end_str, stock_code
-                    )
-                    if df_hist is not None and not df_hist.empty:
-                        _save_ohlcv_to_db(db, stock_code, df_hist)
-
-        if last_date_str < target_end_str:
-            trade_dates = get_market_trade_dates(last_date_str, target_end_str)
-            gap_trade_days = len([d for d in trade_dates if d > last_date_str])
-
-            if 0 < gap_trade_days <= DATA_GAP_THRESHOLD:
-                last_date_obj = datetime.strptime(last_date_str, "%Y%m%d")
-                m_start_str = (last_date_obj + timedelta(days=1)).strftime("%Y%m%d")
-                if m_start_str <= target_end_str:
-                    from pykrx import stock as krx_stock
-
-                    df_gap = krx_stock.get_market_ohlcv_by_date(
-                        m_start_str, target_end_str, stock_code
-                    )
-                    if df_gap is not None and not df_gap.empty:
-                        _save_ohlcv_to_db(db, stock_code, df_gap)
-            elif gap_trade_days > DATA_GAP_THRESHOLD:
-                db.query(StockOHLCVCache).filter(
-                    StockOHLCVCache.stock_code == stock_code
-                ).delete()
-                db.commit()
-                if start_date:
-                    req_start_obj = datetime.strptime(
-                        start_date.replace("-", ""), "%Y%m%d"
-                    )
-                    safe_start_str = (req_start_obj - timedelta(days=120)).strftime(
-                        "%Y%m%d"
-                    )
-                    from pykrx import stock as krx_stock
-
-                    df_init = krx_stock.get_market_ohlcv_by_date(
-                        safe_start_str, target_end_str, stock_code
-                    )
-                    if df_init is not None and not df_init.empty:
-                        _save_ohlcv_to_db(db, stock_code, df_init)
-                else:
-                    _fetch_and_save_initial_ohlcv(db, stock_code)
-
+        df = fetch_market_ohlcv_by_date(start_date_str, end_date_str, stock_code)
+        if df is not None and not df.empty:
+            _save_ohlcv_to_db(db, stock_code, df)
     except Exception as e:
-        print(f"[ERROR] Failed to sync OHLCV cache for {stock_code}: {e}")
+        print(
+            f"[ERROR] Failed to fetch gap for {stock_code} ({start_date_str}~{end_date_str}): {e}"
+        )
+
+
+def sync_owned_stocks_gap(
+    db: Session, stocks: list, target_days: int = config.DATA_GAP_THRESHOLD
+):
+    """
+    로그인 시 등에 호출되어, 보유 중인 종목들에 대해 과거 N일간의 갭을 채웁니다.
+    """
+    if not stocks:
+        return
+
+    today_str = datetime.now().strftime("%Y%m%d")
+    exact_dates = get_exact_trade_dates(today_str, target_days)
+    if not exact_dates:
+        return
+
+    target_start_str = exact_dates[0]
+    target_end_str = exact_dates[-1]
+
+    unique_codes = list(set([s.stock_code for s in stocks]))
+
+    for code in unique_codes:
+        first_cache = (
+            db.query(StockOHLCVDaily)
+            .filter(StockOHLCVDaily.stock_code == code)
+            .order_by(StockOHLCVDaily.trade_date.asc())
+            .first()
+        )
+        last_cache = (
+            db.query(StockOHLCVDaily)
+            .filter(StockOHLCVDaily.stock_code == code)
+            .order_by(StockOHLCVDaily.trade_date.desc())
+            .first()
+        )
+
+        if not first_cache or not last_cache:
+            fetch_and_fill_ohlcv_gap(db, code, target_start_str, target_end_str)
+            continue
+
+        first_db_str = first_cache.trade_date.replace("-", "")
+        last_db_str = last_cache.trade_date.replace("-", "")
+
+        # 1. 과거 갭 채우기
+        if first_db_str > target_start_str:
+            gap_end_obj = datetime.strptime(first_db_str, "%Y%m%d") - timedelta(days=1)
+            gap_end_str = gap_end_obj.strftime("%Y%m%d")
+            if gap_end_str >= target_start_str:
+                fetch_and_fill_ohlcv_gap(db, code, target_start_str, gap_end_str)
+
+        # 2. 미래(최근) 갭 채우기
+        if last_db_str < target_end_str:
+            gap_start_obj = datetime.strptime(last_db_str, "%Y%m%d") + timedelta(days=1)
+            gap_start_str = gap_start_obj.strftime("%Y%m%d")
+            if gap_start_str <= target_end_str:
+                fetch_and_fill_ohlcv_gap(db, code, gap_start_str, target_end_str)
+
+
+def _upsert_stock_ohlcv_current(db: Session, code: str, today_str: str, fields: dict):
+    current_ohlcv = (
+        db.query(StockOHLCVCurrent)
+        .filter(
+            StockOHLCVCurrent.stock_code == code,
+            StockOHLCVCurrent.trade_date == today_str,
+        )
+        .first()
+    )
+
+    now = datetime.utcnow()
+    if current_ohlcv:
+        for k, v in fields.items():
+            setattr(current_ohlcv, k, v)
+        current_ohlcv.dt_updated = now
+    else:
+        new_current = StockOHLCVCurrent(
+            stock_code=code, trade_date=today_str, dt_updated=now, **fields
+        )
+        db.add(new_current)
+
+
+def sync_current_ohlcv(db: Session, stocks: list) -> dict:
+    if not stocks:
+        return {"polling_interval": 60000, "updated": []}
+
+    unique_codes = list(set([s.stock_code for s in stocks]))
+    updated = []
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    dynamic_interval = 60000
+
+    with db_write_lock:
+        try:
+            for code in unique_codes:
+                data = fetch_realtime_price(code)
+                dynamic_interval = data.get("polling_interval", dynamic_interval)
+                fields = data.get("fields")
+
+                if not fields:
+                    continue
+
+                new_price = fields["close_price"]
+
+                for stock in stocks:
+                    if stock.stock_code == code:
+                        if stock.current_price != new_price:
+                            stock.current_price = new_price
+                            updated.append({"stock_code": code, "new_price": new_price})
+
+                _upsert_stock_ohlcv_current(db, code, today_str, fields)
+
+            db.commit()
+            return {
+                "polling_interval": dynamic_interval,
+                "updated": updated,
+            }
+        except Exception as e:
+            db.rollback()
+            raise Exception(f"Failed to fetch realtime prices: {str(e)}")

@@ -37,3 +37,17 @@ export const MARKET_TYPE_OPTIONS = Object.values(MARKET_TYPE).map((item) => ({
   label: item.label,
   value: item.code,
 }));
+
+// 주가 변동 상태 코드 (Change Price Code)
+export const CHANGE_PRICE_CODE = {
+  UPPER_LIMIT: { code: '1', label: '상한', color: 'text-red-500' },
+  RISING: { code: '2', label: '상승', color: 'text-red-500' },
+  UNCHANGED: { code: '3', label: '보합', color: 'text-gray-500' },
+  LOWER_LIMIT: { code: '4', label: '하한', color: 'text-blue-500' },
+  FALLING: { code: '5', label: '하락', color: 'text-blue-500' },
+} as const;
+
+export const CHANGE_PRICE_CODE_OPTIONS = Object.values(CHANGE_PRICE_CODE).map((item) => ({
+  label: item.label,
+  value: item.code,
+}));

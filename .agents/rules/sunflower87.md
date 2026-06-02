@@ -10,7 +10,9 @@ trigger: always_on
   5) FE개발자_React agent
   6) QA테스터 agent
 
-2. UI Framework
+2. BackEnd
+
+3. UI Framework
   * PrimeReact + PrimeFlex (Not Tailwind)
   * 기본 html tag를 사용하기 보단 PrimeReact의 컴포넌트를 최대한 적용할 것.
   * locale="ko"를 적용할 것.

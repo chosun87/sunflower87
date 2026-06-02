@@ -51,7 +51,7 @@
     1.  `account` [계좌 마스터]
     2.  `transaction` [주식 매매 내역]
     3.  `transaction_cash` [현금 입출금/이자/배당 원장]
-    4.  `account_daily_balance` [일자별 잔고 스냅샷]
+    4.  `account_balance_daily` [일자별 잔고 스냅샷]
     5.  `stock` [보유 자산 실시간 잔고]
     6.  `stock_cache` [종목 검색 마스터 딕셔너리]
     7.  `stock_ohlcv_cache` [주가 시고저종 캐시]

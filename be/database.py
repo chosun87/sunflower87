@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -13,6 +14,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+# 전역 SQLite 쓰기 잠금 (동시성 데드락 방지용)
+db_write_lock = threading.Lock()
+
 # 보안 지침: 환경변수 로드
 load_dotenv()
 
@@ -26,7 +30,10 @@ else:
     DATABASE_URL = env_db_url
 
 # 커넥션 풀 및 엔진 생성
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 15}
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -82,10 +89,10 @@ class TransactionCash(Base):
     dt_deleted = Column(DateTime, nullable=True)
 
 
-class AccountDailyBalance(Base):
-    """계좌별 일자별 잔고 (account_daily_balance) 테이블 모델"""
+class AccountBalanceDaily(Base):
+    """계좌별 일자별 잔고 (account_balance_daily) 테이블 모델"""
 
-    __tablename__ = "account_daily_balance"
+    __tablename__ = "account_balance_daily"
 
     acc_cd = Column(String, ForeignKey("account.acc_cd"), primary_key=True)
     trade_date = Column(String, primary_key=True)  # YYYY-MM-DD
@@ -120,10 +127,10 @@ class StockCache(Base):
     dt_deleted = Column(DateTime, nullable=True)
 
 
-class StockOHLCVCache(Base):
-    """시고저종(OHLCV) 주가 캐시용 (stock_ohlcv_cache) 테이블 모델"""
+class StockOHLCVDaily(Base):
+    """시고저종(OHLCV) 일별 주가 (stock_ohlcv_daily) 테이블 모델"""
 
-    __tablename__ = "stock_ohlcv_cache"
+    __tablename__ = "stock_ohlcv_daily"
 
     stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
     trade_date = Column(String, primary_key=True)  # YYYY-MM-DD
@@ -132,8 +139,31 @@ class StockOHLCVCache(Base):
     low_price = Column(Integer, nullable=False)
     close_price = Column(Integer, nullable=False)
     volume = Column(Integer, nullable=False)
-    trading_value = Column(Integer, nullable=False, default=0)  # 거래대금 신설
-    fluctuation_rate = Column(Float, nullable=False, default=0.0)  # 등락률 신설
+    trading_value = Column(Integer, nullable=False, default=0)
+    fluctuation_rate = Column(Float, nullable=False, default=0.0)
+    change_price = Column(Integer, nullable=False, default=0)
+    change_price_code = Column(String, nullable=True)
+    dt_updated = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class StockOHLCVCurrent(Base):
+    """실시간 시고저종(OHLCV) 주가 (stock_ohlcv_current) 테이블 모델"""
+
+    __tablename__ = "stock_ohlcv_current"
+
+    stock_code = Column(String, ForeignKey("stock_cache.stock_code"), primary_key=True)
+    trade_date = Column(String, primary_key=True)  # YYYY-MM-DD (보통 오늘 날짜)
+    open_price = Column(Integer, nullable=False)
+    high_price = Column(Integer, nullable=False)
+    low_price = Column(Integer, nullable=False)
+    close_price = Column(Integer, nullable=False)
+    volume = Column(Integer, nullable=False)
+    change_rate = Column(Float, nullable=False, default=0.0)  # cr (등락률)
+    change_value = Column(Integer, nullable=False, default=0)  # cv (대비/전일비)
+    change_price_code = Column(
+        String, nullable=True
+    )  # 1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락
+    dt_updated = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Recommendation(Base):
